@@ -22,6 +22,8 @@ interface StackItem {
 }
 
 const Index = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [authView, setAuthView] = useState<"login" | "register">("login");
   const [tab, setTab] = useState("home");
   const [stack, setStack] = useState<StackItem[]>([]);
 
