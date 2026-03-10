@@ -76,7 +76,8 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
       {pitchTarget && (
         <div className="fixed inset-0 z-[200]">
           <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setPitchTarget(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-[20px] p-5 pb-9 shadow-2xl max-w-[390px] mx-auto">
+          <div className="absolute inset-0 flex items-center justify-center p-5">
+          <div className="bg-card rounded-[20px] p-5 shadow-2xl w-full max-w-[350px]">
             <div className="w-9 h-1 rounded-full bg-border mx-auto mb-4" />
             <p className="text-base font-black text-foreground mb-1">Pitch to {pitchTarget.name}</p>
             <p className="text-xs text-text-light mb-3.5">Your media kit will be auto-attached</p>
