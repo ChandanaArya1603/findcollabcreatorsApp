@@ -8,9 +8,10 @@ import { Icon } from "../findcollab/Icon";
 
 interface HomeScreenProps {
   push: (screen: string, data?: any) => void;
+  switchTab?: (tab: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ push }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
   const mx = Math.max(...bars);
   const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
@@ -113,7 +114,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push }) => {
           {actions.map((a) => (
             <button
               key={a.id}
-              onClick={() => push(a.id)}
+              onClick={() => a.id === "wallet" && switchTab ? switchTab("wallet") : push(a.id)}
               className="bg-card border border-border rounded-[14px] py-3 px-2 flex flex-col items-center gap-1.5 cursor-pointer"
             >
               <div className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center">

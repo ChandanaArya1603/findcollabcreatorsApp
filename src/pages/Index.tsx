@@ -32,7 +32,7 @@ const Index = () => {
 
   const renderMain = () => {
     switch (tab) {
-      case "home": return <HomeScreen push={push} />;
+      case "home": return <HomeScreen push={push} switchTab={handleTabChange} />;
       case "campaigns": return <CampaignsScreen push={push} />;
       case "wallet": return <WalletScreen />;
       case "profile": return <ProfileScreen push={push} />;
