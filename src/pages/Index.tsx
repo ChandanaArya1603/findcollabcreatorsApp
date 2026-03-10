@@ -10,6 +10,7 @@ import OfferDetail from "@/components/screens/OfferDetail";
 import StartupsScreen from "@/components/screens/StartupsScreen";
 import MessagesScreen from "@/components/screens/MessagesScreen";
 import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
+import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 
 interface StackItem {
