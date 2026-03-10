@@ -57,7 +57,16 @@ class ApiClient {
     }
 
     const res = await fetch(`${BASE_URL}${endpoint}`, config);
-    const json = await res.json();
+    const text = await res.text();
+
+    // The server sometimes prepends HTML error output before the JSON payload.
+    // Extract the JSON portion so parsing doesn't break.
+    const jsonStart = text.indexOf("{");
+    if (jsonStart === -1) {
+      throw new Error(`Request failed (${res.status})`);
+    }
+
+    const json = JSON.parse(text.slice(jsonStart));
 
     if (!res.ok || json?.data?.status === false) {
       throw new Error(json?.data?.message || `Request failed (${res.status})`);
