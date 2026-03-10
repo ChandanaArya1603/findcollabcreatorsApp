@@ -1,0 +1,9 @@
+{
+  "appId": "app.lovable.3477ef994d4745dfaa31a1f662acc020",
+  "appName": "Findcollab",
+  "webDir": "dist",
+  "server": {
+    "url": "https://3477ef99-4d47-45df-aa31-a1f662acc020.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  }
+}
