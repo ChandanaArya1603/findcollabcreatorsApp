@@ -37,6 +37,12 @@ const MessagesScreen: React.FC<Props> = ({ onBack }) => {
         ))}
       </div>
       <div className="px-3 py-2.5 bg-card border-t border-border flex gap-2 items-center shrink-0">
+        <button
+          className="w-[42px] h-[42px] rounded-xl bg-muted border-none flex items-center justify-center cursor-pointer shrink-0"
+          onClick={() => {/* attach handler */}}
+        >
+          <Icon name="attach" size={18} className="text-text-mid" />
+        </button>
         <input
           value={msg}
           onChange={(e) => setMsg(e.target.value)}
@@ -45,7 +51,7 @@ const MessagesScreen: React.FC<Props> = ({ onBack }) => {
         />
         <button
           onClick={() => setMsg("")}
-          className="w-[42px] h-[42px] rounded-xl bg-primary border-none flex items-center justify-center cursor-pointer"
+          className="w-[42px] h-[42px] rounded-xl bg-primary border-none flex items-center justify-center cursor-pointer shrink-0"
         >
           <Icon name="send" size={17} className="text-primary-foreground" />
         </button>

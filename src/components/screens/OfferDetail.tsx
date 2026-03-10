@@ -12,7 +12,12 @@ interface Props {
 }
 
 const OfferDetail: React.FC<Props> = ({ offer: o, onBack }) => {
-  const [link, setLink] = useState("");
+  const [approvalLink, setApprovalLink] = useState("");
+  const [approvalSubmitted, setApprovalSubmitted] = useState(false);
+  const [liveLink, setLiveLink] = useState("");
+  const [liveSubmitted, setLiveSubmitted] = useState(false);
+
+  const isApproved = o.sc === "green";
 
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5">
@@ -42,9 +47,46 @@ const OfferDetail: React.FC<Props> = ({ offer: o, onBack }) => {
           </div>
         </Card>
 
-        {o.sc === "green" && (
+        {/* Submit Link for Approval */}
+        <Card>
+          <p className="text-sm font-extrabold text-foreground mb-1">Submit Link for Approval</p>
+          <p className="text-[11px] text-text-light mb-3">Submit your content link for brand review before publishing</p>
+          {approvalSubmitted ? (
+            <div className="py-2.5 px-3 bg-warning/10 rounded-[10px] border border-warning/20">
+              <p className="text-[13px] text-warning font-semibold">⏳ Pending Approval</p>
+              <p className="text-[11px] text-text-mid mt-1 break-all">{approvalLink}</p>
+            </div>
+          ) : (
+            <>
+              <AppInput label="Content URL" value={approvalLink} onChange={setApprovalLink} placeholder="https://drive.google.com/…" />
+              <AppButton full icon="send" className="mt-3" onClick={() => { if (approvalLink.trim()) setApprovalSubmitted(true); }}>Submit for Approval</AppButton>
+            </>
+          )}
+        </Card>
+
+        {/* Submit Live Link — only after approval */}
+        {isApproved && (
           <Card className="!bg-success/5 !border-success/20">
-            <p className="text-[13px] font-extrabold text-success mb-2">✅ Live Performance</p>
+            <p className="text-sm font-extrabold text-success mb-1">✅ Content Approved</p>
+            <p className="text-[11px] text-text-light mb-3">Your content has been approved. Submit the live published link below.</p>
+            {liveSubmitted ? (
+              <div className="py-2.5 px-3 bg-success/10 rounded-[10px] border border-success/20">
+                <p className="text-[13px] text-success font-semibold">🔗 Live Link Submitted</p>
+                <p className="text-[11px] text-text-mid mt-1 break-all">{liveLink}</p>
+              </div>
+            ) : (
+              <>
+                <AppInput label="Live URL" value={liveLink} onChange={setLiveLink} placeholder="https://instagram.com/reel/…" />
+                <AppButton full icon="send" className="mt-3" onClick={() => { if (liveLink.trim()) setLiveSubmitted(true); }}>Submit Live Link</AppButton>
+              </>
+            )}
+          </Card>
+        )}
+
+        {/* Live Performance — show for approved offers */}
+        {isApproved && (
+          <Card className="!bg-success/5 !border-success/20">
+            <p className="text-[13px] font-extrabold text-success mb-2">📊 Live Performance</p>
             <p className="text-[11px] text-primary mb-2">🔗 instagram.com/reel/DFU4nHJSnaw/</p>
             <div className="grid grid-cols-3 gap-2">
               {[["Views", "10.4K"], ["Likes", "197"], ["Comments", "11"]].map(([l, v]) => (
@@ -56,12 +98,6 @@ const OfferDetail: React.FC<Props> = ({ offer: o, onBack }) => {
             </div>
           </Card>
         )}
-
-        <Card>
-          <p className="text-sm font-extrabold text-foreground mb-3">Submit Content Link</p>
-          <AppInput label="Deliverable URL" value={link} onChange={setLink} placeholder="https://instagram.com/reel/…" />
-          <AppButton full icon="send" className="mt-3">Submit Deliverable</AppButton>
-        </Card>
       </div>
     </div>
   );

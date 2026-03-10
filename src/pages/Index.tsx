@@ -10,6 +10,7 @@ import OfferDetail from "@/components/screens/OfferDetail";
 import StartupsScreen from "@/components/screens/StartupsScreen";
 import MessagesScreen from "@/components/screens/MessagesScreen";
 import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
+import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 
 interface StackItem {
@@ -57,6 +58,7 @@ const Index = () => {
       case "startups": return <StartupsScreen onBack={pop} />;
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
+      case "editprofile": return <EditProfileScreen onBack={pop} />;
       default: return null;
     }
   };
