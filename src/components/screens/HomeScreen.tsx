@@ -25,6 +25,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
   const actions = [
     { id: "campaigns", l: "Search", ic: "search" },
+    { id: "mycampaigns", l: "Campaigns", ic: "campaign" },
     { id: "offers", l: "Offers", ic: "offer" },
     { id: "startups", l: "Startups", ic: "startup" },
     { id: "wallet", l: "Wallet", ic: "wallet" },
