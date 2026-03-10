@@ -29,6 +29,7 @@ const paths: Record<string, string> = {
   check: "M20 6L9 17l-5-5",
   linkedin: "M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z M2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z",
   tiktok: "M9 12a4 4 0 104 4V4a5 5 0 005 5",
+  twitter: "M4 4l7.2 10.3L4 21h2l5.7-5.3L16 21h4l-7.6-10.9L19.2 4H17.2l-5.3 4.9L8 4H4z",
 };
 
 interface IconProps {
