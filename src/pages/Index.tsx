@@ -58,6 +58,7 @@ const Index = () => {
       case "startups": return <StartupsScreen onBack={pop} />;
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
+      case "editprofile": return <EditProfileScreen onBack={pop} />;
       default: return null;
     }
   };

@@ -90,6 +90,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
               <AppButton className="flex-[2]" icon="send" onClick={() => setPitchTarget(null)}>Send Pitch</AppButton>
             </div>
           </div>
+          </div>
         </div>
       )}
     </div>

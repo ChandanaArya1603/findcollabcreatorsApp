@@ -26,7 +26,7 @@ const ProfileScreen: React.FC<Props> = ({ push }) => (
           <div className="w-[72px] h-[72px] rounded-[22px] bg-primary border-4 border-card -mt-9 flex items-center justify-center">
             <span className="text-primary-foreground text-[28px] font-black">D</span>
           </div>
-          <AppButton variant="ghost" icon="edit" className="!py-2 !px-3.5 !text-xs !rounded-[10px]">Edit</AppButton>
+          <AppButton variant="ghost" icon="edit" className="!py-2 !px-3.5 !text-xs !rounded-[10px]" onClick={() => push("editprofile")}>Edit</AppButton>
         </div>
         <p className="text-[19px] font-black text-foreground mb-0.5">Dilraj Singh</p>
         <p className="text-xs text-text-light mb-2">India's Biggest Science & Experiment Creator • 📍 Chennai</p>
