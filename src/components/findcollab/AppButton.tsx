@@ -26,6 +26,7 @@ export const AppButton: React.FC<AppButtonProps> = ({
 }) => (
   <button
     onClick={onClick}
+    disabled={disabled}
     className={cn(
       "flex items-center justify-center gap-1.5 px-5 py-3 rounded-[14px] border-none text-sm font-extrabold tracking-wide transition-opacity active:opacity-80 cursor-pointer",
       variantStyles[variant],
