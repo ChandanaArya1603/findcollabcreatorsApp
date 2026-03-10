@@ -28,6 +28,7 @@ const paths: Record<string, string> = {
   eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z",
   check: "M20 6L9 17l-5-5",
   linkedin: "M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z M2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z",
+  tiktok: "M9 12a4 4 0 104 4V4a5 5 0 005 5",
 };
 
 interface IconProps {
