@@ -57,6 +57,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                 { l: "YouTube", v: "32.7M", ic: "yt", c: "text-red-600" },
                 { l: "LinkedIn", v: "120K", ic: "linkedin", c: "text-blue-600" },
                 { l: "TikTok", v: "4.2M", ic: "tiktok", c: "text-foreground" },
+                { l: "X (Twitter)", v: "890K", ic: "twitter", c: "text-foreground" },
               ].map((s) => (
                 <Card key={s.l} className="!p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
