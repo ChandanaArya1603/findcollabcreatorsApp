@@ -25,6 +25,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
   const actions = [
     { id: "campaigns", l: "Search", ic: "search" },
+    { id: "mycampaigns", l: "Campaigns", ic: "campaign" },
     { id: "offers", l: "Offers", ic: "offer" },
     { id: "startups", l: "Startups", ic: "startup" },
     { id: "wallet", l: "Wallet", ic: "wallet" },
@@ -110,7 +111,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
         {/* Quick Actions */}
         <p className="text-[15px] font-black text-foreground">Quick Actions</p>
-        <div className="grid grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-5 gap-2">
           {actions.map((a) => (
             <button
               key={a.id}
