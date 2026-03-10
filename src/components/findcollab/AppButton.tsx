@@ -11,13 +11,14 @@ const variantStyles: Record<Variant, string> = {
   dark: "bg-surface-dark text-primary-foreground",
 };
 
-interface AppButtonProps {
+export interface AppButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: Variant;
   icon?: string;
   full?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 export const AppButton: React.FC<AppButtonProps> = ({
