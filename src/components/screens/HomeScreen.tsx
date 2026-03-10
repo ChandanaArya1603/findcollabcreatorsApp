@@ -87,6 +87,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           ))}
         </div>
 
+        {/* Quick Actions */}
+        <p className="text-[15px] font-black text-foreground">Quick Actions</p>
+        <div className="grid grid-cols-5 gap-2">
+          {actions.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => a.id === "wallet" && switchTab ? switchTab("wallet") : push(a.id)}
+              className="bg-card border border-border rounded-[14px] py-3 px-2 flex flex-col items-center gap-1.5 cursor-pointer"
+            >
+              <div className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center">
+                <Icon name={a.ic} size={18} className="text-primary" />
+              </div>
+              <span className="text-[10px] font-bold text-text-mid">{a.l}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Chart */}
         <Card>
           <div className="flex justify-between items-center mb-3.5">
@@ -108,23 +125,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
             ))}
           </div>
         </Card>
-
-        {/* Quick Actions */}
-        <p className="text-[15px] font-black text-foreground">Quick Actions</p>
-        <div className="grid grid-cols-5 gap-2">
-          {actions.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => a.id === "wallet" && switchTab ? switchTab("wallet") : push(a.id)}
-              className="bg-card border border-border rounded-[14px] py-3 px-2 flex flex-col items-center gap-1.5 cursor-pointer"
-            >
-              <div className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center">
-                <Icon name={a.ic} size={18} className="text-primary" />
-              </div>
-              <span className="text-[10px] font-bold text-text-mid">{a.l}</span>
-            </button>
-          ))}
-        </div>
 
         {/* Referral */}
         <Card className="!bg-gradient-to-br from-primary-light to-card !border-primary-mid">
