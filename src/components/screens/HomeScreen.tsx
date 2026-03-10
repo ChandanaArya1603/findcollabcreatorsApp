@@ -8,9 +8,10 @@ import { Icon } from "../findcollab/Icon";
 
 interface HomeScreenProps {
   push: (screen: string, data?: any) => void;
+  switchTab?: (tab: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ push }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
   const mx = Math.max(...bars);
   const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
