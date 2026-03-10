@@ -37,7 +37,7 @@ const Index = () => {
       case "campaigns": return <CampaignsScreen push={push} />;
       case "wallet": return <WalletScreen />;
       case "profile": return <ProfileScreen push={push} />;
-      default: return <HomeScreen push={push} />;
+      default: return <HomeScreen push={push} switchTab={handleTabChange} />;
     }
   };
 
