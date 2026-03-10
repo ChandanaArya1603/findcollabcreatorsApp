@@ -11,20 +11,22 @@ const variantStyles: Record<Variant, string> = {
   dark: "bg-surface-dark text-primary-foreground",
 };
 
-interface AppButtonProps {
+export interface AppButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: Variant;
   icon?: string;
   full?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 export const AppButton: React.FC<AppButtonProps> = ({
-  children, onClick, variant = "primary", icon, full, className,
+  children, onClick, variant = "primary", icon, full, className, disabled,
 }) => (
   <button
     onClick={onClick}
+    disabled={disabled}
     className={cn(
       "flex items-center justify-center gap-1.5 px-5 py-3 rounded-[14px] border-none text-sm font-extrabold tracking-wide transition-opacity active:opacity-80 cursor-pointer",
       variantStyles[variant],
