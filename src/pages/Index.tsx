@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import HomeScreen from "@/components/screens/HomeScreen";
 import CampaignsScreen from "@/components/screens/CampaignsScreen";
 import CampaignDetail from "@/components/screens/CampaignDetail";
@@ -11,6 +12,8 @@ import StartupsScreen from "@/components/screens/StartupsScreen";
 import MessagesScreen from "@/components/screens/MessagesScreen";
 import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
 import EditProfileScreen from "@/components/screens/EditProfileScreen";
+import LoginScreen from "@/components/screens/LoginScreen";
+import RegisterScreen from "@/components/screens/RegisterScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 
 interface StackItem {
