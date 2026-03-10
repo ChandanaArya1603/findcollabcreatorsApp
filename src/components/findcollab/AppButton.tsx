@@ -22,7 +22,7 @@ export interface AppButtonProps {
 }
 
 export const AppButton: React.FC<AppButtonProps> = ({
-  children, onClick, variant = "primary", icon, full, className,
+  children, onClick, variant = "primary", icon, full, className, disabled,
 }) => (
   <button
     onClick={onClick}
