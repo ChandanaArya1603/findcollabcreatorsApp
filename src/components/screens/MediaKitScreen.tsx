@@ -20,6 +20,7 @@ interface PlatformData {
   engagementRate: number;
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
+  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
 }
 
 const platforms: Record<string, PlatformData> = {
