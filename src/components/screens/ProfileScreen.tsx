@@ -18,7 +18,9 @@ const menu = [
   { label: "Discover Startups", ic: "startup", id: "startups", badge: "722" },
 ];
 
-const ProfileScreen: React.FC<Props> = ({ push }) => (
+const ProfileScreen: React.FC<Props> = ({ push }) => {
+  const { logout } = useAuth();
+  return (
   <Screen>
     <div className="bg-card border-b border-border">
       <div className="h-20 gradient-hero" />
