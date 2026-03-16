@@ -26,6 +26,7 @@ const Index = () => {
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [tab, setTab] = useState("home");
   const [stack, setStack] = useState<StackItem[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const push = (screen: string, data?: any) => setStack((s) => [...s, { screen, data }]);
   const pop = () => setStack((s) => s.slice(0, -1));
