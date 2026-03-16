@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { messageService } from "@/services/messageService";
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 /* ──────────────────── Types ──────────────────── */
 
