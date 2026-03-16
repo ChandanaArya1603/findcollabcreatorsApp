@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
