@@ -13,8 +13,11 @@ interface PlatformData {
   label: string;
   ic: string;
   color: string;
+  bgActive: string;
   followers: string;
-  engagement: { label: string; value: string }[];
+  followerLabel: string;
+  engagement: { label: string; value: string; ic?: string }[];
+  engagementRate: number;
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
 }
@@ -22,12 +25,13 @@ interface PlatformData {
 const platforms: Record<string, PlatformData> = {
   instagram: {
     label: "Instagram", ic: "insta", color: "text-pink-600",
-    followers: "6.1M",
+    bgActive: "bg-gradient-to-br from-pink-500 to-rose-500",
+    followers: "6.1M", followerLabel: "Instagram followers",
+    engagementRate: 37.03,
     engagement: [
-      { label: "Avg Likes", value: "2.1M" },
-      { label: "Reel Views", value: "2M" },
-      { label: "Comments", value: "94.4K" },
-      { label: "Engagement", value: "37.03%" },
+      { label: "Average Likes", value: "2.1M", ic: "heart" },
+      { label: "Reels views", value: "21M", ic: "campaign" },
+      { label: "Comments", value: "94.4K", ic: "chat" },
     ],
     rates: [
       { service: "Reel (<60s)", rate: "₹10,00,000" },
@@ -42,12 +46,13 @@ const platforms: Record<string, PlatformData> = {
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
-    followers: "32.7M",
+    bgActive: "bg-gradient-to-br from-red-500 to-red-600",
+    followers: "32.7M", followerLabel: "Youtube followers",
+    engagementRate: 12.5,
     engagement: [
-      { label: "Avg Views", value: "5.8M" },
-      { label: "Subscribers", value: "32.7M" },
-      { label: "Comments", value: "42K" },
-      { label: "Engagement", value: "12.5%" },
+      { label: "Avg Views", value: "5.8M", ic: "campaign" },
+      { label: "Subscribers", value: "32.7M", ic: "person" },
+      { label: "Comments", value: "42K", ic: "chat" },
     ],
     rates: [
       { service: "Dedicated Video", rate: "₹25,00,000" },
@@ -61,12 +66,13 @@ const platforms: Record<string, PlatformData> = {
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
-    followers: "120K",
+    bgActive: "bg-gradient-to-br from-blue-500 to-blue-600",
+    followers: "120K", followerLabel: "LinkedIn followers",
+    engagementRate: 8.4,
     engagement: [
-      { label: "Avg Impressions", value: "85K" },
-      { label: "Connections", value: "12K" },
-      { label: "Comments", value: "1.2K" },
-      { label: "Engagement", value: "8.4%" },
+      { label: "Avg Impressions", value: "85K", ic: "campaign" },
+      { label: "Connections", value: "12K", ic: "person" },
+      { label: "Comments", value: "1.2K", ic: "chat" },
     ],
     rates: [
       { service: "Thought Leadership Post", rate: "₹1,50,000" },
@@ -78,12 +84,13 @@ const platforms: Record<string, PlatformData> = {
   },
   tiktok: {
     label: "TikTok", ic: "tiktok", color: "text-foreground",
-    followers: "4.2M",
+    bgActive: "bg-gradient-to-br from-gray-800 to-black",
+    followers: "4.2M", followerLabel: "TikTok followers",
+    engagementRate: 28.6,
     engagement: [
-      { label: "Avg Views", value: "1.8M" },
-      { label: "Likes", value: "320K" },
-      { label: "Shares", value: "45K" },
-      { label: "Engagement", value: "28.6%" },
+      { label: "Avg Views", value: "1.8M", ic: "campaign" },
+      { label: "Likes", value: "320K", ic: "heart" },
+      { label: "Shares", value: "45K", ic: "send" },
     ],
     rates: [
       { service: "Video (<60s)", rate: "₹6,00,000" },
@@ -95,12 +102,13 @@ const platforms: Record<string, PlatformData> = {
   },
   twitter: {
     label: "X (Twitter)", ic: "twitter", color: "text-foreground",
-    followers: "890K",
+    bgActive: "bg-gradient-to-br from-gray-800 to-black",
+    followers: "890K", followerLabel: "X followers",
+    engagementRate: 5.7,
     engagement: [
-      { label: "Avg Impressions", value: "1.2M" },
-      { label: "Retweets", value: "8.5K" },
-      { label: "Replies", value: "3.2K" },
-      { label: "Engagement", value: "5.7%" },
+      { label: "Avg Impressions", value: "1.2M", ic: "campaign" },
+      { label: "Retweets", value: "8.5K", ic: "send" },
+      { label: "Replies", value: "3.2K", ic: "chat" },
     ],
     rates: [
       { service: "Thread (5+ tweets)", rate: "₹2,00,000" },
@@ -113,6 +121,37 @@ const platforms: Record<string, PlatformData> = {
 };
 
 const platformKeys = ["instagram", "youtube", "linkedin", "tiktok", "twitter"];
+
+// Donut chart component
+const EngagementDonut: React.FC<{ percentage: number }> = ({ percentage }) => {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const filled = (percentage / 100) * circumference;
+  const empty = circumference - filled;
+
+  return (
+    <div className="relative w-[110px] h-[110px] flex items-center justify-center">
+      <svg width="110" height="110" viewBox="0 0 110 110" className="-rotate-90">
+        <circle cx="55" cy="55" r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth="10" />
+        <circle
+          cx="55" cy="55" r={radius} fill="none"
+          stroke="url(#donutGradient)" strokeWidth="10"
+          strokeDasharray={`${filled} ${empty}`}
+          strokeLinecap="round"
+        />
+        <defs>
+          <linearGradient id="donutGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(217, 91%, 60%)" />
+            <stop offset="100%" stopColor="hsl(200, 80%, 55%)" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-primary text-lg font-black">{percentage}%</span>
+      </div>
+    </div>
+  );
+};
 
 const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
@@ -127,6 +166,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           <Icon name="send" size={16} className="text-primary" />
         </button>
       } />
+
+      {/* Profile Header */}
       <div className="bg-card border-b border-border">
         <div className="h-[70px] gradient-hero" />
         <div className="px-4 pb-4">
@@ -139,7 +180,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                 <p className="text-[17px] font-black text-foreground">Dilraj Singh</p>
                 <Badge color="blue" sm>✓ Verified</Badge>
               </div>
-              <p className="text-[11px] text-text-light mt-0.5">📍 Chennai, India • Hindi, English</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">📍 Chennai, India • Hindi, English</p>
             </div>
           </div>
           <div className="flex gap-1.5 flex-wrap">
@@ -150,9 +191,9 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Platform Selector */}
+      {/* Platform Cards - horizontal scrollable */}
       <div className="px-4 pt-3 pb-1">
-        <div className="flex gap-2 flex-wrap pb-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           {platformKeys.map((key) => {
             const plat = platforms[key];
             const isActive = activePlatform === key;
@@ -160,20 +201,28 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
               <button
                 key={key}
                 onClick={() => { setActivePlatform(key); setTab("stats"); }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-bold whitespace-nowrap cursor-pointer transition-all ${
+                className={`flex flex-col items-start gap-1 min-w-[105px] px-3 py-2.5 rounded-[14px] border cursor-pointer transition-all shrink-0 ${
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-card text-text-mid border-border"
+                    ? `${plat.bgActive} text-white border-transparent shadow-md`
+                    : "bg-card text-foreground border-border"
                 }`}
               >
-                <Icon name={plat.ic} size={14} className={isActive ? "text-primary-foreground" : plat.color} />
-                {plat.label}
+                <div className="flex items-center justify-between w-full">
+                  <span className={`text-[18px] font-black ${isActive ? "text-white" : "text-foreground"}`}>
+                    {plat.followers}
+                  </span>
+                  <Icon name={plat.ic} size={18} className={isActive ? "text-white/80" : plat.color} />
+                </div>
+                <span className={`text-[9px] font-medium ${isActive ? "text-white/80" : "text-muted-foreground"}`}>
+                  {plat.followerLabel}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="px-4 pt-1">
         <div className="flex gap-2 mb-3.5">
           {[["stats", "Stats"], ["rates", "Rates"], ["projects", "Projects"]].map(([id, label]) => (
@@ -183,24 +232,48 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
         {tab === "stats" && (
           <div className="flex flex-col gap-3">
-            <Card className="!p-4">
-              <div className="flex items-center gap-2.5 mb-1">
-                <Icon name={p.ic} size={22} className={p.color} />
-                <div>
-                  <p className="text-[11px] text-text-light">{p.label} Followers</p>
-                  <p className="text-[28px] font-black text-foreground leading-none">{p.followers}</p>
+            {/* Profile Engagement Card */}
+            <Card>
+              <p className="text-[15px] font-black text-foreground mb-3">Profile Engagement</p>
+              <div className="flex items-center gap-4">
+                {/* Metrics */}
+                <div className="flex-1 flex flex-col gap-3">
+                  {p.engagement.map((e) => (
+                    <div key={e.label} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-primary-light flex items-center justify-center">
+                          <Icon name={e.ic || "heart"} size={12} className="text-primary" />
+                        </div>
+                        <span className="text-[12px] text-muted-foreground">{e.label}</span>
+                      </div>
+                      <span className="text-[13px] font-black text-foreground">{e.value}</span>
+                    </div>
+                  ))}
                 </div>
+                {/* Donut Chart */}
+                <EngagementDonut percentage={p.engagementRate} />
+              </div>
+              <div className="mt-3 bg-primary-light rounded-[10px] px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">
+                  ℹ️ Achieving 5%+ engagement is good; 10%+ indicates strong performance
+                </p>
               </div>
             </Card>
+
+            {/* Engagement Metrics Gradient Card */}
             <Card className="!bg-gradient-to-br from-primary-light to-card">
-              <p className="text-[13px] font-extrabold text-foreground mb-3">Engagement Metrics</p>
+              <p className="text-[13px] font-extrabold text-foreground mb-3">Quick Stats</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {p.engagement.map((e) => (
                   <div key={e.label}>
                     <p className="text-lg font-black text-primary">{e.value}</p>
-                    <p className="text-[10px] text-text-mid mt-0.5">{e.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{e.label}</p>
                   </div>
                 ))}
+                <div>
+                  <p className="text-lg font-black text-primary">{p.engagementRate}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Engagement Rate</p>
+                </div>
               </div>
             </Card>
           </div>
