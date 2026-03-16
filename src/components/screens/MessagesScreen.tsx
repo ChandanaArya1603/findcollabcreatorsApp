@@ -53,11 +53,22 @@ const chatMessages: Record<string, ChatMessage[]> = {
 interface Props {
   push?: (screen: string, data?: any) => void;
   onBack?: () => void;
+  onChatOpen?: (isOpen: boolean) => void;
 }
 
-const MessagesScreen: React.FC<Props> = ({ push, onBack }) => {
+const MessagesScreen: React.FC<Props> = ({ push, onBack, onChatOpen }) => {
   const [search, setSearch] = useState("");
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
+
+  const openChat = (conv: Conversation) => {
+    setActiveChat(conv);
+    onChatOpen?.(true);
+  };
+
+  const closeChat = () => {
+    setActiveChat(null);
+    onChatOpen?.(false);
+  };
   const [msg, setMsg] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
