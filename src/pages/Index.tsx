@@ -127,7 +127,7 @@ const Index = () => {
               {renderStack(current.screen, current.data)}
             </div>
           )}
-          {!current && <BottomNav active={tab} setActive={handleTabChange} />}
+          {!current && !chatOpen && <BottomNav active={tab} setActive={handleTabChange} />}
         </div>
       </div>
     </div>
