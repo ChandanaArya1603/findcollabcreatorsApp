@@ -91,6 +91,9 @@ const platforms: Record<string, PlatformData> = {
     projects: [
       { brand: "Zoho", link: "linkedin.com/posts/dilraj-xyz" },
     ],
+    recentPosts: [
+      { type: "Post", caption: "5 lessons from building a 30M+ audience 📈", likes: "42K", comments: "1.8K", date: "4d ago" },
+    ],
   },
   tiktok: {
     label: "TikTok", ic: "tiktok", color: "text-foreground",
