@@ -58,6 +58,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
         <div className="bg-card rounded-[20px] p-5 relative overflow-hidden border border-border shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           <div className="absolute -right-[30px] -top-[30px] w-[120px] h-[120px] rounded-full bg-primary/10" />
           <div className="absolute right-5 -bottom-10 w-[90px] h-[90px] rounded-full bg-primary/5" />
+          <div className="absolute right-4 top-4 text-[48px] opacity-80 select-none">🚀</div>
           <Badge color="pink" sm>INFLUENCER</Badge>
           <p className="text-foreground text-[22px] font-black mt-2 mb-1 leading-tight">
             6.1M Followers<br />on Instagram 🚀
