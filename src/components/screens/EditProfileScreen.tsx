@@ -15,6 +15,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [location, setLocation] = useState("Chennai");
   const [instagram, setInstagram] = useState("@dilrajsingh");
   const [youtube, setYoutube] = useState("@dilrajsingh");
+  const [gmail, setGmail] = useState("");
   const [categories, setCategories] = useState(["Food", "Fitness", "Science & Tech", "Movies"]);
   const [newCat, setNewCat] = useState("");
 
