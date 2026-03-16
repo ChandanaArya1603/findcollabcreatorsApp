@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
@@ -26,6 +26,18 @@ interface Project {
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState("Basic Information");
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleTabClick = useCallback((tab: string, index: number) => {
+    setActiveTab(tab);
+    const el = tabRefs.current[index];
+    const container = tabBarRef.current;
+    if (el && container) {
+      const scrollLeft = el.offsetLeft - container.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
+      container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+    }
+  }, []);
 
   // Basic Info
   const [name, setName] = useState("Dilraj Singh");
@@ -130,11 +142,12 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
       {/* Tab Bar - Sliding */}
       <div className="px-4 pb-3">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {tabs.map((t) => (
+        <div ref={tabBarRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {tabs.map((t, i) => (
             <button
               key={t}
-              onClick={() => setActiveTab(t)}
+              ref={(el) => { tabRefs.current[i] = el; }}
+              onClick={() => handleTabClick(t, i)}
               className={`whitespace-nowrap px-4 py-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all shrink-0 ${
                 activeTab === t
                   ? "gradient-primary text-primary-foreground border-transparent shadow-primary"
