@@ -112,6 +112,9 @@ const platforms: Record<string, PlatformData> = {
     projects: [
       { brand: "Sugar Cosmetics", link: "tiktok.com/@dilraj/video/123" },
     ],
+    recentPosts: [
+      { type: "Video", caption: "This trick went viral overnight 🔥", likes: "2.1M", comments: "15K", date: "2d ago" },
+    ],
   },
   twitter: {
     label: "X (Twitter)", ic: "twitter", color: "text-foreground",
