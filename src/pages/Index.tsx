@@ -34,6 +34,7 @@ const Index = () => {
 
   const handleTabChange = (newTab: string) => {
     setStack([]);
+    setChatOpen(false);
     setTab(newTab);
   };
 
