@@ -96,6 +96,38 @@ function mapMessage(raw: any, currentUserId: number): Message {
   };
 }
 
+/* ──────────────── Demo Data ──────────────────── */
+
+const DEMO_CHAT_USERS: ChatUser[] = [
+  { id: 1, name: "Nykaa", lastMessage: "Please submit the Instagram reel by June 29th.", lastMessageTime: new Date(Date.now() - 3600000).toISOString(), unreadCount: 2, isOnline: true },
+  { id: 2, name: "Swiggy Instamart", lastMessage: "We'd love to discuss a collaboration opportunity!", lastMessageTime: new Date(Date.now() - 86400000).toISOString(), unreadCount: 1, isOnline: true },
+  { id: 3, name: "Sugar Cosmetics", lastMessage: "Your content performed amazingly! 🎉", lastMessageTime: new Date(Date.now() - 172800000).toISOString(), unreadCount: 0, isOnline: false },
+  { id: 4, name: "VIVO India", lastMessage: "Can you share your YouTube analytics?", lastMessageTime: new Date(Date.now() - 259200000).toISOString(), unreadCount: 3, isOnline: true },
+  { id: 5, name: "Wow Momo", lastMessage: "Deal confirmed! Looking forward to the collab.", lastMessageTime: new Date(Date.now() - 604800000).toISOString(), unreadCount: 0, isOnline: false },
+  { id: 6, name: "Practo", lastMessage: "Hi, we're interested in a health awareness campaign.", lastMessageTime: new Date(Date.now() - 604800000).toISOString(), unreadCount: 0, isOnline: false },
+];
+
+const DEMO_MESSAGES: Record<number, Message[]> = {
+  1: [
+    { id: 101, senderId: 1, receiverId: 0, message: "Hi Dilraj, your application has been reviewed!", createdAt: new Date(Date.now() - 3900000).toISOString(), isOwn: false },
+    { id: 102, senderId: 0, receiverId: 1, message: "Thank you! Looking forward to the collaboration.", createdAt: new Date(Date.now() - 3780000).toISOString(), isOwn: true },
+    { id: 103, senderId: 1, receiverId: 0, message: "Please submit the Instagram reel by June 29th.", createdAt: new Date(Date.now() - 3600000).toISOString(), isOwn: false },
+    { id: 104, senderId: 0, receiverId: 1, message: "https://www.instagram.com/reel/DFU4nHJSnaw/", createdAt: new Date(Date.now() - 3500000).toISOString(), isOwn: true },
+  ],
+  2: [
+    { id: 201, senderId: 2, receiverId: 0, message: "Hi! We love your science content and would love to collaborate.", createdAt: new Date(Date.now() - 90000000).toISOString(), isOwn: false },
+    { id: 202, senderId: 2, receiverId: 0, message: "We're launching a new quick delivery campaign.", createdAt: new Date(Date.now() - 89940000).toISOString(), isOwn: false },
+    { id: 203, senderId: 0, receiverId: 2, message: "Sounds exciting! Let me check the details.", createdAt: new Date(Date.now() - 89100000).toISOString(), isOwn: true },
+  ],
+  4: [
+    { id: 401, senderId: 4, receiverId: 0, message: "Hey Dilraj, we have a new phone launch coming up.", createdAt: new Date(Date.now() - 262800000).toISOString(), isOwn: false },
+    { id: 402, senderId: 4, receiverId: 0, message: "Can you share your YouTube analytics?", createdAt: new Date(Date.now() - 262680000).toISOString(), isOwn: false },
+    { id: 403, senderId: 0, receiverId: 4, message: "Sure, I'll send my media kit.", createdAt: new Date(Date.now() - 261000000).toISOString(), isOwn: true, attachment: { name: "MediaKit_2026.pdf", type: "pdf" } },
+  ],
+};
+
+const isDemoUser = () => api.getToken() === "demo-token";
+
 /* ──────────────── Hook ───────────────────────── */
 
 export function useMessages() {
@@ -112,6 +144,11 @@ export function useMessages() {
 
   /* Fetch chat users */
   const fetchChatUsers = useCallback(async () => {
+    if (isDemoUser()) {
+      setChatUsers(DEMO_CHAT_USERS);
+      setLoadingUsers(false);
+      return;
+    }
     try {
       setError(null);
       const res = await messageService.getChatUsers();
@@ -128,6 +165,13 @@ export function useMessages() {
   /* Fetch messages for a specific user */
   const fetchMessages = useCallback(
     async (receiverId: number) => {
+      if (isDemoUser()) {
+        setMessages(DEMO_MESSAGES[receiverId] ?? [
+          { id: Date.now(), senderId: receiverId, receiverId: 0, message: "Hello! 👋", createdAt: new Date().toISOString(), isOwn: false },
+        ]);
+        setLoadingMessages(false);
+        return;
+      }
       setLoadingMessages(true);
       setError(null);
       try {
