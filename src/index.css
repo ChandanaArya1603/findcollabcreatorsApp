@@ -34,9 +34,9 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 20% 92%;
-    --input: 240 20% 92%;
-    --ring: 340 82% 50%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 350 76% 65%;
 
     --radius: 0.75rem;
 
