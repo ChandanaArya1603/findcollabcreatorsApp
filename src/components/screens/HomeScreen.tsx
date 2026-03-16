@@ -93,7 +93,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           {actions.map((a) => (
             <button
               key={a.id}
-              onClick={() => (a.id === "wallet" || a.id === "campaigns") && switchTab ? switchTab(a.id === "campaigns" ? "campaigns" : "wallet") : push(a.id)}
+              onClick={() => ["wallet", "campaigns"].includes(a.id) && switchTab ? switchTab(a.id) : push(a.id)}
               className="bg-card border border-border rounded-[14px] py-3 px-2 flex flex-col items-center gap-1.5 cursor-pointer"
             >
               <div className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center">
