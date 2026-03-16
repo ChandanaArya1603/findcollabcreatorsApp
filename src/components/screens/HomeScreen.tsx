@@ -55,14 +55,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
       <div className="px-4 pt-3.5 flex flex-col gap-4">
         {/* Hero */}
-        <div className="gradient-hero rounded-[20px] p-5 relative overflow-hidden">
-          <div className="absolute -right-[30px] -top-[30px] w-[120px] h-[120px] rounded-full bg-primary/10" />
-          <div className="absolute right-5 -bottom-10 w-[90px] h-[90px] rounded-full bg-primary/5" />
+        <div className="bg-card rounded-[20px] p-5 relative overflow-hidden border border-border">
+          <div className="absolute -right-[30px] -top-[30px] w-[120px] h-[120px] rounded-full bg-muted" />
+          <div className="absolute right-5 -bottom-10 w-[90px] h-[90px] rounded-full bg-muted" />
           <Badge color="pink" sm>INFLUENCER</Badge>
-          <p className="text-primary-foreground text-[22px] font-black mt-2 mb-1 leading-tight">
+          <p className="text-foreground text-[22px] font-black mt-2 mb-1 leading-tight">
             6.1M Followers<br />on Instagram 🚀
           </p>
-          <p className="text-primary-foreground/50 text-xs mb-3.5">India's biggest Science creator</p>
+          <p className="text-muted-foreground text-xs mb-3.5">India's biggest Science creator</p>
           <div className="flex gap-2">
             <AppButton className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => switchTab ? switchTab("campaigns") : push("campaigns")}>Find Campaigns</AppButton>
             <AppButton variant="ghost" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("mediakit")}>Media Kit</AppButton>
