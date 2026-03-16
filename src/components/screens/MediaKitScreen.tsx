@@ -156,6 +156,10 @@ const EngagementDonut: React.FC<{ percentage: number }> = ({ percentage }) => {
 const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
+  const [bioOpen, setBioOpen] = useState(false);
+
+  const creatorBio = "My name is Dilraj Singh Rawat., Popularly known as Indian Hacker. With a remarkable journey spanning over a decade, I have successfully accumulated a staggering 32.7 million subscribers on my Youtube Channel channel, solidifying my place as a digital influencer of unparalleled stature.";
+  const bioSnippet = creatorBio.slice(0, 90) + "…";
 
   const p = platforms[activePlatform];
 
