@@ -322,6 +322,31 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                 </div>
               </div>
             </Card>
+
+            {/* Recent Posts */}
+            <Card>
+              <p className="text-[13px] font-extrabold text-foreground mb-3">Recent Posts</p>
+              <div className="flex flex-col gap-2.5">
+                {p.recentPosts.map((post, i) => (
+                  <div key={i} className={`flex items-start gap-3 pb-2.5 ${i < p.recentPosts.length - 1 ? "border-b border-border" : ""}`}>
+                    <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+                      <Icon name={p.ic} size={16} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Badge color="pink" sm>{post.type}</Badge>
+                        <span className="text-[9px] text-muted-foreground">{post.date}</span>
+                      </div>
+                      <p className="text-[11px] text-foreground leading-snug truncate">{post.caption}</p>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-[10px] text-muted-foreground">❤️ {post.likes}</span>
+                        <span className="text-[10px] text-muted-foreground">💬 {post.comments}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
         )}
 
