@@ -152,7 +152,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
       {/* Platform Selector */}
       <div className="px-4 pt-3 pb-1">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+        <div className="flex gap-2 flex-wrap pb-2">
           {platformKeys.map((key) => {
             const plat = platforms[key];
             const isActive = activePlatform === key;
