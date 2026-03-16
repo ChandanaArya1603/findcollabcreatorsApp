@@ -192,20 +192,24 @@ export function useMessages() {
   const sendMessage = useCallback(
     async (receiverId: number, text: string) => {
       if (!text.trim()) return;
+      const optimistic: Message = {
+        id: Date.now(),
+        senderId: currentUserId,
+        receiverId,
+        message: text,
+        createdAt: new Date().toISOString(),
+        isOwn: true,
+      };
+
+      if (isDemoUser()) {
+        setMessages((prev) => [...prev, optimistic]);
+        return;
+      }
+
       setSending(true);
       try {
         await messageService.sendMessage(receiverId, text);
-        // Optimistically add the message
-        const optimistic: Message = {
-          id: Date.now(),
-          senderId: currentUserId,
-          receiverId,
-          message: text,
-          createdAt: new Date().toISOString(),
-          isOwn: true,
-        };
         setMessages((prev) => [...prev, optimistic]);
-        // Refresh messages from server
         await fetchMessages(receiverId);
       } catch (err: any) {
         console.error("Failed to send message:", err);
