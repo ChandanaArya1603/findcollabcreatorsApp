@@ -192,7 +192,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
       {/* Profile Header */}
       <div className="bg-card border-b border-border">
-        <div className="h-[70px] gradient-hero" />
+        <div className="h-[70px] bg-primary-light" />
         <div className="px-4 pb-4">
           <div className="flex items-end gap-3 mb-3">
             <div className="w-16 h-16 rounded-[18px] bg-primary border-[3px] border-card -mt-8 flex items-center justify-center shrink-0">
