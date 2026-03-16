@@ -156,6 +156,10 @@ const EngagementDonut: React.FC<{ percentage: number }> = ({ percentage }) => {
 const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
+  const [bioOpen, setBioOpen] = useState(false);
+
+  const creatorBio = "My name is Dilraj Singh Rawat., Popularly known as Indian Hacker. With a remarkable journey spanning over a decade, I have successfully accumulated a staggering 32.7 million subscribers on my Youtube Channel channel, solidifying my place as a digital influencer of unparalleled stature.";
+  const bioSnippet = creatorBio.slice(0, 90) + "…";
 
   const p = platforms[activePlatform];
 
@@ -191,7 +195,30 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Platform Cards - horizontal scrollable */}
+      {/* Bio Dropdown */}
+      <div className="px-4 pt-3">
+        <button
+          onClick={() => setBioOpen(!bioOpen)}
+          className="w-full bg-card rounded-[14px] border border-border px-4 py-3 flex items-center justify-between cursor-pointer transition-all"
+        >
+          <div className="flex-1 text-left">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">About</p>
+            {!bioOpen && (
+              <p className="text-[12px] text-foreground leading-relaxed">{bioSnippet}</p>
+            )}
+          </div>
+          <div className={`w-6 h-6 rounded-full bg-primary-light flex items-center justify-center shrink-0 ml-2 transition-transform ${bioOpen ? "rotate-180" : ""}`}>
+            <Icon name="chevD" size={14} className="text-primary" />
+          </div>
+        </button>
+        {bioOpen && (
+          <div className="bg-card border border-t-0 border-border rounded-b-[14px] px-4 pb-4 -mt-[14px] pt-3">
+            <div className="border-t border-dashed border-border pt-3">
+              <p className="text-[12px] text-foreground leading-relaxed">{creatorBio}</p>
+            </div>
+          </div>
+        )}
+      </div>
       <div className="px-4 pt-3 pb-1">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           {platformKeys.map((key) => {
