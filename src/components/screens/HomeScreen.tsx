@@ -48,7 +48,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
                 <span className="text-[8px] font-black text-primary-foreground">3</span>
               </div>
             </div>
-            <Avatar letter="D" size={38} src="/placeholder.svg" />
+            <Avatar letter="D" size={38} />
           </div>
         </div>
       </div>
