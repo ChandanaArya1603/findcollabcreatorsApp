@@ -44,6 +44,11 @@ const platforms: Record<string, PlatformData> = {
       { brand: "Sery Cosmetics", link: "instagram.com/reel/CSQOCHsg7S2" },
       { brand: "Wow Momo", link: "instagram.com/p/C374PQBykrx" },
     ],
+    recentPosts: [
+      { type: "Reel", caption: "What happens when you mix sodium with water? 💥", likes: "3.2M", comments: "18K", date: "2d ago" },
+      { type: "Post", caption: "Behind the scenes of our biggest experiment yet 🔬", likes: "1.8M", comments: "12K", date: "5d ago" },
+      { type: "Reel", caption: "Science hack that will blow your mind 🤯", likes: "4.1M", comments: "22K", date: "1w ago" },
+    ],
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
