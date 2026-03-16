@@ -55,7 +55,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
       <div className="px-4 pt-3.5 flex flex-col gap-4">
         {/* Hero */}
-        <div className="gradient-hero rounded-[20px] p-5 relative overflow-hidden">
+        <div className="bg-card rounded-[20px] p-5 relative overflow-hidden border border-border">
           <div className="absolute -right-[30px] -top-[30px] w-[120px] h-[120px] rounded-full bg-primary/10" />
           <div className="absolute right-5 -bottom-10 w-[90px] h-[90px] rounded-full bg-primary/5" />
           <Badge color="pink" sm>INFLUENCER</Badge>
