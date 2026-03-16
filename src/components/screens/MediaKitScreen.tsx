@@ -69,6 +69,10 @@ const platforms: Record<string, PlatformData> = {
       { brand: "VIVO India", link: "youtube.com/watch?v=abc123" },
       { brand: "Nykaa", link: "youtube.com/watch?v=def456" },
     ],
+    recentPosts: [
+      { type: "Video", caption: "World's Largest Science Experiment! 🌍", likes: "8.2M", comments: "45K", date: "3d ago" },
+      { type: "Shorts", caption: "Is this even possible? 😱", likes: "12M", comments: "32K", date: "1w ago" },
+    ],
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
