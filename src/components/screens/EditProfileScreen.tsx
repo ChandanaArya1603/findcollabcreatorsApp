@@ -26,6 +26,18 @@ interface Project {
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState("Basic Information");
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleTabClick = useCallback((tab: string, index: number) => {
+    setActiveTab(tab);
+    const el = tabRefs.current[index];
+    const container = tabBarRef.current;
+    if (el && container) {
+      const scrollLeft = el.offsetLeft - container.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
+      container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+    }
+  }, []);
 
   // Basic Info
   const [name, setName] = useState("Dilraj Singh");
