@@ -80,12 +80,16 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         ))}
       </Card>
 
-      <button className="w-full py-3.5 rounded-[14px] border-[1.5px] border-destructive/10 bg-destructive/5 flex items-center justify-center gap-2 cursor-pointer">
+      <button
+        onClick={() => logout()}
+        className="w-full py-3.5 rounded-[14px] border-[1.5px] border-destructive/10 bg-destructive/5 flex items-center justify-center gap-2 cursor-pointer"
+      >
         <Icon name="logout" size={16} className="text-destructive" />
         <span className="text-sm font-bold text-destructive">Sign Out</span>
       </button>
     </div>
   </Screen>
-);
+  );
+};
 
 export default ProfileScreen;
