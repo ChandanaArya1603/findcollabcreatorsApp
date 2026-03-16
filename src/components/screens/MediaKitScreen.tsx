@@ -20,6 +20,7 @@ interface PlatformData {
   engagementRate: number;
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
+  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
 }
 
 const platforms: Record<string, PlatformData> = {
@@ -43,6 +44,11 @@ const platforms: Record<string, PlatformData> = {
       { brand: "Sery Cosmetics", link: "instagram.com/reel/CSQOCHsg7S2" },
       { brand: "Wow Momo", link: "instagram.com/p/C374PQBykrx" },
     ],
+    recentPosts: [
+      { type: "Reel", caption: "What happens when you mix sodium with water? 💥", likes: "3.2M", comments: "18K", date: "2d ago" },
+      { type: "Post", caption: "Behind the scenes of our biggest experiment yet 🔬", likes: "1.8M", comments: "12K", date: "5d ago" },
+      { type: "Reel", caption: "Science hack that will blow your mind 🤯", likes: "4.1M", comments: "22K", date: "1w ago" },
+    ],
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
@@ -63,6 +69,10 @@ const platforms: Record<string, PlatformData> = {
       { brand: "VIVO India", link: "youtube.com/watch?v=abc123" },
       { brand: "Nykaa", link: "youtube.com/watch?v=def456" },
     ],
+    recentPosts: [
+      { type: "Video", caption: "World's Largest Science Experiment! 🌍", likes: "8.2M", comments: "45K", date: "3d ago" },
+      { type: "Shorts", caption: "Is this even possible? 😱", likes: "12M", comments: "32K", date: "1w ago" },
+    ],
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
@@ -80,6 +90,9 @@ const platforms: Record<string, PlatformData> = {
     ],
     projects: [
       { brand: "Zoho", link: "linkedin.com/posts/dilraj-xyz" },
+    ],
+    recentPosts: [
+      { type: "Post", caption: "5 lessons from building a 30M+ audience 📈", likes: "42K", comments: "1.8K", date: "4d ago" },
     ],
   },
   tiktok: {
@@ -99,6 +112,9 @@ const platforms: Record<string, PlatformData> = {
     projects: [
       { brand: "Sugar Cosmetics", link: "tiktok.com/@dilraj/video/123" },
     ],
+    recentPosts: [
+      { type: "Video", caption: "This trick went viral overnight 🔥", likes: "2.1M", comments: "15K", date: "2d ago" },
+    ],
   },
   twitter: {
     label: "X (Twitter)", ic: "twitter", color: "text-foreground",
@@ -116,6 +132,9 @@ const platforms: Record<string, PlatformData> = {
     ],
     projects: [
       { brand: "Swiggy", link: "x.com/dilraj/status/789" },
+    ],
+    recentPosts: [
+      { type: "Thread", caption: "Why Indian creators are undervalued globally 🧵", likes: "120K", comments: "4.2K", date: "1d ago" },
     ],
   },
 };
@@ -301,6 +320,31 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                   <p className="text-lg font-black text-primary">{p.engagementRate}%</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Engagement Rate</p>
                 </div>
+              </div>
+            </Card>
+
+            {/* Recent Posts */}
+            <Card>
+              <p className="text-[13px] font-extrabold text-foreground mb-3">Recent Posts</p>
+              <div className="flex flex-col gap-2.5">
+                {p.recentPosts.map((post, i) => (
+                  <div key={i} className={`flex items-start gap-3 pb-2.5 ${i < p.recentPosts.length - 1 ? "border-b border-border" : ""}`}>
+                    <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+                      <Icon name={p.ic} size={16} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Badge color="pink" sm>{post.type}</Badge>
+                        <span className="text-[9px] text-muted-foreground">{post.date}</span>
+                      </div>
+                      <p className="text-[11px] text-foreground leading-snug truncate">{post.caption}</p>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-[10px] text-muted-foreground">❤️ {post.likes}</span>
+                        <span className="text-[10px] text-muted-foreground">💬 {post.comments}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </Card>
           </div>
