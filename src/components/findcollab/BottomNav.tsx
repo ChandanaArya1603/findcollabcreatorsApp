@@ -9,6 +9,7 @@ interface BottomNavProps {
 const tabs = [
   { id: "home", l: "Home", ic: "home" },
   { id: "campaigns", l: "Search", ic: "search" },
+  { id: "messages", l: "Messages", ic: "msg" },
   { id: "wallet", l: "Wallet", ic: "wallet" },
   { id: "profile", l: "Profile", ic: "person" },
 ];
