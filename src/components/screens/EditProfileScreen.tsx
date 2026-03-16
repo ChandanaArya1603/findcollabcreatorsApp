@@ -15,6 +15,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [location, setLocation] = useState("Chennai");
   const [instagram, setInstagram] = useState("@dilrajsingh");
   const [youtube, setYoutube] = useState("@dilrajsingh");
+  const [gmail, setGmail] = useState("");
   const [categories, setCategories] = useState(["Food", "Fitness", "Science & Tech", "Movies"]);
   const [newCat, setNewCat] = useState("");
 
@@ -54,6 +55,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
           <div className="flex flex-col gap-3">
             <AppInput label="Instagram" value={instagram} onChange={setInstagram} placeholder="@username" />
             <AppInput label="YouTube" value={youtube} onChange={setYoutube} placeholder="@channel" />
+            <AppInput label="Gmail ID" value={gmail} onChange={setGmail} placeholder="your.email@gmail.com" />
           </div>
         </Card>
 
