@@ -64,7 +64,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           </p>
           <p className="text-primary-foreground/50 text-xs mb-3.5">India's biggest Science creator</p>
           <div className="flex gap-2">
-            <AppButton className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("campaigns")}>Find Campaigns</AppButton>
+            <AppButton className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => switchTab ? switchTab("campaigns") : push("campaigns")}>Find Campaigns</AppButton>
             <AppButton variant="ghost" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("mediakit")}>Media Kit</AppButton>
           </div>
         </div>
