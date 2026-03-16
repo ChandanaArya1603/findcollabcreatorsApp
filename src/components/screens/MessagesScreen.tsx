@@ -218,7 +218,7 @@ const MessagesScreen: React.FC<Props> = ({ push, onBack, onChatOpen }) => {
           <Card
             key={conv.id}
             className="!p-3 cursor-pointer"
-            onClick={() => setActiveChat(conv)}
+            onClick={() => openChat(conv)}
           >
             <div className="flex items-center gap-3">
               <div className="relative">
