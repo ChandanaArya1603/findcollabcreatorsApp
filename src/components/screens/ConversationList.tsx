@@ -69,8 +69,8 @@ const ConversationList: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Error state */}
-        {!loading && error && (
+        {/* Error state - only show if no conversations loaded */}
+        {!loading && error && chatUsers.length === 0 && (
           <div className="py-10 text-center">
             <Icon name="msg" size={32} className="text-destructive mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-2">{error}</p>
