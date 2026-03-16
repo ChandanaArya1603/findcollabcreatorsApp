@@ -92,7 +92,7 @@ const MessagesScreen: React.FC<Props> = ({ push, onBack, onChatOpen }) => {
         {/* Chat Header */}
         <div className="bg-card border-b border-border px-3 py-2.5 flex items-center gap-3 shrink-0">
           <button
-            onClick={() => setActiveChat(null)}
+            onClick={closeChat}
             className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center cursor-pointer border-none"
           >
             <Icon name="chevL" size={18} className="text-foreground" />
