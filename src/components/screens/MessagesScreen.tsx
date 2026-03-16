@@ -53,11 +53,22 @@ const chatMessages: Record<string, ChatMessage[]> = {
 interface Props {
   push?: (screen: string, data?: any) => void;
   onBack?: () => void;
+  onChatOpen?: (isOpen: boolean) => void;
 }
 
-const MessagesScreen: React.FC<Props> = ({ push, onBack }) => {
+const MessagesScreen: React.FC<Props> = ({ push, onBack, onChatOpen }) => {
   const [search, setSearch] = useState("");
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
+
+  const openChat = (conv: Conversation) => {
+    setActiveChat(conv);
+    onChatOpen?.(true);
+  };
+
+  const closeChat = () => {
+    setActiveChat(null);
+    onChatOpen?.(false);
+  };
   const [msg, setMsg] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
@@ -81,7 +92,7 @@ const MessagesScreen: React.FC<Props> = ({ push, onBack }) => {
         {/* Chat Header */}
         <div className="bg-card border-b border-border px-3 py-2.5 flex items-center gap-3 shrink-0">
           <button
-            onClick={() => setActiveChat(null)}
+            onClick={closeChat}
             className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center cursor-pointer border-none"
           >
             <Icon name="chevL" size={18} className="text-foreground" />
@@ -207,7 +218,7 @@ const MessagesScreen: React.FC<Props> = ({ push, onBack }) => {
           <Card
             key={conv.id}
             className="!p-3 cursor-pointer"
-            onClick={() => setActiveChat(conv)}
+            onClick={() => openChat(conv)}
           >
             <div className="flex items-center gap-3">
               <div className="relative">

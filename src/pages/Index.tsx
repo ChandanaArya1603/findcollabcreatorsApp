@@ -26,6 +26,7 @@ const Index = () => {
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [tab, setTab] = useState("home");
   const [stack, setStack] = useState<StackItem[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const push = (screen: string, data?: any) => setStack((s) => [...s, { screen, data }]);
   const pop = () => setStack((s) => s.slice(0, -1));
@@ -40,7 +41,7 @@ const Index = () => {
     switch (tab) {
       case "home": return <HomeScreen push={push} switchTab={handleTabChange} />;
       case "campaigns": return <CampaignsScreen push={push} />;
-      case "messages": return <MessagesScreen push={push} />;
+      case "messages": return <MessagesScreen push={push} onChatOpen={setChatOpen} />;
       case "wallet": return <WalletScreen />;
       case "profile": return <ProfileScreen push={push} />;
       default: return <HomeScreen push={push} switchTab={handleTabChange} />;
@@ -126,7 +127,7 @@ const Index = () => {
               {renderStack(current.screen, current.data)}
             </div>
           )}
-          {!current && <BottomNav active={tab} setActive={handleTabChange} />}
+          {!current && !chatOpen && <BottomNav active={tab} setActive={handleTabChange} />}
         </div>
       </div>
     </div>
