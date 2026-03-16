@@ -130,11 +130,12 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
       {/* Tab Bar - Sliding */}
       <div className="px-4 pb-3">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {tabs.map((t) => (
+        <div ref={tabBarRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {tabs.map((t, i) => (
             <button
               key={t}
-              onClick={() => setActiveTab(t)}
+              ref={(el) => { tabRefs.current[i] = el; }}
+              onClick={() => handleTabClick(t, i)}
               className={`whitespace-nowrap px-4 py-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all shrink-0 ${
                 activeTab === t
                   ? "gradient-primary text-primary-foreground border-transparent shadow-primary"
