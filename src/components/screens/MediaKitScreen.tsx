@@ -133,6 +133,9 @@ const platforms: Record<string, PlatformData> = {
     projects: [
       { brand: "Swiggy", link: "x.com/dilraj/status/789" },
     ],
+    recentPosts: [
+      { type: "Thread", caption: "Why Indian creators are undervalued globally 🧵", likes: "120K", comments: "4.2K", date: "1d ago" },
+    ],
   },
 };
 
