@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { campaignService } from "@/services/campaignService";
+import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -21,22 +23,62 @@ export interface Campaign {
   days: string;
 }
 
-const campaigns: Campaign[] = [
+const DEMO_CAMPAIGNS: Campaign[] = [
   { id: 1, brand: "Roma Italian Deli", title: "Piadina Launch", type: "Barter", budget: "₹0", credits: 10, cat: "Food", plat: "Instagram", desc: "We're ROMA — launching something called Piadina. We'd love to collaborate with creators who enjoy discovering new food.", views: 20, apps: 0, days: "3 days ago" },
   { id: 2, brand: "Molorra Jewelry", title: "Molorra Jewelry Campaign", type: "Paid", budget: "₹40,000", credits: 30, cat: "Fashion", plat: "Instagram", desc: "Walk in Reel / Unboxing Reel. Female influencers need to walk into the showroom and create content showcasing our jewelry.", views: 88, apps: 1, days: "1 week ago" },
-  { id: 3, brand: "Menveda", title: "Sunscreen Campaign", type: "Barter", budget: "₹1,000", credits: 10, cat: "Skincare", plat: "Instagram", desc: "Position MENVEDA Sunscreen as a 3-in-1 daily essential for men: Vitamin C brightening and glow boost.", views: 45, apps: 13, days: "2 weeks ago" },
-  { id: 4, brand: "Super7", title: "Super7 Health Campaign", type: "Barter", budget: "₹1,000", credits: 10, cat: "Health", plat: "Instagram", desc: "Our product is straightforward — no preservative, no additives, made out of nuts, seeds and spices.", views: 31, apps: 0, days: "3 weeks ago" },
-  { id: 5, brand: "Websites.co.in", title: "Brand Awareness Campaign", type: "Barter", budget: "₹25,000", credits: 10, cat: "Tech", plat: "Instagram", desc: "Help creators launch stunning personal websites in under 5 minutes. No tech stuff required.", views: 479, apps: 60, days: "7 months ago" },
-  { id: 6, brand: "Beloth", title: "Wireless Headphones Review", type: "Paid", budget: "₹5,000", credits: 10, cat: "Tech", plat: "YouTube", desc: "Review our latest wireless headphones. Share honest opinions about sound quality and design.", views: 220, apps: 28, days: "1 month ago" },
+  { id: 3, brand: "Menveda", title: "Sunscreen Campaign", type: "Barter", budget: "₹1,000", credits: 10, cat: "Skincare", plat: "Instagram", desc: "Position MENVEDA Sunscreen as a 3-in-1 daily essential for men.", views: 45, apps: 13, days: "2 weeks ago" },
+  { id: 4, brand: "Super7", title: "Super7 Health Campaign", type: "Barter", budget: "₹1,000", credits: 10, cat: "Health", plat: "Instagram", desc: "Our product is straightforward — no preservative, no additives.", views: 31, apps: 0, days: "3 weeks ago" },
 ];
 
 interface Props {
   push: (screen: string, data?: any) => void;
 }
 
+function timeAgo(dateStr: string): string {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days < 1) return "Today";
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? "s" : ""} ago`;
+  return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`;
+}
+
 const CampaignsScreen: React.FC<Props> = ({ push }) => {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [campaigns, setCampaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
+  const [loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+
+  useEffect(() => {
+    if (isDemoUser()) return;
+    setLoading(true);
+    campaignService.getCampaigns(1)
+      .then((res) => {
+        const results = res.result || res.campaigns || [];
+        setTotalCount(res.Total_Record || results.length);
+        setCampaigns(
+          results.map((c: any) => ({
+            id: c.id,
+            brand: c.company_name || c.brand || "",
+            title: c.project_title || c.title || "",
+            type: c.campaign_type || c.type || "Barter",
+            budget: c.budget || "₹0",
+            credits: c.credits || 10,
+            cat: c.category || c.cat || "",
+            plat: c.platform || c.plat || "Instagram",
+            desc: c.description || c.desc || "",
+            views: c.campaignViews || c.views || 0,
+            apps: c.applications || c.apps || 0,
+            days: timeAgo(c.created_at || c.days || ""),
+          }))
+        );
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const filters = ["All", "Barter", "Paid", "Affiliate"];
 
   const filtered = campaigns.filter(
@@ -51,7 +93,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
       <div className="sticky top-0 z-10 bg-card px-4 pt-3.5 pb-2.5 border-b border-border">
         <div className="flex justify-between items-center mb-2.5">
           <h2 className="text-lg font-black text-foreground">Find Campaigns</h2>
-          <Badge color="pink">{filtered.length} live</Badge>
+          <Badge color="pink">{totalCount || filtered.length} live</Badge>
         </div>
         <div className="relative mb-2.5">
           <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -72,7 +114,17 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
       </div>
 
       <div className="px-4 pt-3.5 flex flex-col gap-3">
-        {filtered.map((c) => (
+        {loading && (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">Loading campaigns…</p>
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">No campaigns found</p>
+          </div>
+        )}
+        {!loading && filtered.map((c) => (
           <Card key={c.id} onClick={() => push("campaign-detail", c)} noPadding className="overflow-hidden">
             <div className="px-3.5 pt-3.5">
               <div className="flex justify-between items-start mb-2">

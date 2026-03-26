@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { dashboardService } from "@/services/dashboardService";
+import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -11,17 +14,61 @@ interface HomeScreenProps {
   switchTab?: (tab: string) => void;
 }
 
+const DEMO_STATS = {
+  credits: "10",
+  wallet: "₹6K",
+  applied: "10",
+  startups: "722",
+  creditsSub: "20 earned",
+  walletSub: "Ready to withdraw",
+  appliedSub: "4 offers received",
+  startupsSub: "Available to pitch",
+  profileViews: { total: 1250, directPercentage: 64 },
+};
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
+  const { user } = useAuth();
+  const [dashStats, setDashStats] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isDemoUser()) return;
+    setLoading(true);
+    dashboardService.getStats()
+      .then((res) => setDashStats(res))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "GOOD MORNING 👋";
+    if (h < 17) return "GOOD AFTERNOON 👋";
+    return "GOOD EVENING 👋";
+  };
+
+  const displayName = user?.fname || "User";
+  const initial = displayName.charAt(0).toUpperCase();
+
+  const stats = dashStats
+    ? [
+        { l: "Credits", v: String(dashStats.credits ?? "0"), sub: `${dashStats.creditsEarned ?? 0} earned`, ic: "wallet", c: "text-primary" },
+        { l: "Wallet", v: `₹${dashStats.wallet_balance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
+        { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
+        { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
+      ]
+    : [
+        { l: "Credits", v: DEMO_STATS.credits, sub: DEMO_STATS.creditsSub, ic: "wallet", c: "text-primary" },
+        { l: "Wallet", v: DEMO_STATS.wallet, sub: DEMO_STATS.walletSub, ic: "rupee", c: "text-success" },
+        { l: "Applied", v: DEMO_STATS.applied, sub: DEMO_STATS.appliedSub, ic: "campaign", c: "text-info" },
+        { l: "Startups", v: DEMO_STATS.startups, sub: DEMO_STATS.startupsSub, ic: "startup", c: "text-warning" },
+      ];
+
+  const profileViews = dashStats?.profileViews ?? DEMO_STATS.profileViews;
+
   const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
   const mx = Math.max(...bars);
   const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-
-  const stats = [
-    { l: "Credits", v: "10", sub: "20 earned", ic: "wallet", c: "text-primary" },
-    { l: "Wallet", v: "₹6K", sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
-    { l: "Applied", v: "10", sub: "4 offers received", ic: "campaign", c: "text-info" },
-    { l: "Startups", v: "722", sub: "Available to pitch", ic: "startup", c: "text-warning" },
-  ];
 
   const actions = [
     { id: "campaigns", l: "Search", ic: "search" },
@@ -36,8 +83,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
       <div className="px-4 pt-4 pb-3 bg-card">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-[11px] text-primary font-bold tracking-widest mb-0.5">GOOD MORNING 👋</p>
-            <h1 className="text-xl font-black text-foreground">Dilraj Singh</h1>
+            <p className="text-[11px] text-primary font-bold tracking-widest mb-0.5">{greeting()}</p>
+            <h1 className="text-xl font-black text-foreground">{displayName}</h1>
           </div>
           <div className="flex gap-2 items-center">
             <div className="relative">
@@ -48,7 +95,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
                 <span className="text-[8px] font-black text-primary-foreground">3</span>
               </div>
             </div>
-            <Avatar letter="D" size={38} />
+            <Avatar letter={initial} size={38} />
           </div>
         </div>
       </div>
@@ -60,9 +107,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           <div className="absolute right-5 -bottom-10 w-[90px] h-[90px] rounded-full bg-primary/5" />
           <Badge color="pink" sm>INFLUENCER</Badge>
           <p className="text-foreground text-[22px] font-black mt-2 mb-1 leading-tight">
-            6.1M Followers<br />on Instagram 🚀
+            Welcome back,<br />{displayName} 🚀
           </p>
-          <p className="text-muted-foreground text-xs mb-3.5">India's biggest Science creator</p>
+          <p className="text-muted-foreground text-xs mb-3.5">Your dashboard overview</p>
           <div className="flex gap-2">
             <AppButton className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => switchTab ? switchTab("campaigns") : push("campaigns")}>Find Campaigns</AppButton>
             <AppButton variant="ghost" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("mediakit")}>Media Kit</AppButton>
@@ -109,9 +156,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           <div className="flex justify-between items-center mb-3.5">
             <div>
               <p className="text-sm font-extrabold text-foreground">Profile Views</p>
-              <p className="text-[11px] text-text-light mt-0.5">This year</p>
+              <p className="text-[11px] text-text-light mt-0.5">{profileViews.total?.toLocaleString() ?? "—"} total</p>
             </div>
-            <Badge color="green">↑ 23%</Badge>
+            <Badge color="green">↑ {profileViews.directPercentage ?? 0}% direct</Badge>
           </div>
           <div className="h-[90px] flex items-end gap-[3px]">
             {bars.map((v, i) => (
@@ -136,7 +183,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           <p className="text-[11px] text-text-mid mb-2.5">Share your code and earn credits for every signup</p>
           <div className="flex gap-2 items-center">
             <div className="flex-1 bg-card rounded-[10px] py-2 px-3 border-[1.5px] border-dashed border-primary-mid">
-              <p className="text-lg font-black text-primary text-center tracking-[3px]">DIL635</p>
+              <p className="text-lg font-black text-primary text-center tracking-[3px]">
+                {user?.fname?.substring(0, 3).toUpperCase() ?? "REF"}635
+              </p>
             </div>
             <AppButton variant="ghost" icon="copy" className="!py-2.5 !px-3.5 !rounded-[10px] !text-xs">Copy</AppButton>
           </div>
