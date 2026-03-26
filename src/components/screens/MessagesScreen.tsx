@@ -98,6 +98,7 @@ const MessagesScreen: React.FC<Props> = ({ push, onBack, onChatOpen }) => {
       getColor={getColor}
       formatTime={formatTime}
       onRetry={fetchChatUsers}
+      onBack={onBack}
     />
   );
 };
