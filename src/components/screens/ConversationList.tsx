@@ -17,6 +17,7 @@ interface Props {
   getColor: (id: number) => string;
   formatTime: (t: string) => string;
   onRetry: () => void;
+  onBack?: () => void;
 }
 
 const ConversationList: React.FC<Props> = ({
