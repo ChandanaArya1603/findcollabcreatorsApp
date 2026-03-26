@@ -1,11 +1,14 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { profileService } from "@/services/profileService";
+import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Badge } from "../findcollab/Badge";
-import { Pill } from "../findcollab/Pill";
 import { Icon } from "../findcollab/Icon";
+import { toast } from "sonner";
 
 interface Props {
   onBack: () => void;
@@ -25,9 +28,11 @@ interface Project {
 }
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
+  const { user, userDetail } = useAuth();
   const [activeTab, setActiveTab] = useState("Basic Information");
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const handleTabClick = useCallback((tab: string, index: number) => {
     setActiveTab(tab);
@@ -39,43 +44,62 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     }
   }, []);
 
-  // Basic Info
-  const [name, setName] = useState("Dilraj Singh");
-  const [bio, setBio] = useState("India's Biggest Science & Experiment Creator");
-  const [location, setLocation] = useState("Chennai");
-  const [gmail, setGmail] = useState("officiallindianhacker@gmail.com");
+  // Basic Info - pre-fill from auth context
+  const [name, setName] = useState(user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "");
+  const [bio, setBio] = useState(userDetail?.bio || "");
+  const [location, setLocation] = useState(userDetail?.city || "");
+  const [gmail, setGmail] = useState(user?.email || "");
   const [barterInterest, setBarterInterest] = useState(true);
-  const [categories, setCategories] = useState(["Food", "Fitness", "Science & Tech", "Movies"]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [newCat, setNewCat] = useState("");
 
   // Social Accounts
-  const [instagram, setInstagram] = useState("dilraj_singh_rawat");
-  const [youtube, setYoutube] = useState("https://www.youtube.com/channel/UCSiDGbOMnHFGjs4E2WKvShw");
-  const [linkedin, setLinkedin] = useState("");
-  const [website, setWebsite] = useState("https://findcollab.com/");
-  const [primarySocial, setPrimarySocial] = useState("instagram");
+  const [instagram, setInstagram] = useState(userDetail?.instagram_username || "");
+  const [youtube, setYoutube] = useState(userDetail?.youtube_username || "");
+  const [linkedin, setLinkedin] = useState(userDetail?.linkedin_username || "");
+  const [website, setWebsite] = useState(userDetail?.content_website || "");
+  const [primarySocial, setPrimarySocial] = useState(userDetail?.primary_account || "instagram");
 
   // Commercials
   const [commercialPlatform, setCommercialPlatform] = useState("instagram");
   const [commercials, setCommercials] = useState<Record<string, Commercial[]>>({
-    instagram: [
-      { service: "Reel", rate: "1000000", remarks: "less than 60 Seconds" },
-      { service: "Static Post", rate: "500000", remarks: "Single Static post" },
-      { service: "Video Story", rate: "300000", remarks: "<45 Seconds" },
-      { service: "Video Story", rate: "150000", remarks: "<30 Seconds" },
-    ],
-    youtube: [
-      { service: "Dedicated Video", rate: "2500000", remarks: "Full video" },
-      { service: "Integrated Video", rate: "1500000", remarks: "Brand mention" },
-    ],
+    instagram: [],
+    youtube: [],
     linkedin: [],
   });
 
   // Past Projects
-  const [projects, setProjects] = useState<Project[]>([
-    { brand: "Sery Cosmetics", link: "https://www.instagram.com/reel/CSQOCHsg7S2/?hl=en" },
-    { brand: "Wow Momo", link: "https://www.instagram.com/p/C374PQBykrx/" },
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  // Load media kit data to pre-fill
+  useEffect(() => {
+    if (isDemoUser()) return;
+    profileService.getMediaKit().then((res) => {
+      if (res.userCategories) {
+        setCategories(res.userCategories.map((c: any) => c.name || c.category_name || ""));
+      }
+      if (res.userCommercials) {
+        const grouped: Record<string, Commercial[]> = { instagram: [], youtube: [], linkedin: [] };
+        res.userCommercials.forEach((c: any) => {
+          const plat = (c.platform || "instagram").toLowerCase();
+          if (!grouped[plat]) grouped[plat] = [];
+          grouped[plat].push({ service: c.service || "", rate: c.rate || "", remarks: c.remarks || "" });
+        });
+        setCommercials(grouped);
+      }
+      if (res.userProjects) {
+        setProjects(res.userProjects.map((p: any) => ({ brand: p.brand || p.name || "", link: p.link || p.url || "" })));
+      }
+      if (res.userDetail) {
+        setBio(res.userDetail.bio || bio);
+        setInstagram(res.userDetail.instagram_username || instagram);
+        setYoutube(res.userDetail.youtube_username || youtube);
+        setLinkedin(res.userDetail.linkedin_username || linkedin);
+        setWebsite(res.userDetail.content_website || website);
+        setPrimarySocial(res.userDetail.primary_account || primarySocial);
+      }
+    }).catch(() => {});
+  }, []);
 
   const addCategory = () => {
     if (newCat.trim() && !categories.includes(newCat.trim())) {
@@ -84,9 +108,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     }
   };
 
-  const removeCategory = (cat: string) => {
-    setCategories(categories.filter((c) => c !== cat));
-  };
+  const removeCategory = (cat: string) => setCategories(categories.filter((c) => c !== cat));
 
   const updateCommercial = (platform: string, index: number, field: keyof Commercial, value: string) => {
     setCommercials((prev) => {
@@ -111,16 +133,39 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     }));
   };
 
-  const addProject = () => {
-    setProjects([...projects, { brand: "", link: "" }]);
-  };
-
-  const removeProject = (index: number) => {
-    setProjects(projects.filter((_, i) => i !== index));
-  };
-
+  const addProject = () => setProjects([...projects, { brand: "", link: "" }]);
+  const removeProject = (index: number) => setProjects(projects.filter((_, i) => i !== index));
   const updateProject = (index: number, field: keyof Project, value: string) => {
     setProjects(projects.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+  };
+
+  const handleSave = async () => {
+    if (isDemoUser()) {
+      toast.success("Demo mode — changes simulated!");
+      onBack();
+      return;
+    }
+    setSaving(true);
+    try {
+      const [fname, ...rest] = name.split(" ");
+      await profileService.updateProfile({
+        fname,
+        lname: rest.join(" "),
+        bio,
+        mobile: userDetail?.mobile || "",
+        instagram_username: instagram,
+        youtube_username: youtube,
+        linkedin_username: linkedin,
+        content_website: website,
+        primary_account: primarySocial,
+      });
+      toast.success("Profile updated successfully!");
+      onBack();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const commercialPlatforms = [
@@ -133,14 +178,12 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     <div className="flex-1 overflow-y-auto bg-background pb-5">
       <BackHeader title="Edit Profile" onBack={onBack} />
 
-      {/* Avatar */}
       <div className="flex justify-center pt-3 pb-2">
         <div className="w-20 h-20 rounded-[22px] bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground text-[32px] font-black">D</span>
+          <span className="text-primary-foreground text-[32px] font-black">{(user?.fname || "D").charAt(0)}</span>
         </div>
       </div>
 
-      {/* Tab Bar - Sliding */}
       <div className="px-4 pb-3">
         <div ref={tabBarRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {tabs.map((t, i) => (
@@ -161,7 +204,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
       </div>
 
       <div className="px-4 flex flex-col gap-3.5">
-        {/* Basic Information */}
         {activeTab === "Basic Information" && (
           <>
             <Card>
@@ -173,34 +215,22 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
                 <AppInput label="Gmail ID" value={gmail} onChange={setGmail} placeholder="your.email@gmail.com" />
               </div>
             </Card>
-
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-3">Barter Campaigns</p>
               <div className="flex gap-4 items-center">
                 <span className="text-xs text-muted-foreground">Are you interested in Barter Campaigns?</span>
                 <div className="flex gap-3">
                   <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={barterInterest}
-                      onChange={() => setBarterInterest(true)}
-                      className="accent-primary w-3.5 h-3.5"
-                    />
+                    <input type="radio" checked={barterInterest} onChange={() => setBarterInterest(true)} className="accent-primary w-3.5 h-3.5" />
                     <span className="text-xs font-semibold text-foreground">Yes</span>
                   </label>
                   <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={!barterInterest}
-                      onChange={() => setBarterInterest(false)}
-                      className="accent-primary w-3.5 h-3.5"
-                    />
+                    <input type="radio" checked={!barterInterest} onChange={() => setBarterInterest(false)} className="accent-primary w-3.5 h-3.5" />
                     <span className="text-xs font-semibold text-foreground">No</span>
                   </label>
                 </div>
               </div>
             </Card>
-
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-3">Categories</p>
               <div className="flex gap-1.5 flex-wrap mb-3">
@@ -220,7 +250,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
           </>
         )}
 
-        {/* Social Accounts */}
         {activeTab === "Social Accounts" && (
           <Card>
             <p className="text-sm font-extrabold text-foreground mb-3">Social Accounts</p>
@@ -228,68 +257,38 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
               <div>
                 <AppInput label="Instagram Username" value={instagram} onChange={setInstagram} placeholder="username" />
                 <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={primarySocial === "instagram"}
-                    onChange={() => setPrimarySocial("instagram")}
-                    className="accent-primary w-3 h-3"
-                  />
-                  <span className="text-[10px] text-muted-foreground">
-                    {primarySocial === "instagram" ? "Primary" : "Make Primary"}
-                  </span>
+                  <input type="radio" checked={primarySocial === "instagram"} onChange={() => setPrimarySocial("instagram")} className="accent-primary w-3 h-3" />
+                  <span className="text-[10px] text-muted-foreground">{primarySocial === "instagram" ? "Primary" : "Make Primary"}</span>
                 </label>
               </div>
-
               <div>
                 <AppInput label="Youtube Username" value={youtube} onChange={setYoutube} placeholder="Channel URL" />
                 <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={primarySocial === "youtube"}
-                    onChange={() => setPrimarySocial("youtube")}
-                    className="accent-primary w-3 h-3"
-                  />
-                  <span className="text-[10px] text-muted-foreground">
-                    {primarySocial === "youtube" ? "Primary" : "Make Primary"}
-                  </span>
+                  <input type="radio" checked={primarySocial === "youtube"} onChange={() => setPrimarySocial("youtube")} className="accent-primary w-3 h-3" />
+                  <span className="text-[10px] text-muted-foreground">{primarySocial === "youtube" ? "Primary" : "Make Primary"}</span>
                 </label>
               </div>
-
               <div>
                 <AppInput label="LinkedIn Username" value={linkedin} onChange={setLinkedin} placeholder="Profile URL" />
                 <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={primarySocial === "linkedin"}
-                    onChange={() => setPrimarySocial("linkedin")}
-                    className="accent-primary w-3 h-3"
-                  />
-                  <span className="text-[10px] text-muted-foreground">
-                    {primarySocial === "linkedin" ? "Primary" : "Make Primary"}
-                  </span>
+                  <input type="radio" checked={primarySocial === "linkedin"} onChange={() => setPrimarySocial("linkedin")} className="accent-primary w-3 h-3" />
+                  <span className="text-[10px] text-muted-foreground">{primarySocial === "linkedin" ? "Primary" : "Make Primary"}</span>
                 </label>
               </div>
-
-              <div>
-                <AppInput label="Website Link" value={website} onChange={setWebsite} placeholder="https://..." />
-              </div>
+              <AppInput label="Website Link" value={website} onChange={setWebsite} placeholder="https://..." />
             </div>
           </Card>
         )}
 
-        {/* My Commercials */}
         {activeTab === "My Commercials" && (
           <>
-            {/* Platform selector */}
             <div className="flex gap-2 overflow-x-auto scrollbar-hide">
               {commercialPlatforms.map((cp) => (
                 <button
                   key={cp.id}
                   onClick={() => setCommercialPlatform(cp.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all shrink-0 ${
-                    commercialPlatform === cp.id
-                      ? "bg-foreground text-card border-foreground"
-                      : "bg-card text-foreground border-border"
+                    commercialPlatform === cp.id ? "bg-foreground text-card border-foreground" : "bg-card text-foreground border-border"
                   }`}
                 >
                   <Icon name={cp.ic} size={14} />
@@ -297,7 +296,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
                 </button>
               ))}
             </div>
-
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-3">
                 {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
@@ -317,27 +315,20 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
                       <div className="flex-1">
                         <AppInput label="Remarks" value={c.remarks} onChange={(v) => updateCommercial(commercialPlatform, i, "remarks", v)} placeholder="Details" />
                       </div>
-                      <button
-                        onClick={() => removeCommercial(commercialPlatform, i)}
-                        className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none"
-                      >
+                      <button onClick={() => removeCommercial(commercialPlatform, i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
                         <Icon name="close" size={16} className="text-destructive" />
                       </button>
                     </div>
                   </div>
                 </div>
               ))}
-              <button
-                onClick={() => addCommercial(commercialPlatform)}
-                className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2"
-              >
+              <button onClick={() => addCommercial(commercialPlatform)} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
                 + Add More
               </button>
             </Card>
           </>
         )}
 
-        {/* Past Projects */}
         {activeTab === "Past Projects" && (
           <Card>
             <p className="text-sm font-extrabold text-foreground mb-3">Past Projects</p>
@@ -349,26 +340,22 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
                     <div className="flex-1">
                       <AppInput label="Collaboration Link" value={p.link} onChange={(v) => updateProject(i, "link", v)} placeholder="https://..." />
                     </div>
-                    <button
-                      onClick={() => removeProject(i)}
-                      className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none"
-                    >
+                    <button onClick={() => removeProject(i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
                       <Icon name="close" size={16} className="text-destructive" />
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-            <button
-              onClick={addProject}
-              className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2"
-            >
+            <button onClick={addProject} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
               + Add More
             </button>
           </Card>
         )}
 
-        <AppButton full icon="check" onClick={onBack}>Save Changes</AppButton>
+        <AppButton full icon="check" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save Changes"}
+        </AppButton>
       </div>
     </div>
   );

@@ -1,18 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { walletService } from "@/services/walletService";
+import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
+import { toast } from "sonner";
+
+interface Transaction {
+  desc: string;
+  amt: string;
+  type: "credit" | "debit";
+  date: string;
+}
+
+const DEMO_TXNS: Transaction[] = [
+  { desc: "Summer Slimming Challenge — Payment released", amt: "+₹1,000", type: "credit", date: "31 May" },
+  { desc: "Healthy Living with Moringa — Payment released", amt: "+₹5,000", type: "credit", date: "30 May" },
+  { desc: "Withdrawal rejected by admin", amt: "-₹1,000", type: "debit", date: "31 May" },
+];
 
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
+  const [balance, setBalance] = useState<number | null>(null);
+  const [txns, setTxns] = useState<Transaction[]>(DEMO_TXNS);
+  const [loading, setLoading] = useState(false);
 
-  const txns = [
-    { desc: "Summer Slimming Challenge — Payment released", amt: "+₹1,000", type: "credit" as const, date: "31 May" },
-    { desc: "Healthy Living with Moringa — Payment released", amt: "+₹5,000", type: "credit" as const, date: "30 May" },
-    { desc: "Withdrawal rejected by admin", amt: "-₹1,000", type: "debit" as const, date: "31 May" },
-  ];
+  useEffect(() => {
+    if (isDemoUser()) return;
+    setLoading(true);
+
+    Promise.all([
+      walletService.getBalance().catch(() => null),
+      walletService.getTransactions().catch(() => null),
+    ]).then(([balRes, txnRes]) => {
+      if (balRes) setBalance(balRes.wallet_balance ?? 0);
+      if (txnRes?.transactions) {
+        setTxns(
+          txnRes.transactions.map((t: any) => ({
+            desc: t.description || t.transaction_id || "",
+            amt: `${t.transaction_type === "credit" ? "+" : "-"}₹${Math.abs(t.amount).toLocaleString()}`,
+            type: t.transaction_type === "credit" ? "credit" : "debit",
+            date: t.created_at ? new Date(t.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "",
+          }))
+        );
+      }
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const displayBalance = balance !== null ? `₹${balance.toLocaleString()}` : "₹6,000";
 
   const plans = [
     { name: "Starter", credits: 100, price: "₹199", pop: false },
@@ -28,8 +65,8 @@ const WalletScreen: React.FC = () => {
         <div className="gradient-hero rounded-[20px] p-5 mb-3 relative overflow-hidden">
           <div className="absolute -right-5 -top-5 w-[100px] h-[100px] rounded-full bg-primary/10" />
           <p className="text-[11px] text-primary-foreground/50 uppercase tracking-widest mb-1">Available Balance</p>
-          <p className="text-4xl font-black text-primary-foreground mb-1">₹6,000</p>
-          <p className="text-[11px] text-primary-foreground/40 mb-4">₹40,000 locked in active campaigns</p>
+          <p className="text-4xl font-black text-primary-foreground mb-1">{displayBalance}</p>
+          <p className="text-[11px] text-primary-foreground/40 mb-4">Updated from your account</p>
           <AppButton icon="arrowUp" className="!py-2.5 !px-4 !text-xs !rounded-[10px]">Withdraw</AppButton>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -55,7 +92,9 @@ const WalletScreen: React.FC = () => {
 
         {tab === "txns" && (
           <div className="flex flex-col gap-2.5">
-            {txns.map((t, i) => (
+            {loading && <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>}
+            {!loading && txns.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>}
+            {!loading && txns.map((t, i) => (
               <Card key={i} className="!p-3.5">
                 <div className="flex justify-between items-center">
                   <div className="flex-1 mr-2.5">
