@@ -63,14 +63,15 @@ function formatTime(dateStr: string): string {
 
 /** Map raw API chat-user to our UI shape */
 function mapChatUser(raw: any): ChatUser {
+  // API returns: sent_id (the other user's id), sender_name, message, date_added, etc.
+  const name =
+    raw.sender_name ?? raw.name ?? (raw.fname ? `${raw.fname} ${raw.lname ?? ""}`.trim() : null) ?? raw.brand_name ?? "Unknown";
   return {
-    id: raw.id ?? raw.user_id ?? raw.receiver_id ?? 0,
-    name: raw.name ?? raw.fname
-      ? `${raw.fname ?? ""} ${raw.lname ?? ""}`.trim()
-      : raw.brand_name ?? "Unknown",
+    id: Number(raw.sent_id ?? raw.user_login_id ?? raw.id ?? raw.user_id ?? raw.receiver_id ?? 0),
+    name,
     avatar: raw.avatar ?? raw.profile_pic ?? raw.profile_image ?? undefined,
-    lastMessage: raw.last_message ?? raw.lastMessage ?? raw.message ?? "",
-    lastMessageTime: raw.last_message_time ?? raw.updated_at ?? raw.created_at ?? "",
+    lastMessage: raw.message ?? raw.last_message ?? raw.lastMessage ?? "",
+    lastMessageTime: raw.date_added ?? raw.last_message_time ?? raw.updated_at ?? raw.created_at ?? "",
     unreadCount: Number(raw.unread_count ?? raw.unreadCount ?? 0),
     isOnline: Boolean(raw.is_online ?? raw.isOnline ?? false),
   };
