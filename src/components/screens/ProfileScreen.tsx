@@ -78,8 +78,8 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         </div>
         <div className="flex border-t border-border">
           {[
-            { ic: "insta", l: "Instagram", v: instagramFollowers ? `${(instagramFollowers / 1000000).toFixed(1)}M` : "—", c: "text-pink-600" },
-            { ic: "yt", l: "YouTube", v: youtubeSubscribers ? `${(youtubeSubscribers / 1000000).toFixed(1)}M` : "—", c: "text-red-600" },
+            { ic: "insta", l: "Instagram", v: finalInsta ? finalInsta >= 1000000 ? `${(finalInsta / 1000000).toFixed(1)}M` : `${(finalInsta / 1000).toFixed(0)}K` : "—", c: "text-pink-600" },
+            { ic: "yt", l: "YouTube", v: finalYt ? finalYt >= 1000000 ? `${(finalYt / 1000000).toFixed(1)}M` : `${(finalYt / 1000).toFixed(0)}K` : "—", c: "text-red-600" },
           ].map((s, i) => (
             <div key={i} className={`flex-1 py-3 px-4 text-center ${i === 0 ? "border-r border-border" : ""}`}>
               <div className="flex justify-center mb-1">
