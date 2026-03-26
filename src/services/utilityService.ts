@@ -11,8 +11,8 @@ export const utilityService = {
     api.get("/languages"),
 
   getStates: (countryId: number) =>
-    api.post("/states", { countryId }),
+    api.postForm("/states", { countryId }),
 
   getCities: (stateId: number) =>
-    api.post("/cities", { stateId }),
+    api.postForm("/cities", { stateId }),
 };

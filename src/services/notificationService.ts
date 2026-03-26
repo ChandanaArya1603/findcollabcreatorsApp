@@ -5,5 +5,5 @@ export const notificationService = {
     api.get(`/notifications?page=${page}`),
 
   markAsRead: (notification_id: number) =>
-    api.post("/mark_notification_read", { notification_id }),
+    api.postForm("/mark_notification_read", { notification_id }),
 };

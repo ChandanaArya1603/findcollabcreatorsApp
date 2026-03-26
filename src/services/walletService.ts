@@ -8,5 +8,5 @@ export const walletService = {
     api.get(`/wallet_transactions?page=${page}&limit=${limit}`),
 
   submitWithdrawal: (data: { withdrawAmount: number; withdrawMethod: string; withdrawReason?: string }) =>
-    api.post("/submit_withdrawal_request", data),
+    api.postForm("/submit_withdrawal_request", data),
 };

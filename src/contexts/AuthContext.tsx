@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
-      await api.post("/logout");
+      await api.postForm("/logout", {});
     } catch {
       // ignore logout API errors
     }
