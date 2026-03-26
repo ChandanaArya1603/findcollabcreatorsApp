@@ -41,15 +41,22 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   let instagramFollowers: number | null = null;
   if (mediaKit?.instagramData?.json_data) {
     try {
-      const parsed = JSON.parse(mediaKit.instagramData.json_data);
+      const parsed = typeof mediaKit.instagramData.json_data === "string"
+        ? JSON.parse(mediaKit.instagramData.json_data)
+        : mediaKit.instagramData.json_data;
       instagramFollowers = parsed?.data?.user?.edge_followed_by?.count ?? parsed?.followers_count ?? null;
     } catch { /* ignore */ }
   }
-  if (!instagramFollowers && mediaKit?.userDetail?.primary_account_followers) {
+  if (instagramFollowers == null && mediaKit?.userDetail?.primary_account_followers) {
     instagramFollowers = Number(mediaKit.userDetail.primary_account_followers) || null;
   }
+  if (instagramFollowers == null && mediaKit?.userDetail?.total_followers) {
+    instagramFollowers = Number(mediaKit.userDetail.total_followers) || null;
+  }
 
-  const youtubeSubscribers = Number(mediaKit?.userDetail?.youtube_subscribe_count) || null;
+  // YouTube - handle "0" as a valid value
+  const ytRaw = mediaKit?.userDetail?.youtube_subscribe_count;
+  const youtubeSubscribers: number | null = ytRaw != null && ytRaw !== "" ? Number(ytRaw) : null;
 
   // Demo fallbacks
   const demoInsta = isDemoUser() ? 5200000 : null;
