@@ -48,7 +48,7 @@ const ConversationList: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             {onBack && (
               <button onClick={onBack} className="p-1.5 -ml-1.5 rounded-lg hover:bg-muted transition-colors">
-                <Icon name="back" size={20} className="text-foreground" />
+                <Icon name="chevL" size={20} className="text-foreground" />
               </button>
             )}
             <h1 className="text-xl font-black text-foreground">Messages</h1>
