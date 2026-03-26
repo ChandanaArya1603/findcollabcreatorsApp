@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
-    const res = await api.post("/register_influencer", data);
+    const res = await api.postForm("/register_influencer", data);
     // If google signup, auto-login
     if (res.token) {
       setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
