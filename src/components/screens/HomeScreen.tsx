@@ -28,8 +28,8 @@ const DEMO_STATS = {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user } = useAuth();
-  const [dashStats, setDashStats] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [dashStats, setDashStats] = useState<any>(isDemoUser() ? null : undefined);
+  const [loading, setLoading] = useState(!isDemoUser());
 
   useEffect(() => {
     if (isDemoUser()) return;
@@ -57,14 +57,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
         { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
         { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
       ]
-    : [
-        { l: "Credits", v: DEMO_STATS.credits, sub: DEMO_STATS.creditsSub, ic: "wallet", c: "text-primary" },
-        { l: "Wallet", v: DEMO_STATS.wallet, sub: DEMO_STATS.walletSub, ic: "rupee", c: "text-success" },
-        { l: "Applied", v: DEMO_STATS.applied, sub: DEMO_STATS.appliedSub, ic: "campaign", c: "text-info" },
-        { l: "Startups", v: DEMO_STATS.startups, sub: DEMO_STATS.startupsSub, ic: "startup", c: "text-warning" },
-      ];
+    : isDemoUser()
+      ? [
+          { l: "Credits", v: DEMO_STATS.credits, sub: DEMO_STATS.creditsSub, ic: "wallet", c: "text-primary" },
+          { l: "Wallet", v: DEMO_STATS.wallet, sub: DEMO_STATS.walletSub, ic: "rupee", c: "text-success" },
+          { l: "Applied", v: DEMO_STATS.applied, sub: DEMO_STATS.appliedSub, ic: "campaign", c: "text-info" },
+          { l: "Startups", v: DEMO_STATS.startups, sub: DEMO_STATS.startupsSub, ic: "startup", c: "text-warning" },
+        ]
+      : [
+          { l: "Credits", v: "—", sub: "", ic: "wallet", c: "text-primary" },
+          { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
+          { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
+          { l: "Startups", v: "—", sub: "", ic: "startup", c: "text-warning" },
+        ];
 
-  const profileViews = dashStats?.profileViews ?? DEMO_STATS.profileViews;
+  const profileViews = dashStats?.profileViews ?? (isDemoUser() ? DEMO_STATS.profileViews : { total: 0, directPercentage: 0 });
 
   const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
   const mx = Math.max(...bars);
