@@ -5,16 +5,16 @@ export const profileService = {
     api.get("/media_kit"),
 
   updateProfile: (data: Record<string, any>) =>
-    api.post("/update_profile", data),
+    api.postForm("/update_profile", data),
 
   uploadProfileImage: (file: File) =>
     api.postForm("/upload_profile_image", { profile_image: file }),
 
   updateCategories: (categories: number[]) =>
-    api.post("/update_categories", { categories }),
+    api.postForm("/update_categories", { categories }),
 
   updateLanguages: (languages: number[]) =>
-    api.post("/update_languages", { languages }),
+    api.postForm("/update_languages", { languages }),
 
   getMediaKitDownload: () =>
     api.get("/media_kit_download"),

@@ -8,13 +8,13 @@ export const campaignService = {
     api.get(`/campaignDetail/${id}`),
 
   applyCampaign: (campaign_id: number) =>
-    api.post("/apply_campaign", { campaign_id }),
+    api.postForm("/apply_campaign", { campaign_id }),
 
   getMyCampaigns: () =>
     api.get("/my_campaigns"),
 
   campaignResponse: (campaign_id: number, response: "accept" | "reject") =>
-    api.post("/campaign_response", { campaign_id, response }),
+    api.postForm("/campaign_response", { campaign_id, response }),
 
   getApplicationStatus: (campaign_id: number) =>
     api.get(`/campaign_application_status?campaign_id=${campaign_id}`),

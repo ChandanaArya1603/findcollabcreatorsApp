@@ -75,12 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api.post("/login", { email, password });
+    const res = await api.postForm("/login", { email, password });
     setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
-    const res = await api.post("/register_influencer", data);
+    const res = await api.postForm("/register_influencer", data);
     // If google signup, auto-login
     if (res.token) {
       setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
-      await api.post("/logout");
+      await api.postForm("/logout", {});
     } catch {
       // ignore logout API errors
     }
