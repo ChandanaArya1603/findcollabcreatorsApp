@@ -45,7 +45,14 @@ const ConversationList: React.FC<Props> = ({
     <Screen>
       <div className="px-4 pt-4 pb-3 bg-card border-b border-border">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-black text-foreground">Messages</h1>
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button onClick={onBack} className="p-1.5 -ml-1.5 rounded-lg hover:bg-muted transition-colors">
+                <Icon name="back" size={20} className="text-foreground" />
+              </button>
+            )}
+            <h1 className="text-xl font-black text-foreground">Messages</h1>
+          </div>
           {totalUnread > 0 && <Badge color="pink">{totalUnread} unread</Badge>}
         </div>
 
