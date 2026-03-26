@@ -32,6 +32,7 @@ const ConversationList: React.FC<Props> = ({
   getColor,
   formatTime,
   onRetry,
+  onBack,
 }) => {
   const filtered = chatUsers.filter(
     (c) =>
