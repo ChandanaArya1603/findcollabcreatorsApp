@@ -41,15 +41,22 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   let instagramFollowers: number | null = null;
   if (mediaKit?.instagramData?.json_data) {
     try {
-      const parsed = JSON.parse(mediaKit.instagramData.json_data);
+      const parsed = typeof mediaKit.instagramData.json_data === "string"
+        ? JSON.parse(mediaKit.instagramData.json_data)
+        : mediaKit.instagramData.json_data;
       instagramFollowers = parsed?.data?.user?.edge_followed_by?.count ?? parsed?.followers_count ?? null;
     } catch { /* ignore */ }
   }
-  if (!instagramFollowers && mediaKit?.userDetail?.primary_account_followers) {
+  if (instagramFollowers == null && mediaKit?.userDetail?.primary_account_followers) {
     instagramFollowers = Number(mediaKit.userDetail.primary_account_followers) || null;
   }
+  if (instagramFollowers == null && mediaKit?.userDetail?.total_followers) {
+    instagramFollowers = Number(mediaKit.userDetail.total_followers) || null;
+  }
 
-  const youtubeSubscribers = Number(mediaKit?.userDetail?.youtube_subscribe_count) || null;
+  // YouTube - handle "0" as a valid value
+  const ytRaw = mediaKit?.userDetail?.youtube_subscribe_count;
+  const youtubeSubscribers: number | null = ytRaw != null && ytRaw !== "" ? Number(ytRaw) : null;
 
   // Demo fallbacks
   const demoInsta = isDemoUser() ? 5200000 : null;
@@ -78,8 +85,8 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         </div>
         <div className="flex border-t border-border">
           {[
-            { ic: "insta", l: "Instagram", v: finalInsta ? finalInsta >= 1000000 ? `${(finalInsta / 1000000).toFixed(1)}M` : `${(finalInsta / 1000).toFixed(0)}K` : "—", c: "text-pink-600" },
-            { ic: "yt", l: "YouTube", v: finalYt ? finalYt >= 1000000 ? `${(finalYt / 1000000).toFixed(1)}M` : `${(finalYt / 1000).toFixed(0)}K` : "—", c: "text-red-600" },
+            { ic: "insta", l: "Instagram", v: finalInsta != null ? finalInsta >= 1000000 ? `${(finalInsta / 1000000).toFixed(1)}M` : finalInsta >= 1000 ? `${(finalInsta / 1000).toFixed(0)}K` : `${finalInsta}` : "—", c: "text-pink-600" },
+            { ic: "yt", l: "YouTube", v: finalYt != null ? finalYt >= 1000000 ? `${(finalYt / 1000000).toFixed(1)}M` : finalYt >= 1000 ? `${(finalYt / 1000).toFixed(0)}K` : `${finalYt}` : "—", c: "text-red-600" },
           ].map((s, i) => (
             <div key={i} className={`flex-1 py-3 px-4 text-center ${i === 0 ? "border-r border-border" : ""}`}>
               <div className="flex justify-center mb-1">
