@@ -47,8 +47,8 @@ function timeAgo(dateStr: string): string {
 const CampaignsScreen: React.FC<Props> = ({ push }) => {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [campaigns, setCampaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
-  const [loading, setLoading] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(isDemoUser() ? DEMO_CAMPAIGNS : []);
+  const [loading, setLoading] = useState(!isDemoUser());
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {

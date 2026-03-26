@@ -28,8 +28,8 @@ const DEMO_STATS = {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user } = useAuth();
-  const [dashStats, setDashStats] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [dashStats, setDashStats] = useState<any>(isDemoUser() ? null : undefined);
+  const [loading, setLoading] = useState(!isDemoUser());
 
   useEffect(() => {
     if (isDemoUser()) return;

@@ -44,8 +44,8 @@ const statusSteps: Record<string, string[]> = {
 
 const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
   const [selected, setSelected] = useState<Campaign | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
-  const [loading, setLoading] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(isDemoUser() ? DEMO_CAMPAIGNS : []);
+  const [loading, setLoading] = useState(!isDemoUser());
 
   useEffect(() => {
     if (isDemoUser()) return;

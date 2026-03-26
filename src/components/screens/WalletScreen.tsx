@@ -23,9 +23,9 @@ const DEMO_TXNS: Transaction[] = [
 
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
-  const [balance, setBalance] = useState<number | null>(null);
-  const [txns, setTxns] = useState<Transaction[]>(DEMO_TXNS);
-  const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState<number | null>(isDemoUser() ? 6000 : null);
+  const [txns, setTxns] = useState<Transaction[]>(isDemoUser() ? DEMO_TXNS : []);
+  const [loading, setLoading] = useState(!isDemoUser());
 
   useEffect(() => {
     if (isDemoUser()) return;
