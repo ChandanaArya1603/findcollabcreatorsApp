@@ -35,9 +35,27 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   const location = mediaKit
     ? [mediaKit.city, mediaKit.state, mediaKit.country].filter(Boolean).join(", ")
     : userDetail?.city || "India";
-  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.name || c.category_name) || [];
-  const instagramFollowers = mediaKit?.instagramData ? JSON.parse(mediaKit.instagramData.json_data || "{}").followers_count : null;
-  const youtubeSubscribers = mediaKit?.youtubeData?.subscriberCount || null;
+  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.name || c.category_name || c.Interested_in_industry) || [];
+
+  // Parse Instagram followers from nested json_data
+  let instagramFollowers: number | null = null;
+  if (mediaKit?.instagramData?.json_data) {
+    try {
+      const parsed = JSON.parse(mediaKit.instagramData.json_data);
+      instagramFollowers = parsed?.data?.user?.edge_followed_by?.count ?? parsed?.followers_count ?? null;
+    } catch { /* ignore */ }
+  }
+  if (!instagramFollowers && mediaKit?.userDetail?.primary_account_followers) {
+    instagramFollowers = Number(mediaKit.userDetail.primary_account_followers) || null;
+  }
+
+  const youtubeSubscribers = Number(mediaKit?.userDetail?.youtube_subscribe_count) || null;
+
+  // Demo fallbacks
+  const demoInsta = isDemoUser() ? 5200000 : null;
+  const demoYt = isDemoUser() ? 32700000 : null;
+  const finalInsta = instagramFollowers ?? demoInsta;
+  const finalYt = youtubeSubscribers ?? demoYt;
 
   return (
     <Screen>
