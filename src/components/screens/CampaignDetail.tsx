@@ -45,7 +45,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
     campaignService
       .getCampaignDetail(c.id)
       .then((res) => {
-        console.log("📦 CampaignDetail API response:", JSON.stringify(res, null, 2));
         setDetail(res.campaign || res);
       })
       .catch(() => {})
