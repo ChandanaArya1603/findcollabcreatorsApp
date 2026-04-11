@@ -24,7 +24,7 @@ class ApiClient {
     method: string,
     endpoint: string,
     body?: Record<string, any>,
-    isFormData = false
+    isFormData = false,
   ): Promise<T> {
     const headers: Record<string, string> = {};
 
@@ -56,7 +56,10 @@ class ApiClient {
       }
     }
 
-    const res = await fetch(`${BASE_URL}${endpoint}`, config);
+    const urlWithToken = this.token
+      ? `${BASE_URL}${endpoint}${endpoint.includes("?") ? "&" : "?"}token=${this.token}`
+      : `${BASE_URL}${endpoint}`;
+    const res = await fetch(urlWithToken, config);
     const text = await res.text();
 
     // The server sometimes prepends HTML error output before the JSON payload.
