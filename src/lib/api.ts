@@ -24,19 +24,20 @@ class ApiClient {
     method: string,
     endpoint: string,
     body?: Record<string, any>,
-    isFormData = false
+    isFormData = false,
   ): Promise<T> {
     const headers: Record<string, string> = {};
-
-    if (this.token) {
-      headers["Authorization"] = `Bearer ${this.token}`;
-    }
 
     if (!isFormData) {
       headers["Content-Type"] = "application/json";
     }
 
     const config: RequestInit = { method, headers };
+
+    // Append token to URL so LiteSpeed server can read it
+    const urlWithToken = this.token
+      ? `${BASE_URL}${endpoint}${endpoint.includes("?") ? "&" : "?"}token=${this.token}`
+      : `${BASE_URL}${endpoint}`;
 
     if (body) {
       if (isFormData) {
@@ -56,11 +57,9 @@ class ApiClient {
       }
     }
 
-    const res = await fetch(`${BASE_URL}${endpoint}`, config);
+    const res = await fetch(urlWithToken, config);
     const text = await res.text();
 
-    // The server sometimes prepends HTML error output before the JSON payload.
-    // Extract the JSON portion so parsing doesn't break.
     const jsonStart = text.indexOf("{");
     if (jsonStart === -1) {
       throw new Error(`Request failed (${res.status})`);
