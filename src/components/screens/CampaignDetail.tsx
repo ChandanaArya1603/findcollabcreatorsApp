@@ -291,29 +291,29 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
             </Card>
           )}
 
-          {/* Cities */}
-          {cities && (
+          {/* Campaign Duration */}
+          {startDate && endDate && (
             <Card>
-              <p className="text-sm font-extrabold text-foreground mb-2">Cities</p>
-              <p className="text-[13px] text-text-mid">{cities}</p>
+              <p className="text-sm font-extrabold text-foreground mb-2">Campaign Duration</p>
+              <p className="text-[13px] text-text-mid">{startDate} → {endDate}</p>
             </Card>
           )}
 
-          {/* Product */}
-          {product && (
+          {/* Product Links */}
+          {productLinks.length > 0 && (
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-2">Product</p>
-              <p className="text-[13px] text-foreground font-medium">{product}</p>
-              {productUrl && (
+              {productLinks.map((url, i) => (
                 <a
-                  href={productUrl}
+                  key={i}
+                  href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-primary underline mt-1 inline-block"
+                  className="text-xs text-primary underline block mt-1"
                 >
-                  {productUrl}
+                  {url}
                 </a>
-              )}
+              ))}
             </Card>
           )}
 
@@ -328,53 +328,44 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
           )}
 
           {/* Deliverables */}
-          {deliverables && (
+          {deliverablesList.length > 0 && (
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-2">Deliverables</p>
-              <p className="text-[13px] text-text-mid leading-relaxed whitespace-pre-line">
-                {typeof deliverables === "string" ? deliverables : JSON.stringify(deliverables)}
-              </p>
+              <div className="flex flex-col gap-1.5">
+                {deliverablesList.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 py-1.5 px-3 bg-background rounded-xl">
+                    <Icon name="check" size={14} className="text-success" />
+                    <span className="text-[13px] text-text-mid">{item}</span>
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
 
           {/* About brand */}
-          {(contactName || brand) && (
+          {(brandName || brand) && (
             <Card>
               <p className="text-sm font-extrabold text-foreground mb-3">About</p>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center">
                   <span className="text-sm font-black text-primary-dark">
-                    {(contactName || brand || "?").charAt(0).toUpperCase()}
+                    {(brandName || brand || "?").charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{contactName || brand}</p>
-                  {contactRole && (
-                    <p className="text-[11px] text-text-mid">{contactRole}</p>
-                  )}
+                  <p className="text-sm font-bold text-foreground">{brandName}</p>
+                  <p className="text-[11px] text-text-mid">{brand}</p>
                 </div>
               </div>
-              {(brandLocation || employees || brandCategory) && (
-                <div className="flex gap-4 text-center">
-                  {brandLocation && (
-                    <div>
-                      <p className="text-[10px] text-text-light uppercase">Location</p>
-                      <p className="text-xs font-bold text-foreground">{brandLocation}</p>
-                    </div>
-                  )}
-                  {employees && (
-                    <div>
-                      <p className="text-[10px] text-text-light uppercase">Employees</p>
-                      <p className="text-xs font-bold text-foreground">{employees}</p>
-                    </div>
-                  )}
-                  {brandCategory && (
-                    <div>
-                      <p className="text-[10px] text-text-light uppercase">Category</p>
-                      <p className="text-xs font-bold text-foreground">{brandCategory}</p>
-                    </div>
-                  )}
-                </div>
+              {companyEmail && (
+                <p className="text-xs text-text-mid">
+                  ✉ {companyEmail}
+                </p>
+              )}
+              {country && (
+                <p className="text-xs text-text-mid mt-1">
+                  📍 {country}
+                </p>
               )}
             </Card>
           )}
