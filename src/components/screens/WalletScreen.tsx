@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { walletService } from "@/services/walletService";
+import { dashboardService } from "@/services/dashboardService";
 import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
@@ -24,6 +25,9 @@ const DEMO_TXNS: Transaction[] = [
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
   const [balance, setBalance] = useState<number | null>(isDemoUser() ? 6000 : null);
+  const [credits, setCredits] = useState<{ total: number; earned: number; spent: number } | null>(
+    isDemoUser() ? { total: 10, earned: 20, spent: 10 } : null
+  );
   const [txns, setTxns] = useState<Transaction[]>(isDemoUser() ? DEMO_TXNS : []);
   const [loading, setLoading] = useState(!isDemoUser());
 
@@ -34,8 +38,14 @@ const WalletScreen: React.FC = () => {
     Promise.all([
       walletService.getBalance().catch(() => null),
       walletService.getTransactions().catch(() => null),
-    ]).then(([balRes, txnRes]) => {
+      dashboardService.getStats().catch(() => null),
+    ]).then(([balRes, txnRes, statsRes]) => {
       if (balRes) setBalance(balRes.wallet_balance ?? 0);
+      if (statsRes) {
+        const earned = statsRes.creditsEarned ?? 0;
+        const total = statsRes.credits ?? 0;
+        setCredits({ total, earned, spent: earned - total });
+      }
       if (txnRes?.transactions) {
         setTxns(
           txnRes.transactions.map((t: any) => ({
@@ -72,8 +82,8 @@ const WalletScreen: React.FC = () => {
         <div className="grid grid-cols-2 gap-2.5">
           <div className="bg-primary-light rounded-[14px] p-3">
             <p className="text-[10px] text-primary-dark font-bold uppercase mb-0.5">Credits</p>
-            <p className="text-[26px] font-black text-primary">10</p>
-            <p className="text-[10px] text-text-mid mt-0.5">20 earned • 10 spent</p>
+            <p className="text-[26px] font-black text-primary">{credits?.total ?? "—"}</p>
+            <p className="text-[10px] text-text-mid mt-0.5">{credits ? `${credits.earned} earned • ${credits.spent} spent` : "—"}</p>
           </div>
           <div className="bg-success-light rounded-[14px] p-3">
             <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">KYC Status</p>
