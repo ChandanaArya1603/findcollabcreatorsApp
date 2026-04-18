@@ -403,7 +403,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                   <div className={`w-14 h-14 rounded-[16px] overflow-hidden shrink-0 flex items-center justify-center ${p.bgActive}`}>
                     {p.profilePic ? (
                       <img
-                        src={p.profilePic}
+                        src={proxyImg(p.profilePic)}
                         alt={`${p.label} profile`}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
