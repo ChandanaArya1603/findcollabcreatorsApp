@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
-import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -25,11 +24,10 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   const [mediaKit, setMediaKit] = useState<any>(null);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     profileService.getMediaKit().then(setMediaKit).catch(() => {});
   }, []);
 
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "Demo User";
+  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
   const initial = (user?.fname || "D").charAt(0).toUpperCase();
   const bio = mediaKit?.userDetail?.bio || userDetail?.bio || "Influencer on Findcollab";
   const location = mediaKit
@@ -58,11 +56,8 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   const ytRaw = mediaKit?.userDetail?.youtube_subscribe_count;
   const youtubeSubscribers: number | null = ytRaw != null && ytRaw !== "" ? Number(ytRaw) : null;
 
-  // Demo fallbacks
-  const demoInsta = isDemoUser() ? 5200000 : null;
-  const demoYt = isDemoUser() ? 32700000 : null;
-  const finalInsta = instagramFollowers ?? demoInsta;
-  const finalYt = youtubeSubscribers ?? demoYt;
+  const finalInsta = instagramFollowers;
+  const finalYt = youtubeSubscribers;
 
   return (
     <Screen>

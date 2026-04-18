@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
-import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
@@ -73,7 +72,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
   // Load media kit data to pre-fill
   useEffect(() => {
-    if (isDemoUser()) return;
     profileService.getMediaKit().then((res) => {
       if (res.userCategories) {
         setCategories(res.userCategories.map((c: any) => c.name || c.category_name || ""));
@@ -140,11 +138,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   };
 
   const handleSave = async () => {
-    if (isDemoUser()) {
-      toast.success("Demo mode — changes simulated!");
-      onBack();
-      return;
-    }
     setSaving(true);
     try {
       const [fname, ...rest] = name.split(" ");
