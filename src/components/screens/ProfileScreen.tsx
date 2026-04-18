@@ -117,10 +117,11 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         </div>
         <div className="flex border-t border-border">
           {[
-            { ic: "insta", l: "Instagram", v: finalInsta != null ? finalInsta >= 1000000 ? `${(finalInsta / 1000000).toFixed(1)}M` : finalInsta >= 1000 ? `${(finalInsta / 1000).toFixed(0)}K` : `${finalInsta}` : "—", c: "text-pink-600" },
-            { ic: "yt", l: "YouTube", v: finalYt != null ? finalYt >= 1000000 ? `${(finalYt / 1000000).toFixed(1)}M` : finalYt >= 1000 ? `${(finalYt / 1000).toFixed(0)}K` : `${finalYt}` : "—", c: "text-red-600" },
-          ].map((s, i) => (
-            <div key={i} className={`flex-1 py-3 px-4 text-center ${i === 0 ? "border-r border-border" : ""}`}>
+            { ic: "insta", l: "Instagram", v: fmt(finalInsta), c: "text-pink-600" },
+            { ic: "yt", l: "YouTube", v: fmt(finalYt), c: "text-red-600" },
+            { ic: "linkedin", l: "LinkedIn", v: fmt(finalLi), c: "text-blue-600" },
+          ].map((s, i, arr) => (
+            <div key={i} className={`flex-1 py-3 px-3 text-center ${i < arr.length - 1 ? "border-r border-border" : ""}`}>
               <div className="flex justify-center mb-1">
                 <Icon name={s.ic} size={18} className={s.c} />
               </div>
@@ -130,6 +131,28 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
           ))}
         </div>
       </div>
+
+      {latestPosts.length > 0 && (
+        <div className="px-4 pt-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[13px] font-bold text-text-light uppercase tracking-widest">Latest Posts</p>
+            <span className="text-[11px] text-text-light">Instagram</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {latestPosts.map((post, i) => (
+              <div key={i} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted group">
+                <img src={post.thumb} alt={post.caption || `Post ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                  <div className="flex items-center gap-2 text-[9px] text-white font-bold">
+                    <span>❤ {fmt(post.likes)}</span>
+                    <span>💬 {fmt(post.comments)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="px-4 pt-3.5">
         <p className="text-[13px] font-bold text-text-light uppercase tracking-widest mb-2.5">Account</p>
