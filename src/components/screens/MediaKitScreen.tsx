@@ -210,6 +210,35 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         Object.keys(updated).forEach((plat) => { updated[plat].projects = projs; });
       }
 
+      // ── Recent Posts (Instagram reels) ─────────
+      try {
+        const reelsRaw = res.instagramData?.reels_data;
+        const reels = reelsRaw ? (typeof reelsRaw === "string" ? JSON.parse(reelsRaw) : reelsRaw) : null;
+        const items = reels?.items || [];
+        const fmtPostNum = (n: number) => {
+          if (!n) return "0";
+          if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+          if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+          return String(n);
+        };
+        const fmtDate = (ts: number) => {
+          if (!ts) return "";
+          const d = new Date(ts * 1000);
+          return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+        };
+        updated.instagram.recentPosts = items.slice(0, 5).map((item: any) => {
+          const m = item.media || item;
+          const caption = m.caption?.text || "";
+          return {
+            type: m.media_type === 2 ? "Reel" : m.media_type === 8 ? "Carousel" : "Post",
+            caption: caption.length > 80 ? caption.slice(0, 80) + "…" : caption || "(no caption)",
+            likes: fmtPostNum(Number(m.like_count ?? m.fb_like_count ?? 0)),
+            comments: fmtPostNum(Number(m.comment_count ?? 0)),
+            date: fmtDate(Number(m.taken_at ?? 0)),
+          };
+        });
+      } catch {}
+
       setPlatforms(updated);
     }).catch(() => {});
   }, []);
