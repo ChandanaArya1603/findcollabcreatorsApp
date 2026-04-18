@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
-import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -112,15 +111,14 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
   const [bioOpen, setBioOpen] = useState(false);
-  const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(DEMO_PLATFORMS);
+  const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     profileService.getMediaKit().then((res) => {
       setProfileData(res);
       // Build platform data from API response if available
-      const updated = { ...DEMO_PLATFORMS };
+      const updated = { ...EMPTY_PLATFORMS };
       if (res.instagramData) {
         try {
           const igJson = JSON.parse(res.instagramData.json_data || "{}");
@@ -159,7 +157,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   }, []);
 
   const platformKeys = Object.keys(platforms);
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "Demo User";
+  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
   const creatorBio = profileData?.userDetail?.bio || "Influencer on Findcollab";
   const bioSnippet = creatorBio.length > 90 ? creatorBio.slice(0, 90) + "…" : creatorBio;
   const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "India";
