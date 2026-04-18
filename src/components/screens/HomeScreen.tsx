@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
-import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -14,25 +13,12 @@ interface HomeScreenProps {
   switchTab?: (tab: string) => void;
 }
 
-const DEMO_STATS = {
-  credits: "10",
-  wallet: "₹6K",
-  applied: "10",
-  startups: "722",
-  creditsSub: "20 earned",
-  walletSub: "Ready to withdraw",
-  appliedSub: "4 offers received",
-  startupsSub: "Available to pitch",
-  profileViews: { total: 1250, directPercentage: 64 },
-};
-
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user } = useAuth();
-  const [dashStats, setDashStats] = useState<any>(isDemoUser() ? null : undefined);
-  const [loading, setLoading] = useState(!isDemoUser());
+  const [dashStats, setDashStats] = useState<any>(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     setLoading(true);
     dashboardService.getStats()
       .then((res) => setDashStats(res))
@@ -57,21 +43,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
         { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
         { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
       ]
-    : isDemoUser()
-      ? [
-          { l: "Credits", v: DEMO_STATS.credits, sub: DEMO_STATS.creditsSub, ic: "wallet", c: "text-primary" },
-          { l: "Wallet", v: DEMO_STATS.wallet, sub: DEMO_STATS.walletSub, ic: "rupee", c: "text-success" },
-          { l: "Applied", v: DEMO_STATS.applied, sub: DEMO_STATS.appliedSub, ic: "campaign", c: "text-info" },
-          { l: "Startups", v: DEMO_STATS.startups, sub: DEMO_STATS.startupsSub, ic: "startup", c: "text-warning" },
-        ]
-      : [
-          { l: "Credits", v: "—", sub: "", ic: "wallet", c: "text-primary" },
-          { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
-          { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
-          { l: "Startups", v: "—", sub: "", ic: "startup", c: "text-warning" },
-        ];
+    : [
+        { l: "Credits", v: "—", sub: "", ic: "wallet", c: "text-primary" },
+        { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
+        { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
+        { l: "Startups", v: "—", sub: "", ic: "startup", c: "text-warning" },
+      ];
 
-  const profileViews = dashStats?.profileViews ?? (isDemoUser() ? DEMO_STATS.profileViews : { total: 0, directPercentage: 0 });
+  const profileViews = dashStats?.profileViews ?? { total: 0, directPercentage: 0 };
 
   const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
   const mx = Math.max(...bars);

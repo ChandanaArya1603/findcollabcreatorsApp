@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { campaignService } from "@/services/campaignService";
-import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -38,10 +37,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isDemoUser()) {
-      setLoading(false);
-      return;
-    }
     campaignService
       .getCampaignDetail(c.id)
       .then((res) => {
@@ -52,11 +47,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
   }, [c.id]);
 
   const handleApply = async () => {
-    if (isDemoUser()) {
-      toast.success("Demo mode — application simulated!");
-      setApplied(true);
-      return;
-    }
     setApplying(true);
     try {
       await campaignService.applyCampaign(c.id);

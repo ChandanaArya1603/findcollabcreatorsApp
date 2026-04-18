@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { walletService } from "@/services/walletService";
 import { dashboardService } from "@/services/dashboardService";
-import { isDemoUser } from "@/lib/demo";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
-import { toast } from "sonner";
 
 interface Transaction {
   desc: string;
@@ -16,23 +14,14 @@ interface Transaction {
   date: string;
 }
 
-const DEMO_TXNS: Transaction[] = [
-  { desc: "Summer Slimming Challenge — Payment released", amt: "+₹1,000", type: "credit", date: "31 May" },
-  { desc: "Healthy Living with Moringa — Payment released", amt: "+₹5,000", type: "credit", date: "30 May" },
-  { desc: "Withdrawal rejected by admin", amt: "-₹1,000", type: "debit", date: "31 May" },
-];
-
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
-  const [balance, setBalance] = useState<number | null>(isDemoUser() ? 6000 : null);
-  const [credits, setCredits] = useState<{ total: number; earned: number; spent: number } | null>(
-    isDemoUser() ? { total: 10, earned: 20, spent: 10 } : null
-  );
-  const [txns, setTxns] = useState<Transaction[]>(isDemoUser() ? DEMO_TXNS : []);
-  const [loading, setLoading] = useState(!isDemoUser());
+  const [balance, setBalance] = useState<number | null>(null);
+  const [credits, setCredits] = useState<{ total: number; earned: number; spent: number } | null>(null);
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     setLoading(true);
 
     Promise.all([
@@ -59,7 +48,7 @@ const WalletScreen: React.FC = () => {
     }).finally(() => setLoading(false));
   }, []);
 
-  const displayBalance = balance !== null ? `₹${balance.toLocaleString()}` : "₹6,000";
+  const displayBalance = balance !== null ? `₹${balance.toLocaleString()}` : "—";
 
   const plans = [
     { name: "Starter", credits: 100, price: "₹199", pop: false },

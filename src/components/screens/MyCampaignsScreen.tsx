@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { campaignService } from "@/services/campaignService";
-import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -20,11 +19,6 @@ interface Campaign {
   deliverables: string;
 }
 
-const DEMO_CAMPAIGNS: Campaign[] = [
-  { brand: "Websites.co.in", name: "Brand Awareness Campaign", status: "Applied", sc: "blue", date: "25-08-19", details: "Promote brand visibility.", deliverables: "2 Reels, 1 Story" },
-  { brand: "Findcollab", name: "Summer Slimming Challenge", status: "Offer Accepted", sc: "green", date: "20-05-25", details: "Health & fitness challenge.", deliverables: "3 Reels, 2 Posts" },
-  { brand: "Findcollab", name: "VIVO MOBILE LAUNCH", status: "Shortlisted", sc: "amber", date: "01-06-25", details: "Product launch campaign.", deliverables: "1 Unboxing Reel" },
-];
 
 function statusColor(status: string): "blue" | "green" | "amber" | "red" {
   const s = status.toLowerCase();
@@ -44,11 +38,10 @@ const statusSteps: Record<string, string[]> = {
 
 const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
   const [selected, setSelected] = useState<Campaign | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(isDemoUser() ? DEMO_CAMPAIGNS : []);
-  const [loading, setLoading] = useState(!isDemoUser());
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     setLoading(true);
     campaignService.getMyCampaigns()
       .then((res) => {

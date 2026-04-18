@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
-import { isDemoUser } from "@/lib/demo";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -26,60 +25,48 @@ interface PlatformData {
   recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
 }
 
-const DEMO_PLATFORMS: Record<string, PlatformData> = {
+const EMPTY_PLATFORMS: Record<string, PlatformData> = {
   instagram: {
     label: "Instagram", ic: "insta", color: "text-pink-600",
     bgActive: "bg-gradient-to-br from-pink-500 to-rose-500",
-    followers: "6.1M", followerLabel: "Instagram followers",
-    engagementRate: 37.03,
+    followers: "—", followerLabel: "Instagram followers",
+    engagementRate: 0,
     engagement: [
-      { label: "Average Likes", value: "2.1M", ic: "heart" },
-      { label: "Reels views", value: "21M", ic: "campaign" },
-      { label: "Comments", value: "94.4K", ic: "chat" },
+      { label: "Average Likes", value: "—", ic: "heart" },
+      { label: "Posts", value: "—", ic: "campaign" },
+      { label: "Following", value: "—", ic: "person" },
     ],
-    rates: [
-      { service: "Reel (<60s)", rate: "₹10,00,000" },
-      { service: "Static Post", rate: "₹5,00,000" },
-    ],
-    projects: [{ brand: "Sery Cosmetics", link: "instagram.com/reel/CSQOCHsg7S2" }],
-    recentPosts: [
-      { type: "Reel", caption: "Amazing experiment 💥", likes: "3.2M", comments: "18K", date: "2d ago" },
-    ],
+    rates: [],
+    projects: [],
+    recentPosts: [],
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
     bgActive: "bg-gradient-to-br from-red-500 to-red-600",
-    followers: "32.7M", followerLabel: "Youtube followers",
-    engagementRate: 12.5,
+    followers: "—", followerLabel: "Youtube followers",
+    engagementRate: 0,
     engagement: [
-      { label: "Avg Views", value: "5.8M", ic: "campaign" },
-      { label: "Subscribers", value: "32.7M", ic: "person" },
-      { label: "Comments", value: "42K", ic: "chat" },
+      { label: "Avg Views", value: "—", ic: "campaign" },
+      { label: "Subscribers", value: "—", ic: "person" },
+      { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [
-      { service: "Dedicated Video", rate: "₹25,00,000" },
-      { service: "Integrated Video", rate: "₹15,00,000" },
-    ],
-    projects: [{ brand: "VIVO India", link: "youtube.com/watch?v=abc123" }],
-    recentPosts: [
-      { type: "Video", caption: "World's Largest Experiment! 🌍", likes: "8.2M", comments: "45K", date: "3d ago" },
-    ],
+    rates: [],
+    projects: [],
+    recentPosts: [],
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
     bgActive: "bg-gradient-to-br from-blue-500 to-blue-600",
-    followers: "120K", followerLabel: "LinkedIn followers",
-    engagementRate: 8.4,
+    followers: "—", followerLabel: "LinkedIn followers",
+    engagementRate: 0,
     engagement: [
-      { label: "Avg Impressions", value: "85K", ic: "campaign" },
-      { label: "Connections", value: "12K", ic: "person" },
-      { label: "Comments", value: "1.2K", ic: "chat" },
+      { label: "Avg Impressions", value: "—", ic: "campaign" },
+      { label: "Connections", value: "—", ic: "person" },
+      { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [{ service: "Thought Leadership Post", rate: "₹1,50,000" }],
-    projects: [{ brand: "Zoho", link: "linkedin.com/posts/dilraj-xyz" }],
-    recentPosts: [
-      { type: "Post", caption: "5 lessons from building a 30M+ audience 📈", likes: "42K", comments: "1.8K", date: "4d ago" },
-    ],
+    rates: [],
+    projects: [],
+    recentPosts: [],
   },
 };
 
@@ -112,15 +99,14 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
   const [bioOpen, setBioOpen] = useState(false);
-  const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(DEMO_PLATFORMS);
+  const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
-    if (isDemoUser()) return;
     profileService.getMediaKit().then((res) => {
       setProfileData(res);
       // Build platform data from API response if available
-      const updated = { ...DEMO_PLATFORMS };
+      const updated = { ...EMPTY_PLATFORMS };
       if (res.instagramData) {
         try {
           const igJson = JSON.parse(res.instagramData.json_data || "{}");
@@ -159,7 +145,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   }, []);
 
   const platformKeys = Object.keys(platforms);
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "Demo User";
+  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
   const creatorBio = profileData?.userDetail?.bio || "Influencer on Findcollab";
   const bioSnippet = creatorBio.length > 90 ? creatorBio.slice(0, 90) + "…" : creatorBio;
   const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "India";
