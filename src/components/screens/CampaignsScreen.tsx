@@ -55,7 +55,10 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
             id: c.id,
             brand: c.company_name || c.brand || "",
             title: c.project_title || c.title || "",
-            type: c.campaign_type || c.type || "Barter",
+            type: (() => {
+              const t = (c.campaign_type || c.type || "barter").toString().toLowerCase();
+              return t.charAt(0).toUpperCase() + t.slice(1);
+            })(),
             budget: c.budget || "₹0",
             credits: c.credits || 10,
             cat: c.category || c.cat || "",
