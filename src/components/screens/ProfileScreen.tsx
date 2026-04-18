@@ -141,7 +141,7 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
           <div className="grid grid-cols-3 gap-2">
             {latestPosts.map((post, i) => (
               <div key={i} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted group">
-                <img src={post.thumb} alt={post.caption || `Post ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                <img src={post.thumb.includes("fbcdn.net") || post.thumb.includes("cdninstagram.com") ? `https://images.weserv.nl/?url=${encodeURIComponent(post.thumb.replace(/^https?:\/\//, ""))}` : post.thumb} alt={post.caption || `Post ${i + 1}`} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
                   <div className="flex items-center gap-2 text-[9px] text-white font-bold">
                     <span>❤ {fmt(post.likes)}</span>
