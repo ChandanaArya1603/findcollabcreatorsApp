@@ -41,22 +41,18 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-export const Icon = React.forwardRef<SVGSVGElement, IconProps>(
-  ({ name, size = 20, className = "text-current", strokeWidth = 2 }, ref) => (
-    <svg
-      ref={ref}
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`block shrink-0 ${className}`}
-    >
-      <path d={paths[name] || ""} />
-    </svg>
-  )
+export const Icon: React.FC<IconProps> = ({ name, size = 20, className = "text-current", strokeWidth = 2 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`block shrink-0 ${className}`}
+  >
+    <path d={paths[name] || ""} />
+  </svg>
 );
-Icon.displayName = "Icon";
