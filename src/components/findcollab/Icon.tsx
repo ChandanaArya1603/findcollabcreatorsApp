@@ -31,6 +31,7 @@ const paths: Record<string, string> = {
   tiktok: "M9 12a4 4 0 104 4V4a5 5 0 005 5",
   twitter: "M4 4l7.2 10.3L4 21h2l5.7-5.3L16 21h4l-7.6-10.9L19.2 4H17.2l-5.3 4.9L8 4H4z",
   attach: "M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.49",
+  share: "M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8 M16 6l-4-4-4 4 M12 2v13",
 };
 
 interface IconProps {
