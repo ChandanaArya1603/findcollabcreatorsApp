@@ -322,7 +322,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             <div className="w-16 h-16 rounded-[18px] border-[3px] border-card -mt-8 shrink-0 overflow-hidden bg-primary flex items-center justify-center">
               {platforms.instagram.profilePic ? (
                 <img
-                  src={platforms.instagram.profilePic}
+                  src={proxyImg(platforms.instagram.profilePic)}
                   alt={displayName}
                   className="w-full h-full object-cover"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
