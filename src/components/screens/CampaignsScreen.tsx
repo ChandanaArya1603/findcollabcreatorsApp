@@ -51,23 +51,41 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
         const results = res.result || res.campaigns || [];
         setTotalCount(res.Total_Record || results.length);
         setCampaigns(
-          results.map((c: any) => ({
-            id: c.id,
-            brand: c.company_name || c.brand || "",
-            title: c.project_title || c.title || "",
-            type: (() => {
-              const t = (c.campaign_type || c.type || "barter").toString().toLowerCase();
-              return t.charAt(0).toUpperCase() + t.slice(1);
-            })(),
-            budget: c.budget || "₹0",
-            credits: c.credits || 10,
-            cat: c.category || c.cat || "",
-            plat: c.platform || c.plat || "Instagram",
-            desc: c.description || c.desc || "",
-            views: c.campaignViews || c.views || 0,
-            apps: c.applications || c.apps || 0,
-            days: timeAgo(c.created_at || c.days || ""),
-          }))
+          results.map((c: any) => {
+            const rawType = (c.campaign_type || c.type || "barter").toString().toLowerCase();
+            const type = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+
+            let budget = "—";
+            if (rawType === "paid") {
+              const cur = c.currency_paid || "₹";
+              if (c.budget_min && c.budget_max) budget = `${cur}${Number(c.budget_min).toLocaleString()} - ${cur}${Number(c.budget_max).toLocaleString()}`;
+              else if (c.budget_max) budget = `${cur}${Number(c.budget_max).toLocaleString()}`;
+              else if (c.budget_min) budget = `${cur}${Number(c.budget_min).toLocaleString()}`;
+            } else if (rawType === "barter") {
+              const cur = c.currency_barter || "₹";
+              if (c.product_value) budget = `${cur}${Number(c.product_value).toLocaleString()} value`;
+              else budget = "Barter";
+            } else if (rawType === "affiliate") {
+              const cur = c.fixed || "₹";
+              if (c.fixed_value) budget = `${cur}${Number(c.fixed_value).toLocaleString()}`;
+              if (c.variable_value) budget += ` + ${c.variable || cur}${Number(c.variable_value).toLocaleString()}`;
+            }
+
+            return {
+              id: c.id,
+              brand: c.brand_name || c.company_name || c.brand || "",
+              title: c.project_title || c.title || "",
+              type,
+              budget,
+              credits: c.credits || 10,
+              cat: c.category || c.cat || "",
+              plat: c.platform || c.plat || "Instagram",
+              desc: c.briefs || c.description || c.desc || "",
+              views: c.campaignViews || c.views || 0,
+              apps: c.applications || c.apps || 0,
+              days: timeAgo(c.timestamp || c.created_at || c.days || ""),
+            };
+          })
         );
       })
       .catch(() => {})
