@@ -137,7 +137,11 @@ export function useMessages() {
       try {
         const res = await messageService.getMessages(receiverId);
         const list = Array.isArray(res) ? res : res?.messages ?? res?.data ?? [];
-        setMessages(list.map((m: any) => mapMessage(m, currentUserId)));
+        if (list[0]) console.log("[useMessages] raw message sample:", list[0]);
+        const mapped = list
+          .map((m: any) => mapMessage(m, currentUserId))
+          .filter((m: Message) => m.message?.trim() || m.attachment);
+        setMessages(mapped);
       } catch (err: any) {
         console.error("Failed to fetch messages:", err);
         setError(err.message ?? "Failed to load messages");
