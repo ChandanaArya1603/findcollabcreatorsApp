@@ -310,8 +310,17 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         <div className="h-[70px] bg-primary-light" />
         <div className="px-4 pb-4">
           <div className="flex items-end gap-3 mb-3">
-            <div className="w-16 h-16 rounded-[18px] bg-primary border-[3px] border-card -mt-8 flex items-center justify-center shrink-0">
-              <span className="text-primary-foreground text-2xl font-black">{(user?.fname || "D").charAt(0)}</span>
+            <div className="w-16 h-16 rounded-[18px] border-[3px] border-card -mt-8 shrink-0 overflow-hidden bg-primary flex items-center justify-center">
+              {platforms.instagram.profilePic ? (
+                <img
+                  src={platforms.instagram.profilePic}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+              ) : (
+                <span className="text-primary-foreground text-2xl font-black">{(user?.fname || "D").charAt(0)}</span>
+              )}
             </div>
             <div className="pb-1">
               <div className="flex items-center gap-1.5">
