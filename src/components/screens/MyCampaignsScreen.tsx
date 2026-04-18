@@ -79,6 +79,10 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
             <p className="text-[11px] text-text-light mb-0.5">{selected.brand}</p>
             <p className="text-base font-black text-foreground mb-1">{selected.name}</p>
             <Badge color={selected.sc}>{selected.status}</Badge>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-xl font-black text-foreground">{selected.budget}</span>
+              <span className="text-[11px] text-text-mid">{selected.type}</span>
+            </div>
             {selected.details && <p className="text-xs text-text-mid mt-3 leading-relaxed">{selected.details}</p>}
           </Card>
           <Card>
