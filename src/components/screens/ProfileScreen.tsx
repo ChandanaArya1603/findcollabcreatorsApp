@@ -27,37 +27,74 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
     profileService.getMediaKit().then(setMediaKit).catch(() => {});
   }, []);
 
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
+  const ud = mediaKit?.userDetail || userDetail || {};
+  const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";
   const initial = (user?.fname || "D").charAt(0).toUpperCase();
-  const bio = mediaKit?.userDetail?.bio || userDetail?.bio || "Influencer on Findcollab";
-  const location = mediaKit
-    ? [mediaKit.city, mediaKit.state, mediaKit.country].filter(Boolean).join(", ")
-    : userDetail?.city || "India";
-  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.name || c.category_name || c.Interested_in_industry) || [];
 
-  // Parse Instagram followers from nested json_data
-  let instagramFollowers: number | null = null;
+  // Parse Instagram from nested json_data
+  let igUser: any = {};
   if (mediaKit?.instagramData?.json_data) {
     try {
       const parsed = typeof mediaKit.instagramData.json_data === "string"
         ? JSON.parse(mediaKit.instagramData.json_data)
         : mediaKit.instagramData.json_data;
-      instagramFollowers = parsed?.data?.user?.edge_followed_by?.count ?? parsed?.followers_count ?? null;
-    } catch { /* ignore */ }
+      igUser = parsed?.data?.user || {};
+    } catch {}
   }
-  if (instagramFollowers == null && mediaKit?.userDetail?.primary_account_followers) {
-    instagramFollowers = Number(mediaKit.userDetail.primary_account_followers) || null;
-  }
-  if (instagramFollowers == null && mediaKit?.userDetail?.total_followers) {
-    instagramFollowers = Number(mediaKit.userDetail.total_followers) || null;
+  const instagramFollowers: number | null =
+    igUser.edge_followed_by?.count ??
+    (ud.primary_account_followers ? Number(ud.primary_account_followers) : null) ??
+    (ud.total_followers ? Number(ud.total_followers) : null);
+
+  const youtubeSubscribers: number | null =
+    ud.youtube_subscribe_count != null && ud.youtube_subscribe_count !== ""
+      ? Number(ud.youtube_subscribe_count)
+      : null;
+
+  const linkedinFollowers: number | null =
+    ud.linkedin_followers != null && ud.linkedin_followers !== ""
+      ? Number(ud.linkedin_followers)
+      : null;
+
+  const igBio = igUser.biography || "";
+  const bio = ud.introduction || ud.instagram_bio || igBio || ud.youtube_bio || "Influencer on Findcollab";
+  const location = mediaKit
+    ? [mediaKit.city, mediaKit.state, mediaKit.country].filter(Boolean).join(", ")
+    : ud.city || "";
+  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.Interested_in_industry || c.name || c.category_name).filter(Boolean) || [];
+
+  // ── Latest Posts (from Instagram reels_data) ──
+  let latestPosts: { thumb: string; caption: string; likes: number; comments: number; views?: number }[] = [];
+  if (mediaKit?.instagramData?.reels_data) {
+    try {
+      const reels = typeof mediaKit.instagramData.reels_data === "string"
+        ? JSON.parse(mediaKit.instagramData.reels_data)
+        : mediaKit.instagramData.reels_data;
+      const items = reels?.items || [];
+      latestPosts = items.slice(0, 6).map((item: any) => {
+        const m = item.media || item;
+        const candidate = m.image_versions2?.additional_candidates?.first_frame || m.image_versions2?.candidates?.[0];
+        const caption = m.caption?.text || "";
+        return {
+          thumb: candidate?.url || "",
+          caption: caption.length > 60 ? caption.slice(0, 60) + "…" : caption,
+          likes: Number(m.like_count ?? m.fb_like_count ?? 0),
+          comments: Number(m.comment_count ?? 0),
+          views: Number(m.play_count ?? m.video_view_count ?? 0),
+        };
+      }).filter((p: any) => p.thumb);
+    } catch {}
   }
 
-  // YouTube - handle "0" as a valid value
-  const ytRaw = mediaKit?.userDetail?.youtube_subscribe_count;
-  const youtubeSubscribers: number | null = ytRaw != null && ytRaw !== "" ? Number(ytRaw) : null;
-
+  const fmt = (n: number | null): string => {
+    if (n == null) return "—";
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
+  };
   const finalInsta = instagramFollowers;
   const finalYt = youtubeSubscribers;
+  const finalLi = linkedinFollowers;
 
   return (
     <Screen>
