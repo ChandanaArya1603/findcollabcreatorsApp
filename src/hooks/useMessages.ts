@@ -81,20 +81,28 @@ function mapMessage(raw: any, currentUserId: number): Message {
   const senderId = Number(raw.sender_id ?? raw.senderId ?? raw.from_id ?? raw.user_id ?? 0);
   const receiverId = Number(raw.receiver_id ?? raw.receiverId ?? raw.to_id ?? raw.sent_id ?? 0);
   const message =
-    raw.message ?? raw.text ?? raw.content ?? raw.msg ?? raw.body ?? raw.messageText ?? "";
+    raw.chat_messages_text ??
+    raw.message ??
+    raw.text ??
+    raw.content ??
+    raw.msg ??
+    raw.body ??
+    raw.messageText ??
+    "";
+
+  const attachmentName = raw.attachment_name ?? raw.file_name ?? raw.attachment?.name ?? raw.file?.name;
+  const attachmentType = raw.attachment_type ?? raw.file_type ?? raw.attachment?.type ?? raw.file?.type;
+  const attachmentUrl = raw.attachment_url ?? raw.file_url ?? raw.attachment?.url ?? raw.file?.url;
+
   return {
-    id: raw.id ?? raw.message_id ?? Date.now() + Math.random(),
+    id: Number(raw.chat_messages_id ?? raw.id ?? raw.message_id ?? Date.now() + Math.random()),
     senderId,
     receiverId,
     message,
-    createdAt: raw.created_at ?? raw.createdAt ?? raw.date_added ?? raw.time ?? "",
+    createdAt: raw.chat_messages_datetime ?? raw.created_at ?? raw.createdAt ?? raw.date_added ?? raw.time ?? "",
     isOwn: senderId === Number(currentUserId),
-    attachment: raw.attachment ?? raw.file
-      ? {
-          name: raw.attachment?.name ?? raw.file_name ?? raw.file?.name ?? "File",
-          type: raw.attachment?.type ?? raw.file_type ?? raw.file?.type ?? "file",
-          url: raw.attachment?.url ?? raw.file_url ?? raw.file?.url,
-        }
+    attachment: attachmentName
+      ? { name: attachmentName, type: attachmentType ?? "file", url: attachmentUrl }
       : undefined,
   };
 }
