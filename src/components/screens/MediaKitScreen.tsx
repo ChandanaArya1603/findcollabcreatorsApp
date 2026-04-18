@@ -72,6 +72,15 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
   },
 };
 
+// Instagram CDN images block hot-linking via Referer; route through a free image proxy
+const proxyImg = (url: string): string => {
+  if (!url) return "";
+  if (url.includes("fbcdn.net") || url.includes("cdninstagram.com")) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ""))}`;
+  }
+  return url;
+};
+
 const EngagementDonut: React.FC<{ percentage: number }> = ({ percentage }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
@@ -313,7 +322,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             <div className="w-16 h-16 rounded-[18px] border-[3px] border-card -mt-8 shrink-0 overflow-hidden bg-primary flex items-center justify-center">
               {platforms.instagram.profilePic ? (
                 <img
-                  src={platforms.instagram.profilePic}
+                  src={proxyImg(platforms.instagram.profilePic)}
                   alt={displayName}
                   className="w-full h-full object-cover"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -394,7 +403,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                   <div className={`w-14 h-14 rounded-[16px] overflow-hidden shrink-0 flex items-center justify-center ${p.bgActive}`}>
                     {p.profilePic ? (
                       <img
-                        src={p.profilePic}
+                        src={proxyImg(p.profilePic)}
                         alt={`${p.label} profile`}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
