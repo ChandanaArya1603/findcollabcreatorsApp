@@ -6,6 +6,7 @@ import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { Icon } from "../findcollab/Icon";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   onBack: () => void;
