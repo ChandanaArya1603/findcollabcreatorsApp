@@ -8,6 +8,7 @@ import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "sonner";
 import type { Campaign } from "./CampaignsScreen";
+import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 interface Props {
   campaign: Campaign;
