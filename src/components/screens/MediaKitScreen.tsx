@@ -259,11 +259,35 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
   const p = platforms[activePlatform] || platforms.instagram;
 
+  const handleShare = async () => {
+    if (!user?.id) return;
+    const url = `https://findcollab.com/media-kit/${user.id}`;
+    const title = `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""} – Media Kit`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: "Check out my Findcollab media kit", url });
+        return;
+      }
+    } catch {
+      // user cancelled or share failed → fall through to copy
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied", description: "Public media kit URL copied to clipboard" });
+    } catch {
+      toast({ title: "Share link", description: url });
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5">
       <BackHeader title="My Media Kit" onBack={onBack} right={
-        <button className="w-9 h-9 rounded-[10px] bg-primary-light border-none flex items-center justify-center cursor-pointer">
-          <Icon name="send" size={16} className="text-primary" />
+        <button
+          onClick={handleShare}
+          aria-label="Share media kit"
+          className="w-9 h-9 rounded-[10px] bg-primary-light border-none flex items-center justify-center cursor-pointer"
+        >
+          <Icon name="share" size={16} className="text-primary" />
         </button>
       } />
 
