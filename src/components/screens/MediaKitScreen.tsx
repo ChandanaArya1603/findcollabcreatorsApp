@@ -24,6 +24,10 @@ interface PlatformData {
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
   recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
+  bio: string;
+  link: string;
+  username: string;
+  profilePic: string;
 }
 
 const EMPTY_PLATFORMS: Record<string, PlatformData> = {
@@ -37,9 +41,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Posts", value: "—", ic: "campaign" },
       { label: "Following", value: "—", ic: "person" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
@@ -51,9 +54,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Subscribers", value: "—", ic: "person" },
       { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
@@ -65,9 +67,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Connections", value: "—", ic: "person" },
       { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
 };
 
