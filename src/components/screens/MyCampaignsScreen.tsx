@@ -52,13 +52,15 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
         if (list.length > 0) {
           setCampaigns(
             list.map((c: any) => ({
-              brand: c.company_name || c.brand || "",
+              brand: c.brand_name || c.company_name || c.brand || "",
               name: c.project_title || c.name || "",
               status: c.status || "Applied",
               sc: statusColor(c.status || "Applied"),
               date: c.dateInvited || c.created_at || "",
-              details: c.description || "",
+              details: c.briefs || c.description || "",
               deliverables: c.deliverables || "",
+              budget: formatCampaignBudget(c),
+              type: formatCampaignType(c.campaign_type || c.type),
             }))
           );
         }
