@@ -24,6 +24,10 @@ interface PlatformData {
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
   recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
+  bio: string;
+  link: string;
+  username: string;
+  profilePic: string;
 }
 
 const EMPTY_PLATFORMS: Record<string, PlatformData> = {
@@ -37,9 +41,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Posts", value: "—", ic: "campaign" },
       { label: "Following", value: "—", ic: "person" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
   youtube: {
     label: "YouTube", ic: "yt", color: "text-red-600",
@@ -51,9 +54,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Subscribers", value: "—", ic: "person" },
       { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
   linkedin: {
     label: "LinkedIn", ic: "linkedin", color: "text-blue-600",
@@ -65,9 +67,8 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
       { label: "Connections", value: "—", ic: "person" },
       { label: "Comments", value: "—", ic: "chat" },
     ],
-    rates: [],
-    projects: [],
-    recentPosts: [],
+    rates: [], projects: [], recentPosts: [],
+    bio: "", link: "", username: "", profilePic: "",
   },
 };
 
@@ -142,6 +143,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Posts", value: igPosts ? String(igPosts) : "—", ic: "campaign" },
           { label: "Following", value: igFollowing ? String(igFollowing) : "—", ic: "person" },
         ],
+        bio: igUser.biography || ud.instagram_bio || "",
+        username: igUser.username || ud.instagram_user_name || ud.instagram_username || "",
+        profilePic: igUser.profile_pic_url_hd || igUser.profile_pic_url || "",
+        link: (igUser.username || ud.instagram_user_name || ud.instagram_username)
+          ? `https://instagram.com/${igUser.username || ud.instagram_user_name || ud.instagram_username}`
+          : (ud.instagram_link || ""),
       };
 
       // ── YouTube ────────────────────────────────
@@ -157,6 +164,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Subscribers", value: fmtNum(ytSubs), ic: "person" },
           { label: "Avg Likes", value: fmtNum(Math.round(ytViews * (ytEngagement / 100))), ic: "heart" },
         ],
+        bio: ud.youtube_bio || ud.youtube_description || "",
+        username: ud.youtube_channel_name || ud.youtube_user_name || "",
+        profilePic: ud.youtube_profile_image || ud.youtube_thumbnail || "",
+        link: ud.youtube_link || ud.youtube_channel_link || ud.youtube_url || "",
       };
 
       // ── LinkedIn ───────────────────────────────
@@ -173,6 +184,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Connections", value: liConnections ? String(liConnections) : "—", ic: "person" },
           { label: "Posts", value: ud.linkedin_posts ? String(ud.linkedin_posts) : "—", ic: "campaign" },
         ],
+        bio: ud.linkedin_bio || ud.linkedin_about || "",
+        username: ud.linkedin_user_name || ud.linkedin_username || "",
+        profilePic: ud.linkedin_profile_image || "",
+        link: ud.linkedin_link || ud.linkedin_url || "",
       };
 
       // ── Commercials / Rates ────────────────────
@@ -295,8 +310,17 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         <div className="h-[70px] bg-primary-light" />
         <div className="px-4 pb-4">
           <div className="flex items-end gap-3 mb-3">
-            <div className="w-16 h-16 rounded-[18px] bg-primary border-[3px] border-card -mt-8 flex items-center justify-center shrink-0">
-              <span className="text-primary-foreground text-2xl font-black">{(user?.fname || "D").charAt(0)}</span>
+            <div className="w-16 h-16 rounded-[18px] border-[3px] border-card -mt-8 shrink-0 overflow-hidden bg-primary flex items-center justify-center">
+              {platforms.instagram.profilePic ? (
+                <img
+                  src={platforms.instagram.profilePic}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+              ) : (
+                <span className="text-primary-foreground text-2xl font-black">{(user?.fname || "D").charAt(0)}</span>
+              )}
             </div>
             <div className="pb-1">
               <div className="flex items-center gap-1.5">
@@ -364,6 +388,46 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
         {tab === "stats" && (
           <div className="flex flex-col gap-3">
+            {(p.profilePic || p.bio || p.link || p.username) && (
+              <Card>
+                <div className="flex items-start gap-3">
+                  <div className={`w-14 h-14 rounded-[16px] overflow-hidden shrink-0 flex items-center justify-center ${p.bgActive}`}>
+                    {p.profilePic ? (
+                      <img
+                        src={p.profilePic}
+                        alt={`${p.label} profile`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <Icon name={p.ic} size={22} className="text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Icon name={p.ic} size={13} className={p.color} />
+                      <p className="text-[13px] font-extrabold text-foreground">{p.label}</p>
+                    </div>
+                    {p.username && (
+                      <p className="text-[11px] text-muted-foreground mb-1">@{p.username.replace(/^@/, "")}</p>
+                    )}
+                    {p.bio && (
+                      <p className="text-[12px] text-foreground leading-snug whitespace-pre-line">{p.bio}</p>
+                    )}
+                    {p.link && (
+                      <a
+                        href={p.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-primary break-all"
+                      >
+                        🔗 {p.link.replace(/^https?:\/\//, "")}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
             <Card>
               <p className="text-[15px] font-black text-foreground mb-3">Profile Engagement</p>
               <div className="flex items-center gap-4">
