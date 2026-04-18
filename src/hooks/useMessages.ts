@@ -113,11 +113,6 @@ export function useMessages() {
 
   /* Fetch chat users */
   const fetchChatUsers = useCallback(async () => {
-    if (isDemoUser()) {
-      setChatUsers(DEMO_CHAT_USERS);
-      setLoadingUsers(false);
-      return;
-    }
     try {
       setError(null);
       const res = await messageService.getChatUsers();
@@ -134,13 +129,6 @@ export function useMessages() {
   /* Fetch messages for a specific user */
   const fetchMessages = useCallback(
     async (receiverId: number) => {
-      if (isDemoUser()) {
-        setMessages(DEMO_MESSAGES[receiverId] ?? [
-          { id: Date.now(), senderId: receiverId, receiverId: 0, message: "Hello! 👋", createdAt: new Date().toISOString(), isOwn: false },
-        ]);
-        setLoadingMessages(false);
-        return;
-      }
       setLoadingMessages(true);
       setError(null);
       try {
@@ -169,11 +157,6 @@ export function useMessages() {
         createdAt: new Date().toISOString(),
         isOwn: true,
       };
-
-      if (isDemoUser()) {
-        setMessages((prev) => [...prev, optimistic]);
-        return;
-      }
 
       setSending(true);
       try {
