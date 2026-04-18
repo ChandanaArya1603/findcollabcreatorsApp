@@ -131,6 +131,10 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
               <div className="flex-1 mr-2">
                 <p className="text-[11px] text-text-light mb-0.5">{c.brand}</p>
                 <p className="text-sm font-bold text-foreground leading-tight mb-1.5">{c.name}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-black text-primary">{c.budget}</span>
+                  <span className="text-[10px] text-text-light">• {c.type}</span>
+                </div>
                 <p className="text-[10px] text-text-light">{c.date}</p>
               </div>
               <div className="flex items-center gap-2">
