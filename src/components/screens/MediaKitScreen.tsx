@@ -143,6 +143,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Posts", value: igPosts ? String(igPosts) : "—", ic: "campaign" },
           { label: "Following", value: igFollowing ? String(igFollowing) : "—", ic: "person" },
         ],
+        bio: igUser.biography || ud.instagram_bio || "",
+        username: igUser.username || ud.instagram_user_name || ud.instagram_username || "",
+        profilePic: igUser.profile_pic_url_hd || igUser.profile_pic_url || "",
+        link: (igUser.username || ud.instagram_user_name || ud.instagram_username)
+          ? `https://instagram.com/${igUser.username || ud.instagram_user_name || ud.instagram_username}`
+          : (ud.instagram_link || ""),
       };
 
       // ── YouTube ────────────────────────────────
@@ -158,6 +164,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Subscribers", value: fmtNum(ytSubs), ic: "person" },
           { label: "Avg Likes", value: fmtNum(Math.round(ytViews * (ytEngagement / 100))), ic: "heart" },
         ],
+        bio: ud.youtube_bio || ud.youtube_description || "",
+        username: ud.youtube_channel_name || ud.youtube_user_name || "",
+        profilePic: ud.youtube_profile_image || ud.youtube_thumbnail || "",
+        link: ud.youtube_link || ud.youtube_channel_link || ud.youtube_url || "",
       };
 
       // ── LinkedIn ───────────────────────────────
@@ -174,6 +184,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           { label: "Connections", value: liConnections ? String(liConnections) : "—", ic: "person" },
           { label: "Posts", value: ud.linkedin_posts ? String(ud.linkedin_posts) : "—", ic: "campaign" },
         ],
+        bio: ud.linkedin_bio || ud.linkedin_about || "",
+        username: ud.linkedin_user_name || ud.linkedin_username || "",
+        profilePic: ud.linkedin_profile_image || "",
+        link: ud.linkedin_link || ud.linkedin_url || "",
       };
 
       // ── Commercials / Rates ────────────────────
