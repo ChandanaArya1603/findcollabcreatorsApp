@@ -27,37 +27,74 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
     profileService.getMediaKit().then(setMediaKit).catch(() => {});
   }, []);
 
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
+  const ud = mediaKit?.userDetail || userDetail || {};
+  const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";
   const initial = (user?.fname || "D").charAt(0).toUpperCase();
-  const bio = mediaKit?.userDetail?.bio || userDetail?.bio || "Influencer on Findcollab";
-  const location = mediaKit
-    ? [mediaKit.city, mediaKit.state, mediaKit.country].filter(Boolean).join(", ")
-    : userDetail?.city || "India";
-  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.name || c.category_name || c.Interested_in_industry) || [];
 
-  // Parse Instagram followers from nested json_data
-  let instagramFollowers: number | null = null;
+  // Parse Instagram from nested json_data
+  let igUser: any = {};
   if (mediaKit?.instagramData?.json_data) {
     try {
       const parsed = typeof mediaKit.instagramData.json_data === "string"
         ? JSON.parse(mediaKit.instagramData.json_data)
         : mediaKit.instagramData.json_data;
-      instagramFollowers = parsed?.data?.user?.edge_followed_by?.count ?? parsed?.followers_count ?? null;
-    } catch { /* ignore */ }
+      igUser = parsed?.data?.user || {};
+    } catch {}
   }
-  if (instagramFollowers == null && mediaKit?.userDetail?.primary_account_followers) {
-    instagramFollowers = Number(mediaKit.userDetail.primary_account_followers) || null;
-  }
-  if (instagramFollowers == null && mediaKit?.userDetail?.total_followers) {
-    instagramFollowers = Number(mediaKit.userDetail.total_followers) || null;
+  const instagramFollowers: number | null =
+    igUser.edge_followed_by?.count ??
+    (ud.primary_account_followers ? Number(ud.primary_account_followers) : null) ??
+    (ud.total_followers ? Number(ud.total_followers) : null);
+
+  const youtubeSubscribers: number | null =
+    ud.youtube_subscribe_count != null && ud.youtube_subscribe_count !== ""
+      ? Number(ud.youtube_subscribe_count)
+      : null;
+
+  const linkedinFollowers: number | null =
+    ud.linkedin_followers != null && ud.linkedin_followers !== ""
+      ? Number(ud.linkedin_followers)
+      : null;
+
+  const igBio = igUser.biography || "";
+  const bio = ud.introduction || ud.instagram_bio || igBio || ud.youtube_bio || "Influencer on Findcollab";
+  const location = mediaKit
+    ? [mediaKit.city, mediaKit.state, mediaKit.country].filter(Boolean).join(", ")
+    : ud.city || "";
+  const categories: string[] = mediaKit?.userCategories?.map((c: any) => c.Interested_in_industry || c.name || c.category_name).filter(Boolean) || [];
+
+  // ── Latest Posts (from Instagram reels_data) ──
+  let latestPosts: { thumb: string; caption: string; likes: number; comments: number; views?: number }[] = [];
+  if (mediaKit?.instagramData?.reels_data) {
+    try {
+      const reels = typeof mediaKit.instagramData.reels_data === "string"
+        ? JSON.parse(mediaKit.instagramData.reels_data)
+        : mediaKit.instagramData.reels_data;
+      const items = reels?.items || [];
+      latestPosts = items.slice(0, 6).map((item: any) => {
+        const m = item.media || item;
+        const candidate = m.image_versions2?.additional_candidates?.first_frame || m.image_versions2?.candidates?.[0];
+        const caption = m.caption?.text || "";
+        return {
+          thumb: candidate?.url || "",
+          caption: caption.length > 60 ? caption.slice(0, 60) + "…" : caption,
+          likes: Number(m.like_count ?? m.fb_like_count ?? 0),
+          comments: Number(m.comment_count ?? 0),
+          views: Number(m.play_count ?? m.video_view_count ?? 0),
+        };
+      }).filter((p: any) => p.thumb);
+    } catch {}
   }
 
-  // YouTube - handle "0" as a valid value
-  const ytRaw = mediaKit?.userDetail?.youtube_subscribe_count;
-  const youtubeSubscribers: number | null = ytRaw != null && ytRaw !== "" ? Number(ytRaw) : null;
-
+  const fmt = (n: number | null): string => {
+    if (n == null) return "—";
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
+  };
   const finalInsta = instagramFollowers;
   const finalYt = youtubeSubscribers;
+  const finalLi = linkedinFollowers;
 
   return (
     <Screen>
@@ -80,10 +117,11 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         </div>
         <div className="flex border-t border-border">
           {[
-            { ic: "insta", l: "Instagram", v: finalInsta != null ? finalInsta >= 1000000 ? `${(finalInsta / 1000000).toFixed(1)}M` : finalInsta >= 1000 ? `${(finalInsta / 1000).toFixed(0)}K` : `${finalInsta}` : "—", c: "text-pink-600" },
-            { ic: "yt", l: "YouTube", v: finalYt != null ? finalYt >= 1000000 ? `${(finalYt / 1000000).toFixed(1)}M` : finalYt >= 1000 ? `${(finalYt / 1000).toFixed(0)}K` : `${finalYt}` : "—", c: "text-red-600" },
-          ].map((s, i) => (
-            <div key={i} className={`flex-1 py-3 px-4 text-center ${i === 0 ? "border-r border-border" : ""}`}>
+            { ic: "insta", l: "Instagram", v: fmt(finalInsta), c: "text-pink-600" },
+            { ic: "yt", l: "YouTube", v: fmt(finalYt), c: "text-red-600" },
+            { ic: "linkedin", l: "LinkedIn", v: fmt(finalLi), c: "text-blue-600" },
+          ].map((s, i, arr) => (
+            <div key={i} className={`flex-1 py-3 px-3 text-center ${i < arr.length - 1 ? "border-r border-border" : ""}`}>
               <div className="flex justify-center mb-1">
                 <Icon name={s.ic} size={18} className={s.c} />
               </div>
@@ -93,6 +131,28 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
           ))}
         </div>
       </div>
+
+      {latestPosts.length > 0 && (
+        <div className="px-4 pt-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[13px] font-bold text-text-light uppercase tracking-widest">Latest Posts</p>
+            <span className="text-[11px] text-text-light">Instagram</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {latestPosts.map((post, i) => (
+              <div key={i} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted group">
+                <img src={post.thumb} alt={post.caption || `Post ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                  <div className="flex items-center gap-2 text-[9px] text-white font-bold">
+                    <span>❤ {fmt(post.likes)}</span>
+                    <span>💬 {fmt(post.comments)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="px-4 pt-3.5">
         <p className="text-[13px] font-bold text-text-light uppercase tracking-widest mb-2.5">Account</p>
