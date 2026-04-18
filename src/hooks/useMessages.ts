@@ -145,7 +145,6 @@ export function useMessages() {
       try {
         const res = await messageService.getMessages(receiverId);
         const list = Array.isArray(res) ? res : res?.messages ?? res?.data ?? [];
-        if (list[0]) console.log("[useMessages] raw message sample:", list[0]);
         const mapped = list
           .map((m: any) => mapMessage(m, currentUserId))
           .filter((m: Message) => m.message?.trim() || m.attachment);
