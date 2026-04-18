@@ -72,6 +72,15 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
   },
 };
 
+// Instagram CDN images block hot-linking via Referer; route through a free image proxy
+const proxyImg = (url: string): string => {
+  if (!url) return "";
+  if (url.includes("fbcdn.net") || url.includes("cdninstagram.com")) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ""))}`;
+  }
+  return url;
+};
+
 const EngagementDonut: React.FC<{ percentage: number }> = ({ percentage }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
