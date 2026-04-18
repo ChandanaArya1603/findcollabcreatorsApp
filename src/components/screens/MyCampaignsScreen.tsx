@@ -4,6 +4,7 @@ import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Icon } from "../findcollab/Icon";
+import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 interface Props {
   onBack: () => void;
@@ -17,6 +18,8 @@ interface Campaign {
   date: string;
   details: string;
   deliverables: string;
+  budget: string;
+  type: string;
 }
 
 
