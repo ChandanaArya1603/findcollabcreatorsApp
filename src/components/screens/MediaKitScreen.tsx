@@ -388,6 +388,46 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
         {tab === "stats" && (
           <div className="flex flex-col gap-3">
+            {(p.profilePic || p.bio || p.link || p.username) && (
+              <Card>
+                <div className="flex items-start gap-3">
+                  <div className={`w-14 h-14 rounded-[16px] overflow-hidden shrink-0 flex items-center justify-center ${p.bgActive}`}>
+                    {p.profilePic ? (
+                      <img
+                        src={p.profilePic}
+                        alt={`${p.label} profile`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <Icon name={p.ic} size={22} className="text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Icon name={p.ic} size={13} className={p.color} />
+                      <p className="text-[13px] font-extrabold text-foreground">{p.label}</p>
+                    </div>
+                    {p.username && (
+                      <p className="text-[11px] text-muted-foreground mb-1">@{p.username.replace(/^@/, "")}</p>
+                    )}
+                    {p.bio && (
+                      <p className="text-[12px] text-foreground leading-snug whitespace-pre-line">{p.bio}</p>
+                    )}
+                    {p.link && (
+                      <a
+                        href={p.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-primary break-all"
+                      >
+                        🔗 {p.link.replace(/^https?:\/\//, "")}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
             <Card>
               <p className="text-[15px] font-black text-foreground mb-3">Profile Engagement</p>
               <div className="flex items-center gap-4">
