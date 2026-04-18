@@ -6,6 +6,7 @@ import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
+import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 export interface Campaign {
   id: number;
