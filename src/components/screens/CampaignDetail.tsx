@@ -8,6 +8,7 @@ import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "sonner";
 import type { Campaign } from "./CampaignsScreen";
+import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 interface Props {
   campaign: Campaign;
@@ -65,11 +66,9 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
   const brand = d.company_name || c.brand;
   const brandName = d.brand_name || brand;
   const description = d.briefs || d.description || c.desc;
-  const currencySymbol = d.currency_barter || d.currency_paid || "₹";
-  const budgetValue = d.product_value || d.budget_min || d.fixed_value || "0";
-  const budget = `${currencySymbol}${budgetValue}`;
+  const budget = detail ? formatCampaignBudget(detail) : c.budget;
   const credits = d.credits || c.credits || 10;
-  const campaignType = d.campaign_type || c.type || "Barter";
+  const campaignType = formatCampaignType(d.campaign_type || c.type);
   const country = d.country || "";
   const views = d.campaignViews || c.views || 0;
   const postedDate = d.timestamp ? timeAgo(d.timestamp) : c.days || "";

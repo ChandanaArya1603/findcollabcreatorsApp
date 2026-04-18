@@ -4,6 +4,7 @@ import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Icon } from "../findcollab/Icon";
+import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 interface Props {
   onBack: () => void;
@@ -17,6 +18,8 @@ interface Campaign {
   date: string;
   details: string;
   deliverables: string;
+  budget: string;
+  type: string;
 }
 
 
@@ -49,13 +52,15 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
         if (list.length > 0) {
           setCampaigns(
             list.map((c: any) => ({
-              brand: c.company_name || c.brand || "",
+              brand: c.brand_name || c.company_name || c.brand || "",
               name: c.project_title || c.name || "",
               status: c.status || "Applied",
               sc: statusColor(c.status || "Applied"),
               date: c.dateInvited || c.created_at || "",
-              details: c.description || "",
+              details: c.briefs || c.description || "",
               deliverables: c.deliverables || "",
+              budget: formatCampaignBudget(c),
+              type: formatCampaignType(c.campaign_type || c.type),
             }))
           );
         }
@@ -74,6 +79,10 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
             <p className="text-[11px] text-text-light mb-0.5">{selected.brand}</p>
             <p className="text-base font-black text-foreground mb-1">{selected.name}</p>
             <Badge color={selected.sc}>{selected.status}</Badge>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-xl font-black text-foreground">{selected.budget}</span>
+              <span className="text-[11px] text-text-mid">{selected.type}</span>
+            </div>
             {selected.details && <p className="text-xs text-text-mid mt-3 leading-relaxed">{selected.details}</p>}
           </Card>
           <Card>
@@ -122,6 +131,10 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
               <div className="flex-1 mr-2">
                 <p className="text-[11px] text-text-light mb-0.5">{c.brand}</p>
                 <p className="text-sm font-bold text-foreground leading-tight mb-1.5">{c.name}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-black text-primary">{c.budget}</span>
+                  <span className="text-[10px] text-text-light">• {c.type}</span>
+                </div>
                 <p className="text-[10px] text-text-light">{c.date}</p>
               </div>
               <div className="flex items-center gap-2">
