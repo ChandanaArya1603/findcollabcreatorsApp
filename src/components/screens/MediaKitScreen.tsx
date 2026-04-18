@@ -105,51 +105,127 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   useEffect(() => {
     profileService.getMediaKit().then((res) => {
       setProfileData(res);
-      // Build platform data from API response if available
-      const updated = { ...EMPTY_PLATFORMS };
-      if (res.instagramData) {
+      const updated: Record<string, PlatformData> = {
+        instagram: { ...EMPTY_PLATFORMS.instagram },
+        youtube: { ...EMPTY_PLATFORMS.youtube },
+        linkedin: { ...EMPTY_PLATFORMS.linkedin },
+      };
+
+      const ud = res.userDetail || {};
+
+      const fmtNum = (n: any): string => {
+        const num = Number(n);
+        if (!num || isNaN(num)) return "—";
+        if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+        if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+        return String(num);
+      };
+
+      // ── Instagram ──────────────────────────────
+      let igUser: any = {};
+      try {
+        const igJson = res.instagramData?.json_data ? JSON.parse(res.instagramData.json_data) : null;
+        igUser = igJson?.data?.user || {};
+      } catch {}
+      const igFollowers = igUser.edge_followed_by?.count ?? Number(ud.primary_account_followers) ?? 0;
+      const igFollowing = igUser.edge_follow?.count ?? 0;
+      const igPosts = igUser.edge_owner_to_timeline_media?.count ?? 0;
+      const igEngagement = parseFloat(ud.instagram_engagement_rate || "0");
+      const igAvgLikes = igFollowers && igEngagement ? Math.round(igFollowers * igEngagement / 100) : 0;
+      updated.instagram = {
+        ...updated.instagram,
+        followers: fmtNum(igFollowers),
+        engagementRate: Number(igEngagement.toFixed(2)) || 0,
+        engagement: [
+          { label: "Average Likes", value: fmtNum(igAvgLikes), ic: "heart" },
+          { label: "Posts", value: igPosts ? String(igPosts) : "—", ic: "campaign" },
+          { label: "Following", value: igFollowing ? String(igFollowing) : "—", ic: "person" },
+        ],
+      };
+
+      // ── YouTube ────────────────────────────────
+      const ytSubs = Number(ud.youtube_subscribe_count) || 0;
+      const ytViews = Number(ud.youtube_view_average) || 0;
+      const ytEngagement = parseFloat(ud.youtube_engagement_rate || "0");
+      updated.youtube = {
+        ...updated.youtube,
+        followers: fmtNum(ytSubs),
+        engagementRate: Number(ytEngagement.toFixed(2)) || 0,
+        engagement: [
+          { label: "Avg Views", value: fmtNum(ytViews), ic: "campaign" },
+          { label: "Subscribers", value: fmtNum(ytSubs), ic: "person" },
+          { label: "Avg Likes", value: fmtNum(Math.round(ytViews * (ytEngagement / 100))), ic: "heart" },
+        ],
+      };
+
+      // ── LinkedIn ───────────────────────────────
+      const liFollowers = Number(ud.linkedin_followers) || 0;
+      const liConnections = Number(ud.linkedin_connections) || 0;
+      const liEngagement = parseFloat(ud.linkedin_engagement_rate || "0");
+      const liLikes = Number(ud.linkedin_average_likes) || 0;
+      updated.linkedin = {
+        ...updated.linkedin,
+        followers: fmtNum(liFollowers),
+        engagementRate: Number(liEngagement.toFixed(2)) || 0,
+        engagement: [
+          { label: "Avg Likes", value: fmtNum(liLikes), ic: "heart" },
+          { label: "Connections", value: liConnections ? String(liConnections) : "—", ic: "person" },
+          { label: "Posts", value: ud.linkedin_posts ? String(ud.linkedin_posts) : "—", ic: "campaign" },
+        ],
+      };
+
+      // ── Commercials / Rates ────────────────────
+      const labelMap: Record<string, string> = {
+        rate_per_reel: "Reel",
+        rate_per_static_post: "Static Post",
+        rate_per_video_story: "Video Story",
+        rate_per_static_story: "Static Story",
+        rate_per_carousel: "Carousel",
+        rate_per_dedicated_video: "Dedicated Video",
+        rate_per_integrated_video: "Integrated Video",
+        rate_per_shorts: "Shorts",
+        ugc_content_instagram: "UGC Content",
+      };
+      const formatRates = (raw: any, valueKey: string, rateKey: string) => {
+        if (!raw) return [];
         try {
-          const igJson = JSON.parse(res.instagramData.json_data || "{}");
-          updated.instagram = {
-            ...updated.instagram,
-            followers: igJson.followers_count ? `${(igJson.followers_count / 1000000).toFixed(1)}M` : updated.instagram.followers,
-            engagement: [
-              { label: "Average Likes", value: igJson.avg_likes ? `${(igJson.avg_likes / 1000).toFixed(0)}K` : "—", ic: "heart" },
-              { label: "Posts", value: igJson.media_count ? String(igJson.media_count) : "—", ic: "campaign" },
-              { label: "Following", value: igJson.follows_count ? String(igJson.follows_count) : "—", ic: "person" },
-            ],
-            engagementRate: igJson.engagement_rate || updated.instagram.engagementRate,
-          };
-        } catch {}
+          const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+          return (Array.isArray(arr) ? arr : []).map((r: any) => ({
+            service: labelMap[r[valueKey]] || r[valueKey] || "Service",
+            rate: r[rateKey] ? `₹${Number(r[rateKey]).toLocaleString()}` : "—",
+          }));
+        } catch { return []; }
+      };
+      const uc = res.userCommercials || {};
+      updated.instagram.rates = formatRates(uc.instagram_details, "instagram_values", "instagramrate");
+      updated.youtube.rates = formatRates(uc.youtube_details, "youtube_values", "youtuberate");
+      updated.linkedin.rates = formatRates(uc.linkedin_details, "linkedin_values", "linkedinrate");
+
+      // ── Projects ───────────────────────────────
+      if (Array.isArray(res.userProjects)) {
+        const projs = res.userProjects.map((p: any) => ({
+          brand: p.brand_name || p.brand || p.name || "",
+          link: p.collaboration_link || p.link || p.url || "",
+        }));
+        Object.keys(updated).forEach((plat) => { updated[plat].projects = projs; });
       }
-      // Populate commercials as rates
-      if (res.userCommercials) {
-        const byPlatform: Record<string, { service: string; rate: string }[]> = {};
-        res.userCommercials.forEach((c: any) => {
-          const plat = (c.platform || "instagram").toLowerCase();
-          if (!byPlatform[plat]) byPlatform[plat] = [];
-          byPlatform[plat].push({ service: c.service || "", rate: `₹${Number(c.rate || 0).toLocaleString()}` });
-        });
-        Object.entries(byPlatform).forEach(([plat, rates]) => {
-          if (updated[plat]) updated[plat] = { ...updated[plat], rates };
-        });
-      }
-      if (res.userProjects) {
-        const projs = res.userProjects.map((p: any) => ({ brand: p.brand || p.name || "", link: p.link || p.url || "" }));
-        Object.keys(updated).forEach((plat) => {
-          updated[plat] = { ...updated[plat], projects: projs };
-        });
-      }
+
       setPlatforms(updated);
     }).catch(() => {});
   }, []);
 
   const platformKeys = Object.keys(platforms);
-  const displayName = user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "User";
-  const creatorBio = profileData?.userDetail?.bio || "Influencer on Findcollab";
+  const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";
+  const ud = profileData?.userDetail || {};
+  let igBio = "";
+  try {
+    const igJson = profileData?.instagramData?.json_data ? JSON.parse(profileData.instagramData.json_data) : null;
+    igBio = igJson?.data?.user?.biography || "";
+  } catch {}
+  const creatorBio = ud.introduction || ud.instagram_bio || igBio || ud.youtube_bio || "Influencer on Findcollab";
   const bioSnippet = creatorBio.length > 90 ? creatorBio.slice(0, 90) + "…" : creatorBio;
-  const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "India";
-  const categories: string[] = profileData?.userCategories?.map((c: any) => c.name || c.category_name) || ["Influencer"];
+  const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "";
+  const categories: string[] = profileData?.userCategories?.map((c: any) => c.Interested_in_industry || c.name || c.category_name).filter(Boolean) || [];
 
   const p = platforms[activePlatform] || platforms.instagram;
 
