@@ -46,13 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const token = api.getToken();
     const savedUser = localStorage.getItem("fc_user");
-    const savedDetail = localStorage.getItem("fc_user_detail");
 
     if (token && savedUser) {
       setState({
         token,
         user: JSON.parse(savedUser),
-        userDetail: savedDetail ? JSON.parse(savedDetail) : null,
+        // userDetail is intentionally NOT persisted — re-fetched from /media_kit on demand
+        // to reduce XSS exfiltration surface in localStorage.
+        userDetail: null,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -63,8 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setAuthData = useCallback((data: { token: string; user: User; userDetail: UserDetail }) => {
     api.setToken(data.token);
-    localStorage.setItem("fc_user", JSON.stringify(data.user));
-    localStorage.setItem("fc_user_detail", JSON.stringify(data.userDetail));
+    // Persist only minimum identity fields needed to bootstrap the UI.
+    const minimalUser: User = {
+      id: data.user.id,
+      fname: data.user.fname,
+      lname: data.user.lname,
+      email: data.user.email,
+      sign_up_type: data.user.sign_up_type,
+    };
+    localStorage.setItem("fc_user", JSON.stringify(minimalUser));
     setState({
       token: data.token,
       user: data.user,
@@ -96,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     api.setToken(null);
     localStorage.removeItem("fc_user");
+    // Clean up legacy key from previous versions that persisted the full user detail.
     localStorage.removeItem("fc_user_detail");
     setState({
       user: null,
