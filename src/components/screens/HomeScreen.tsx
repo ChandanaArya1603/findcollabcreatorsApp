@@ -125,8 +125,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
               <div className="max-h-[260px] overflow-y-auto">
                 {notifications.slice(0, 20).map((n: any, i: number) => (
                   <div key={n.id || i} className={`px-4 py-3 border-b border-border last:border-b-0 ${!n.is_read && n.is_read !== "1" ? "bg-primary/5" : ""}`}>
-                    <p className="text-xs font-semibold text-foreground leading-snug">{n.title || n.message || n.text || "Notification"}</p>
-                    {(n.description || n.body) && <p className="text-[11px] text-muted-foreground mt-0.5">{n.description || n.body}</p>}
+                    <p className="text-xs font-semibold text-foreground leading-snug">{n.type ? `${n.type}: ` : ""}{n.notification || n.message || n.text || "Notification"}</p>
                     {n.created_at && <p className="text-[10px] text-muted-foreground mt-1">{n.created_at}</p>}
                   </div>
                 ))}
