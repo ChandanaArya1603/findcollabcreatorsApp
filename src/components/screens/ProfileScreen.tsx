@@ -22,9 +22,16 @@ const menu = [
 const ProfileScreen: React.FC<Props> = ({ push }) => {
   const { user, userDetail, logout } = useAuth();
   const [mediaKit, setMediaKit] = useState<any>(null);
+  const [youtubeData, setYoutubeData] = useState<any>(null);
 
   useEffect(() => {
-    profileService.getMediaKit().then(setMediaKit).catch(() => {});
+    Promise.all([
+      profileService.getMediaKit().catch(() => null),
+      profileService.getYoutubeData().catch(() => null),
+    ]).then(([mediaKitRes, youtubeRes]) => {
+      if (mediaKitRes) setMediaKit(mediaKitRes);
+      if (youtubeRes) setYoutubeData(youtubeRes);
+    });
   }, []);
 
   const ud = mediaKit?.userDetail || userDetail || {};
@@ -46,10 +53,11 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
     (ud.primary_account_followers ? Number(ud.primary_account_followers) : null) ??
     (ud.total_followers ? Number(ud.total_followers) : null);
 
-  const youtubeSubscribers: number | null =
-    ud.youtube_subscribe_count != null && ud.youtube_subscribe_count !== ""
-      ? Number(ud.youtube_subscribe_count)
-      : null;
+  const ytRaw = youtubeData?.youtubeData || youtubeData?.data?.youtubeData || youtubeData || {};
+  const ytSubscriberCount = Number(ytRaw?.items?.[0]?.statistics?.subscriberCount ?? ud.youtube_subscribe_count ?? "");
+  const youtubeSubscribers: number | null = Number.isFinite(ytSubscriberCount) && ytSubscriberCount > 0
+    ? ytSubscriberCount
+    : null;
 
   const linkedinFollowers: number | null =
     ud.linkedin_followers != null && ud.linkedin_followers !== ""
