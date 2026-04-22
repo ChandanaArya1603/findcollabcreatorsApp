@@ -47,7 +47,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const stats = dashStats
     ? [
         { l: "Credits", v: String(dashStats.credits ?? "0"), sub: `${dashStats.creditsEarned ?? 0} earned`, ic: "wallet", c: "text-primary" },
-        { l: "Wallet", v: `₹${dashStats.wallet_balance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
+        { l: "Wallet", v: `₹${walletBalance ?? dashStats.wallet_balance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
         { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
         { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
       ]
