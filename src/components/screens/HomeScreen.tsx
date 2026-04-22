@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
 import { walletService } from "@/services/walletService";
+import { profileService } from "@/services/profileService";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -18,6 +19,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user, isAuthenticated } = useAuth();
   const [dashStats, setDashStats] = useState<any>(undefined);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [profileName, setProfileName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,10 +28,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
     Promise.all([
       dashboardService.getStats().catch(() => null),
       walletService.getBalance().catch(() => null),
+      profileService.getMediaKit().catch(() => null),
     ])
-      .then(([stats, wallet]) => {
+      .then(([stats, wallet, mediaKit]) => {
         setDashStats(stats);
-        setWalletBalance(wallet?.balance ?? wallet?.wallet_balance ?? null);
+        setWalletBalance(wallet?.wallet_balance ?? null);
+        if (mediaKit?.fname) {
+          setProfileName(mediaKit.fname);
+        }
       })
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
@@ -41,21 +47,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
     return "GOOD EVENING 👋";
   };
 
-  const displayName = user?.fname || "User";
+  const displayName = profileName || user?.fname || "User";
   const initial = displayName.charAt(0).toUpperCase();
 
   const stats = dashStats
     ? [
-        { l: "Credits", v: String(dashStats.credits ?? "0"), sub: `${dashStats.creditsEarned ?? 0} earned`, ic: "wallet", c: "text-primary" },
-        { l: "Wallet", v: `₹${walletBalance ?? dashStats.wallet_balance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
+        { l: "Enlisted", v: String(dashStats.campaignsEnlisted ?? 0), sub: `${dashStats.totalReviews ?? 0} reviews`, ic: "campaign", c: "text-primary" },
+        { l: "Wallet", v: `₹${walletBalance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
         { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
-        { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
+        { l: "Views", v: String(dashStats.profileViews?.total ?? 0), sub: `${dashStats.profileViews?.directPercentage ?? 0}% direct`, ic: "search", c: "text-warning" },
       ]
     : [
-        { l: "Credits", v: "—", sub: "", ic: "wallet", c: "text-primary" },
+        { l: "Enlisted", v: "—", sub: "", ic: "campaign", c: "text-primary" },
         { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
         { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
-        { l: "Startups", v: "—", sub: "", ic: "startup", c: "text-warning" },
+        { l: "Views", v: "—", sub: "", ic: "search", c: "text-warning" },
       ];
 
   const profileViews = dashStats?.profileViews ?? { total: 0, directPercentage: 0 };
