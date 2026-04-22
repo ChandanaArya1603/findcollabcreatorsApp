@@ -47,7 +47,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
     return "GOOD EVENING 👋";
   };
 
-  const displayName = user?.fname || "User";
+  const displayName = profileName || user?.fname || "User";
   const initial = displayName.charAt(0).toUpperCase();
 
   const stats = dashStats
