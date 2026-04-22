@@ -33,6 +33,103 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const BLOCKED_FULL_NAME = "Access delayed. Only the owner of the page can access this information";
+
+const isMeaningfulValue = (value: unknown): value is string => {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim();
+  return Boolean(normalized) && normalized.toLowerCase() !== "null" && normalized !== BLOCKED_FULL_NAME;
+};
+
+const humanizeHandle = (value: string) =>
+  value
+    .replace(/^@/, "")
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+
+const splitName = (fullName: string) => {
+  const [fname = "", ...rest] = fullName.trim().split(/\s+/).filter(Boolean);
+  return { fname, lname: rest.join(" ") };
+};
+
+const parseInstagramUser = (source: any) => {
+  const instagramData = source?.instagramData;
+  if (!instagramData) return null;
+
+  try {
+    const parsed = typeof instagramData.json_data === "string"
+      ? JSON.parse(instagramData.json_data)
+      : instagramData.json_data;
+    return parsed?.data?.user ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const deriveFullName = (...sources: any[]) => {
+  for (const source of sources) {
+    if (!source) continue;
+
+    const directName = [source?.fname, source?.lname].filter(isMeaningfulValue).join(" ").trim();
+    if (directName) return directName;
+
+    const rawCandidates = [
+      source?.user_name,
+      source?.name,
+      source?.full_name,
+      source?.display_name,
+      source?.first_name,
+      source?.username,
+      source?.insta_handle,
+      source?.insta_url,
+      source?.youtube_url,
+      source?.linkdein_url,
+      source?.linkedin_url,
+    ];
+
+    for (const candidate of rawCandidates) {
+      if (isMeaningfulValue(candidate)) {
+        return source?.username || source?.insta_handle || source?.insta_url || source?.youtube_url || source?.linkdein_url || source?.linkedin_url
+          ? humanizeHandle(candidate)
+          : candidate.trim();
+      }
+    }
+
+    const instagramUser = parseInstagramUser(source);
+    if (instagramUser) {
+      if (isMeaningfulValue(instagramUser.full_name)) {
+        return instagramUser.full_name.trim();
+      }
+      if (isMeaningfulValue(instagramUser.username)) {
+        return humanizeHandle(instagramUser.username);
+      }
+    }
+
+    if (isMeaningfulValue(source?.email)) {
+      return humanizeHandle(source.email.split("@")[0]);
+    }
+  }
+
+  return "";
+};
+
+const normalizeUser = (user: Partial<User> & Record<string, any>, userDetail?: Record<string, any> | null): User => {
+  const derivedName = deriveFullName(user, userDetail, userDetail?.user, userDetail?.userDetail);
+  const parts = derivedName ? splitName(derivedName) : { fname: "", lname: "" };
+
+  return {
+    id: Number(user.id ?? user.user_login_id ?? userDetail?.user_login_id ?? 0),
+    fname: isMeaningfulValue(user.fname) ? user.fname.trim() : parts.fname,
+    lname: isMeaningfulValue(user.lname) ? user.lname.trim() : parts.lname,
+    email: user.email ?? userDetail?.email ?? "",
+    sign_up_type: user.sign_up_type ?? userDetail?.sign_up_type ?? "",
+  };
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
@@ -44,54 +141,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    const token = api.getToken();
-    const savedUser = localStorage.getItem("fc_user");
+    let isMounted = true;
 
-    if (token && savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setState({
-        token,
-        user: parsed,
-        userDetail: null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+    const bootstrapAuth = async () => {
+      const token = api.getToken();
+      const savedUser = localStorage.getItem("fc_user");
 
-      // Hydrate user name from media_kit if missing in localStorage
-      if (!parsed.fname) {
-        api.get("/media_kit").then((res: any) => {
-          const fname = res?.fname || res?.user?.fname || res?.first_name || res?.user?.first_name || "";
-          const lname = res?.lname || res?.user?.lname || res?.last_name || res?.user?.last_name || "";
-          if (fname) {
-            const updatedUser = { ...parsed, fname, lname: lname || parsed.lname || "" };
-            localStorage.setItem("fc_user", JSON.stringify(updatedUser));
-            setState((s) => ({
-              ...s,
-              user: s.user ? { ...s.user, fname, lname: lname || s.user.lname } : s.user,
-              userDetail: res,
-            }));
-          }
-        }).catch(() => {});
+      if (!token || !savedUser) {
+        if (isMounted) {
+          setState((s) => ({ ...s, isLoading: false }));
+        }
+        return;
       }
-    } else {
-      setState((s) => ({ ...s, isLoading: false }));
-    }
+
+      const parsed = JSON.parse(savedUser);
+
+      if (!parsed.fname) {
+        try {
+          const res = await api.get("/media_kit");
+          const normalizedUser = normalizeUser(parsed, res);
+          localStorage.setItem("fc_user", JSON.stringify(normalizedUser));
+
+          if (isMounted) {
+            setState({
+              token,
+              user: normalizedUser,
+              userDetail: res,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          }
+          return;
+        } catch {
+          // fall back to saved identity below
+        }
+      }
+
+      const normalizedUser = normalizeUser(parsed, null);
+      if (isMounted) {
+        setState({
+          token,
+          user: normalizedUser,
+          userDetail: null,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      }
+    };
+
+    bootstrapAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const setAuthData = useCallback((data: { token: string; user: User; userDetail: UserDetail }) => {
+    const normalizedUser = normalizeUser(data.user, data.userDetail);
     api.setToken(data.token);
-    // Persist only minimum identity fields needed to bootstrap the UI.
-    const minimalUser: User = {
-      id: data.user.id,
-      fname: data.user.fname,
-      lname: data.user.lname,
-      email: data.user.email,
-      sign_up_type: data.user.sign_up_type,
-    };
-    localStorage.setItem("fc_user", JSON.stringify(minimalUser));
+    localStorage.setItem("fc_user", JSON.stringify(normalizedUser));
     setState({
       token: data.token,
-      user: data.user,
+      user: normalizedUser,
       userDetail: data.userDetail,
       isAuthenticated: true,
       isLoading: false,
@@ -100,8 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.postForm("/login", { email, password });
-    // Normalize: API may return user fields at top level or nested under .user
-    const user = res.user ?? {
+    const rawUser = res.user ?? {
       id: res.id ?? res.user_login_id,
       fname: res.fname ?? res.first_name ?? "",
       lname: res.lname ?? res.last_name ?? "",
@@ -109,26 +219,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sign_up_type: res.sign_up_type ?? "",
     };
     const userDetail = res.userDetail ?? res.user_detail ?? res;
-    setAuthData({ token: res.token, user, userDetail });
+    const normalizedUser = normalizeUser(rawUser, userDetail);
+    setAuthData({ token: res.token, user: normalizedUser, userDetail });
 
-    // Hydrate real name from media_kit if login response lacked it
-    if (!user.fname) {
+    if (!normalizedUser.fname) {
       try {
         const mk = await api.get("/media_kit");
-        const fname = mk?.fname || mk?.user?.fname || mk?.first_name || mk?.user?.first_name || "";
-        const lname = mk?.lname || mk?.user?.lname || mk?.last_name || mk?.user?.last_name || "";
-        if (fname) {
-          const updated = { ...user, fname, lname: lname || user.lname };
-          localStorage.setItem("fc_user", JSON.stringify(updated));
-          setState((s) => ({ ...s, user: s.user ? { ...s.user, fname, lname: lname || s.user.lname } : s.user, userDetail: mk }));
+        const hydratedUser = normalizeUser(normalizedUser, mk);
+        if (hydratedUser.fname) {
+          localStorage.setItem("fc_user", JSON.stringify(hydratedUser));
+          setState((s) => ({
+            ...s,
+            user: hydratedUser,
+            userDetail: mk,
+          }));
         }
-      } catch {}
+      } catch {
+        // ignore secondary hydration failures
+      }
     }
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
     const res = await api.postForm("/register_influencer", data);
-    // If google signup, auto-login
     if (res.token) {
       setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
     }
@@ -143,7 +256,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     api.setToken(null);
     localStorage.removeItem("fc_user");
-    // Clean up legacy key from previous versions that persisted the full user detail.
     localStorage.removeItem("fc_user_detail");
     setState({
       user: null,
@@ -164,7 +276,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    // During auto-logout reload, context may be momentarily unavailable
     if (!localStorage.getItem("fc_token")) {
       return {
         user: null, userDetail: null, token: null,
