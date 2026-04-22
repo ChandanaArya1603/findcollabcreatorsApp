@@ -68,7 +68,17 @@ class ApiClient {
     const json = JSON.parse(text.slice(jsonStart));
 
     if (!res.ok || json?.data?.status === false) {
-      throw new Error(json?.data?.message || `Request failed (${res.status})`);
+      const msg = json?.data?.message || `Request failed (${res.status})`;
+
+      // Auto-logout on expired/invalid token
+      if (msg.toLowerCase().includes("invalid or expired token")) {
+        this.setToken(null);
+        localStorage.removeItem("fc_user");
+        localStorage.removeItem("fc_user_detail");
+        window.location.reload();
+      }
+
+      throw new Error(msg);
     }
 
     return json.data;
