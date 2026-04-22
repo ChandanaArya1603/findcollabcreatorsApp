@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
 import { walletService } from "@/services/walletService";
 import { profileService } from "@/services/profileService";
+import { notificationService } from "@/services/notificationService";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -20,6 +21,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const [dashStats, setDashStats] = useState<any>(undefined);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [profileName, setProfileName] = useState<string>("");
+  const [notifCount, setNotifCount] = useState<number>(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifs, setShowNotifs] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,13 +33,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
       dashboardService.getStats().catch(() => null),
       walletService.getBalance().catch(() => null),
       profileService.getMediaKit().catch(() => null),
+      notificationService.getNotifications(1).catch(() => null),
     ])
-      .then(([stats, wallet, mediaKit]) => {
+      .then(([stats, wallet, mediaKit, notifRes]) => {
         setDashStats(stats);
         setWalletBalance(wallet?.wallet_balance ?? null);
         if (mediaKit?.fname) {
           setProfileName(mediaKit.fname);
         }
+        const notifList = notifRes?.notifications || notifRes?.data?.notifications || notifRes?.items || [];
+        const totalUnread = Number(notifRes?.unread_count ?? notifRes?.data?.unread_count ?? (Array.isArray(notifList) ? notifList.filter((n: any) => !n.is_read && n.is_read !== "1").length : 0));
+        setNotifications(Array.isArray(notifList) ? notifList : []);
+        setNotifCount(totalUnread || (Array.isArray(notifList) ? notifList.length : 0));
       })
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
