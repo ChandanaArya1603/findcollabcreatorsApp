@@ -21,4 +21,7 @@ export const profileService = {
 
   getKycDetails: () =>
     api.get("/kyc_details"),
+
+  getYoutubeData: () =>
+    api.get("/youtube_data"),
 };

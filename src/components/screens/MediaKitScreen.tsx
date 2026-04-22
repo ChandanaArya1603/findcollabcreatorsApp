@@ -114,7 +114,11 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
-    profileService.getMediaKit().then((res) => {
+    Promise.all([
+      profileService.getMediaKit().catch(() => null),
+      profileService.getYoutubeData().catch(() => null),
+    ]).then(([res, ytData]) => {
+      if (!res) return;
       setProfileData(res);
       const updated: Record<string, PlatformData> = {
         instagram: { ...EMPTY_PLATFORMS.instagram },
@@ -160,23 +164,31 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           : (ud.instagram_link || ""),
       };
 
-      // ── YouTube ────────────────────────────────
-      const ytSubs = Number(ud.youtube_subscribe_count) || 0;
-      const ytViews = Number(ud.youtube_view_average) || 0;
-      const ytEngagement = parseFloat(ud.youtube_engagement_rate || "0");
+      // ── YouTube (from /youtube_data API) ───────
+      const ytChannel = ytData?.channel || ytData?.data?.channel || ytData?.snippet || ytData || {};
+      const ytStats = ytData?.statistics || ytData?.data?.statistics || ytChannel?.statistics || {};
+      const ytSnippet = ytChannel?.snippet || ytChannel || {};
+      const ytSubs = Number(ytStats.subscriberCount || ytStats.subscriber_count || ytChannel.subscriberCount || ytChannel.subscriber_count || ud.youtube_subscribe_count) || 0;
+      const ytViews = Number(ytStats.viewCount || ytStats.view_count || ytChannel.viewCount || ytChannel.total_views || ud.youtube_view_average) || 0;
+      const ytVideoCount = Number(ytStats.videoCount || ytStats.video_count || ytChannel.videoCount || ytChannel.video_count) || 0;
+      const ytEngagement = parseFloat(ytData?.engagement_rate || ytChannel?.engagement_rate || ud.youtube_engagement_rate || "0");
+      const ytAvgViews = Number(ytData?.average_views || ytChannel?.average_views || ud.youtube_view_average) || 0;
+      const ytTitle = ytSnippet.title || ytSnippet.channel_name || ud.youtube_channel_name || ud.youtube_user_name || ud.youtube_url || "";
+      const ytDescription = ytSnippet.description || ytSnippet.channel_description || ud.youtube_bio || ud.youtube_description || "";
+      const ytThumb = ytSnippet.thumbnails?.high?.url || ytSnippet.thumbnails?.default?.url || ytSnippet.thumbnail || ud.youtube_profile_image || ud.youtube_thumbnail || "";
       updated.youtube = {
         ...updated.youtube,
         followers: fmtNum(ytSubs),
         engagementRate: Number(ytEngagement.toFixed(2)) || 0,
         engagement: [
-          { label: "Avg Views", value: fmtNum(ytViews), ic: "campaign" },
+          { label: "Avg Views", value: fmtNum(ytAvgViews || ytViews), ic: "campaign" },
           { label: "Subscribers", value: fmtNum(ytSubs), ic: "person" },
-          { label: "Avg Likes", value: fmtNum(Math.round(ytViews * (ytEngagement / 100))), ic: "heart" },
+          { label: "Videos", value: ytVideoCount ? String(ytVideoCount) : "—", ic: "campaign" },
         ],
-        bio: ud.youtube_bio || ud.youtube_description || "",
-        username: ud.youtube_channel_name || ud.youtube_user_name || "",
-        profilePic: ud.youtube_profile_image || ud.youtube_thumbnail || "",
-        link: ud.youtube_link || ud.youtube_channel_link || ud.youtube_url || "",
+        bio: ytDescription,
+        username: ytTitle,
+        profilePic: ytThumb,
+        link: ud.youtube_link || ud.youtube_channel_link || (ud.youtube_url ? `https://youtube.com/${ud.youtube_url}` : ""),
       };
 
       // ── LinkedIn ───────────────────────────────
