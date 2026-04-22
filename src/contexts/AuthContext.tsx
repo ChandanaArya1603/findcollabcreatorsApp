@@ -110,6 +110,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     const userDetail = res.userDetail ?? res.user_detail ?? res;
     setAuthData({ token: res.token, user, userDetail });
+
+    // Hydrate real name from media_kit if login response lacked it
+    if (!user.fname) {
+      try {
+        const mk = await api.get("/media_kit");
+        const fname = mk?.fname || mk?.user?.fname || mk?.first_name || mk?.user?.first_name || "";
+        const lname = mk?.lname || mk?.user?.lname || mk?.last_name || mk?.user?.last_name || "";
+        if (fname) {
+          const updated = { ...user, fname, lname: lname || user.lname };
+          localStorage.setItem("fc_user", JSON.stringify(updated));
+          setState((s) => ({ ...s, user: s.user ? { ...s.user, fname, lname: lname || s.user.lname } : s.user, userDetail: mk }));
+        }
+      } catch {}
+    }
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
