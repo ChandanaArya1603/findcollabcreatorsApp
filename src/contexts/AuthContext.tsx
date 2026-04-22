@@ -72,47 +72,43 @@ const parseInstagramUser = (source: any) => {
 };
 
 const deriveFullName = (...sources: any[]) => {
+  // Pass 1: direct fname/lname
   for (const source of sources) {
     if (!source) continue;
-
     const directName = [source?.fname, source?.lname].filter(isMeaningfulValue).join(" ").trim();
     if (directName) return directName;
+  }
 
-    const rawCandidates = [
-      source?.user_name,
-      source?.name,
-      source?.full_name,
-      source?.display_name,
-      source?.first_name,
-      source?.username,
-      source?.insta_handle,
-      source?.insta_url,
-      source?.youtube_url,
-      source?.linkdein_url,
-      source?.linkedin_url,
-    ];
-
-    for (const candidate of rawCandidates) {
-      if (isMeaningfulValue(candidate)) {
-        return source?.username || source?.insta_handle || source?.insta_url || source?.youtube_url || source?.linkdein_url || source?.linkedin_url
-          ? humanizeHandle(candidate)
-          : candidate.trim();
-      }
+  // Pass 2: named fields (user_name, full_name, etc.)
+  for (const source of sources) {
+    if (!source) continue;
+    for (const field of [source?.user_name, source?.name, source?.full_name, source?.display_name, source?.first_name]) {
+      if (isMeaningfulValue(field)) return field.trim();
     }
+  }
 
+  // Pass 3: Instagram profile data
+  for (const source of sources) {
+    if (!source) continue;
     const instagramUser = parseInstagramUser(source);
     if (instagramUser) {
-      if (isMeaningfulValue(instagramUser.full_name)) {
-        return instagramUser.full_name.trim();
-      }
-      if (isMeaningfulValue(instagramUser.username)) {
-        return humanizeHandle(instagramUser.username);
-      }
+      if (isMeaningfulValue(instagramUser.full_name)) return instagramUser.full_name.trim();
+      if (isMeaningfulValue(instagramUser.username)) return humanizeHandle(instagramUser.username);
     }
+  }
 
-    if (isMeaningfulValue(source?.email)) {
-      return humanizeHandle(source.email.split("@")[0]);
+  // Pass 4: social handles (humanized)
+  for (const source of sources) {
+    if (!source) continue;
+    for (const handle of [source?.insta_handle, source?.insta_url, source?.username, source?.youtube_url]) {
+      if (isMeaningfulValue(handle)) return humanizeHandle(handle);
     }
+  }
+
+  // Pass 5: email as last resort
+  for (const source of sources) {
+    if (!source) continue;
+    if (isMeaningfulValue(source?.email)) return humanizeHandle(source.email.split("@")[0]);
   }
 
   return "";
