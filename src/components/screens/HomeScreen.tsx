@@ -26,10 +26,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
     Promise.all([
       dashboardService.getStats().catch(() => null),
       walletService.getBalance().catch(() => null),
+      profileService.getMediaKit().catch(() => null),
     ])
-      .then(([stats, wallet]) => {
+      .then(([stats, wallet, mediaKit]) => {
         setDashStats(stats);
-        setWalletBalance(wallet?.balance ?? wallet?.wallet_balance ?? null);
+        setWalletBalance(wallet?.wallet_balance ?? null);
+        if (mediaKit?.fname) {
+          setProfileName(mediaKit.fname);
+        }
       })
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
