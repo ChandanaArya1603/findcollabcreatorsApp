@@ -48,15 +48,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem("fc_user");
 
     if (token && savedUser) {
+      const parsed = JSON.parse(savedUser);
       setState({
         token,
-        user: JSON.parse(savedUser),
-        // userDetail is intentionally NOT persisted — re-fetched from /media_kit on demand
-        // to reduce XSS exfiltration surface in localStorage.
+        user: parsed,
         userDetail: null,
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Hydrate user name from media_kit if missing in localStorage
+      if (!parsed.fname) {
+        api.get("/media_kit").then((res: any) => {
+          const fname = res?.fname || res?.user?.fname || res?.first_name || res?.user?.first_name || "";
+          const lname = res?.lname || res?.user?.lname || res?.last_name || res?.user?.last_name || "";
+          if (fname) {
+            const updatedUser = { ...parsed, fname, lname: lname || parsed.lname || "" };
+            localStorage.setItem("fc_user", JSON.stringify(updatedUser));
+            setState((s) => ({
+              ...s,
+              user: s.user ? { ...s.user, fname, lname: lname || s.user.lname } : s.user,
+              userDetail: res,
+            }));
+          }
+        }).catch(() => {});
+      }
     } else {
       setState((s) => ({ ...s, isLoading: false }));
     }
