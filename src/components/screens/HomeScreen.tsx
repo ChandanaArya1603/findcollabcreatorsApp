@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
+import { walletService } from "@/services/walletService";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -14,17 +15,24 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [dashStats, setDashStats] = useState<any>(undefined);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     setLoading(true);
-    dashboardService.getStats()
-      .then((res) => setDashStats(res))
-      .catch(() => {})
+    Promise.all([
+      dashboardService.getStats().catch(() => null),
+      walletService.getBalance().catch(() => null),
+    ])
+      .then(([stats, wallet]) => {
+        setDashStats(stats);
+        setWalletBalance(wallet?.balance ?? wallet?.wallet_balance ?? null);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [isAuthenticated]);
 
   const greeting = () => {
     const h = new Date().getHours();
