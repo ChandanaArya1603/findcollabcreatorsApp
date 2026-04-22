@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
 import { walletService } from "@/services/walletService";
+import { profileService } from "@/services/profileService";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
