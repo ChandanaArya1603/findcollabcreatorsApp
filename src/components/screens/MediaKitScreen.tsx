@@ -165,11 +165,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       };
 
       // ── YouTube (from /youtube_data API) ───────
-      // Parse items.statistics.subscriberCount from API response
-      const ytItems = ytData?.items || ytData?.data?.items || ytData?.channel?.items || [];
-      const ytItem = Array.isArray(ytItems) ? ytItems[0] : ytItems;
-      const ytStats = ytItem?.statistics || ytData?.statistics || ytData?.data?.statistics || ytData?.channel?.statistics || {};
-      const ytSnippet = ytItem?.snippet || ytData?.snippet || ytData?.data?.snippet || ytData?.channel?.snippet || {};
+      // API returns { youtubeData: { items: [{ statistics: { subscriberCount }, snippet: {...} }] } }
+      const ytRaw = ytData?.youtubeData || ytData?.data?.youtubeData || ytData || {};
+      const ytItems = ytRaw?.items || ytData?.items || [];
+      const ytItem = Array.isArray(ytItems) && ytItems.length > 0 ? ytItems[0] : {};
+      const ytStats = ytItem?.statistics || {};
+      const ytSnippet = ytItem?.snippet || {};
       
       const ytSubs = Number(ytStats.subscriberCount || ytStats.subscriber_count || ytData?.subscriberCount || ytData?.subscriber_count || ud.youtube_subscribe_count) || 0;
       const ytViews = Number(ytStats.viewCount || ytStats.view_count || ytData?.viewCount || ytData?.total_views || ud.youtube_view_average) || 0;
