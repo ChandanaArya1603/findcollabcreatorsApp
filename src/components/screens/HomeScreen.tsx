@@ -97,16 +97,43 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
           </div>
           <div className="flex gap-2 items-center">
             <div className="relative">
-              <div className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center">
+              <button
+                onClick={() => setShowNotifs(!showNotifs)}
+                className="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center border-none cursor-pointer"
+              >
                 <Icon name="bell" size={17} className="text-primary" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card flex items-center justify-center">
-                <span className="text-[8px] font-black text-primary-foreground">3</span>
-              </div>
+              </button>
+              {notifCount > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[14px] h-3.5 rounded-full bg-primary border-2 border-card flex items-center justify-center px-0.5">
+                  <span className="text-[8px] font-black text-primary-foreground">{notifCount > 99 ? "99+" : notifCount}</span>
+                </div>
+              )}
             </div>
             <Avatar letter={initial} size={38} />
           </div>
         </div>
+
+        {showNotifs && (
+          <div className="mx-0 mt-2 bg-card border border-border rounded-[14px] shadow-lg overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+              <p className="text-sm font-bold text-foreground">Notifications</p>
+              <button onClick={() => setShowNotifs(false)} className="text-xs text-muted-foreground cursor-pointer bg-transparent border-none">✕</button>
+            </div>
+            {notifications.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">No notifications yet</p>
+            ) : (
+              <div className="max-h-[260px] overflow-y-auto">
+                {notifications.slice(0, 20).map((n: any, i: number) => (
+                  <div key={n.id || i} className={`px-4 py-3 border-b border-border last:border-b-0 ${!n.is_read && n.is_read !== "1" ? "bg-primary/5" : ""}`}>
+                    <p className="text-xs font-semibold text-foreground leading-snug">{n.title || n.message || n.text || "Notification"}</p>
+                    {(n.description || n.body) && <p className="text-[11px] text-muted-foreground mt-0.5">{n.description || n.body}</p>}
+                    {n.created_at && <p className="text-[10px] text-muted-foreground mt-1">{n.created_at}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-3.5 flex flex-col gap-4">
