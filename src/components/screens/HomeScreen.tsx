@@ -19,6 +19,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user, isAuthenticated } = useAuth();
   const [dashStats, setDashStats] = useState<any>(undefined);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [profileName, setProfileName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
