@@ -165,14 +165,17 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       };
 
       // ── YouTube (from /youtube_data API) ───────
-      const ytChannel = ytData?.channel || ytData?.data?.channel || ytData?.snippet || ytData || {};
-      const ytStats = ytData?.statistics || ytData?.data?.statistics || ytChannel?.statistics || {};
-      const ytSnippet = ytChannel?.snippet || ytChannel || {};
-      const ytSubs = Number(ytStats.subscriberCount || ytStats.subscriber_count || ytChannel.subscriberCount || ytChannel.subscriber_count || ud.youtube_subscribe_count) || 0;
-      const ytViews = Number(ytStats.viewCount || ytStats.view_count || ytChannel.viewCount || ytChannel.total_views || ud.youtube_view_average) || 0;
-      const ytVideoCount = Number(ytStats.videoCount || ytStats.video_count || ytChannel.videoCount || ytChannel.video_count) || 0;
-      const ytEngagement = parseFloat(ytData?.engagement_rate || ytChannel?.engagement_rate || ud.youtube_engagement_rate || "0");
-      const ytAvgViews = Number(ytData?.average_views || ytChannel?.average_views || ud.youtube_view_average) || 0;
+      // Parse items.statistics.subscriberCount from API response
+      const ytItems = ytData?.items || ytData?.data?.items || ytData?.channel?.items || [];
+      const ytItem = Array.isArray(ytItems) ? ytItems[0] : ytItems;
+      const ytStats = ytItem?.statistics || ytData?.statistics || ytData?.data?.statistics || ytData?.channel?.statistics || {};
+      const ytSnippet = ytItem?.snippet || ytData?.snippet || ytData?.data?.snippet || ytData?.channel?.snippet || {};
+      
+      const ytSubs = Number(ytStats.subscriberCount || ytStats.subscriber_count || ytData?.subscriberCount || ytData?.subscriber_count || ud.youtube_subscribe_count) || 0;
+      const ytViews = Number(ytStats.viewCount || ytStats.view_count || ytData?.viewCount || ytData?.total_views || ud.youtube_view_average) || 0;
+      const ytVideoCount = Number(ytStats.videoCount || ytStats.video_count || ytData?.videoCount || ytData?.video_count) || 0;
+      const ytEngagement = parseFloat(ytData?.engagement_rate || ytData?.channel?.engagement_rate || ud.youtube_engagement_rate || "0");
+      const ytAvgViews = Number(ytData?.average_views || ytData?.channel?.average_views || ud.youtube_view_average) || 0;
       const ytTitle = ytSnippet.title || ytSnippet.channel_name || ud.youtube_channel_name || ud.youtube_user_name || ud.youtube_url || "";
       const ytDescription = ytSnippet.description || ytSnippet.channel_description || ud.youtube_bio || ud.youtube_description || "";
       const ytThumb = ytSnippet.thumbnails?.high?.url || ytSnippet.thumbnails?.default?.url || ytSnippet.thumbnail || ud.youtube_profile_image || ud.youtube_thumbnail || "";
