@@ -100,7 +100,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.postForm("/login", { email, password });
-    setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
+    // Normalize: API may return user fields at top level or nested under .user
+    const user = res.user ?? {
+      id: res.id ?? res.user_login_id,
+      fname: res.fname ?? res.first_name ?? "",
+      lname: res.lname ?? res.last_name ?? "",
+      email: res.email ?? email,
+      sign_up_type: res.sign_up_type ?? "",
+    };
+    const userDetail = res.userDetail ?? res.user_detail ?? res;
+    setAuthData({ token: res.token, user, userDetail });
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
