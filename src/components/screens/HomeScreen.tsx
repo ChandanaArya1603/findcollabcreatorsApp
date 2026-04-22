@@ -52,16 +52,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
   const stats = dashStats
     ? [
-        { l: "Credits", v: String(dashStats.credits ?? "0"), sub: `${dashStats.creditsEarned ?? 0} earned`, ic: "wallet", c: "text-primary" },
-        { l: "Wallet", v: `₹${walletBalance ?? dashStats.wallet_balance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
+        { l: "Enlisted", v: String(dashStats.campaignsEnlisted ?? 0), sub: `${dashStats.totalReviews ?? 0} reviews`, ic: "campaign", c: "text-primary" },
+        { l: "Wallet", v: `₹${walletBalance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
         { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
-        { l: "Startups", v: String(dashStats.startups ?? 0), sub: "Available to pitch", ic: "startup", c: "text-warning" },
+        { l: "Views", v: String(dashStats.profileViews?.total ?? 0), sub: `${dashStats.profileViews?.directPercentage ?? 0}% direct`, ic: "search", c: "text-warning" },
       ]
     : [
-        { l: "Credits", v: "—", sub: "", ic: "wallet", c: "text-primary" },
+        { l: "Enlisted", v: "—", sub: "", ic: "campaign", c: "text-primary" },
         { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
         { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
-        { l: "Startups", v: "—", sub: "", ic: "startup", c: "text-warning" },
+        { l: "Views", v: "—", sub: "", ic: "search", c: "text-warning" },
       ];
 
   const profileViews = dashStats?.profileViews ?? { total: 0, directPercentage: 0 };
