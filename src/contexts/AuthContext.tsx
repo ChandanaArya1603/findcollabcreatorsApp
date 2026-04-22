@@ -48,15 +48,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem("fc_user");
 
     if (token && savedUser) {
+      const parsed = JSON.parse(savedUser);
       setState({
         token,
-        user: JSON.parse(savedUser),
-        // userDetail is intentionally NOT persisted — re-fetched from /media_kit on demand
-        // to reduce XSS exfiltration surface in localStorage.
+        user: parsed,
         userDetail: null,
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Hydrate user name from media_kit if missing in localStorage
+      if (!parsed.fname) {
+        api.get("/media_kit").then((res: any) => {
+          const fname = res?.fname || res?.user?.fname || res?.first_name || res?.user?.first_name || "";
+          const lname = res?.lname || res?.user?.lname || res?.last_name || res?.user?.last_name || "";
+          if (fname) {
+            const updatedUser = { ...parsed, fname, lname: lname || parsed.lname || "" };
+            localStorage.setItem("fc_user", JSON.stringify(updatedUser));
+            setState((s) => ({
+              ...s,
+              user: s.user ? { ...s.user, fname, lname: lname || s.user.lname } : s.user,
+              userDetail: res,
+            }));
+          }
+        }).catch(() => {});
+      }
     } else {
       setState((s) => ({ ...s, isLoading: false }));
     }
@@ -84,7 +100,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.postForm("/login", { email, password });
-    setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
+    // Normalize: API may return user fields at top level or nested under .user
+    const user = res.user ?? {
+      id: res.id ?? res.user_login_id,
+      fname: res.fname ?? res.first_name ?? "",
+      lname: res.lname ?? res.last_name ?? "",
+      email: res.email ?? email,
+      sign_up_type: res.sign_up_type ?? "",
+    };
+    const userDetail = res.userDetail ?? res.user_detail ?? res;
+    setAuthData({ token: res.token, user, userDetail });
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
