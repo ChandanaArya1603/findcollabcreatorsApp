@@ -7,6 +7,9 @@ export const walletService = {
   getCreditBalance: () =>
     api.get("/credit_balance"),
 
+  getCreditTransactions: (page = 1) =>
+    api.get(`/credit_transactions?page=${page}`),
+
   getTransactions: (page = 1, limit = 10) =>
     api.get(`/wallet_transactions?page=${page}&limit=${limit}`),
 
