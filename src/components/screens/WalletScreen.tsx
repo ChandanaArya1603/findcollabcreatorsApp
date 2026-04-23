@@ -27,13 +27,14 @@ const WalletScreen: React.FC = () => {
     Promise.all([
       walletService.getBalance().catch(() => null),
       walletService.getTransactions().catch(() => null),
-      dashboardService.getStats().catch(() => null),
-    ]).then(([balRes, txnRes, statsRes]) => {
+      walletService.getCreditBalance().catch(() => null),
+    ]).then(([balRes, txnRes, creditRes]) => {
       if (balRes) setBalance(balRes.wallet_balance ?? 0);
-      if (statsRes) {
-        const earned = statsRes.creditsEarned ?? 0;
-        const total = statsRes.credits ?? 0;
-        setCredits({ total, earned, spent: earned - total });
+      if (creditRes) {
+        const total = creditRes.balance ?? 0;
+        const earned = creditRes.total_earned ?? 0;
+        const spent = creditRes.total_spent ?? 0;
+        setCredits({ total, earned, spent });
       }
       if (txnRes?.transactions) {
         setTxns(
