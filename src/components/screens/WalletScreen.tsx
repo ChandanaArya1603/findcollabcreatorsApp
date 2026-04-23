@@ -8,10 +8,14 @@ import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 
 interface Transaction {
-  desc: string;
-  amt: string;
-  type: "credit" | "debit";
   date: string;
+  transaction_id: string;
+  brand: string;
+  campaign: string;
+  description: string;
+  amount: string;
+  type: string;
+  status: string;
 }
 
 const WalletScreen: React.FC = () => {
