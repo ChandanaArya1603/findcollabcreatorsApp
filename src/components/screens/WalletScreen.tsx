@@ -30,7 +30,7 @@ const WalletScreen: React.FC = () => {
 
     Promise.all([
       walletService.getBalance().catch(() => null),
-      walletService.getTransactions().catch(() => null),
+      walletService.getCreditTransactions().catch(() => null),
       walletService.getCreditBalance().catch(() => null),
     ]).then(([balRes, txnRes, creditRes]) => {
       if (balRes) setBalance(balRes.wallet_balance ?? 0);
@@ -43,10 +43,14 @@ const WalletScreen: React.FC = () => {
       if (txnRes?.transactions) {
         setTxns(
           txnRes.transactions.map((t: any) => ({
-            desc: t.description || t.transaction_id || "",
-            amt: `${t.transaction_type === "credit" ? "+" : "-"}₹${Math.abs(t.amount).toLocaleString()}`,
-            type: t.transaction_type === "credit" ? "credit" : "debit",
-            date: t.created_at ? new Date(t.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "",
+            date: t.date || t.created_at || "",
+            transaction_id: t.transaction_id || t.id || "",
+            brand: t.brand || t.brand_name || "",
+            campaign: t.campaign || t.campaign_name || "",
+            description: t.description || "",
+            amount: String(t.amount ?? ""),
+            type: t.type || t.transaction_type || "",
+            status: t.status || "",
           }))
         );
       }
@@ -100,14 +104,24 @@ const WalletScreen: React.FC = () => {
             {!loading && txns.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>}
             {!loading && txns.map((t, i) => (
               <Card key={i} className="!p-3.5">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start mb-1.5">
                   <div className="flex-1 mr-2.5">
-                    <p className="text-xs font-semibold text-foreground mb-0.5 leading-snug">{t.desc}</p>
-                    <p className="text-[10px] text-text-light">{t.date}</p>
+                    <p className="text-xs font-semibold text-foreground leading-snug">{t.description || t.campaign || "Transaction"}</p>
+                    {t.brand && <p className="text-[10px] text-text-mid mt-0.5">Brand: {t.brand}</p>}
+                    {t.campaign && <p className="text-[10px] text-text-mid">Campaign: {t.campaign}</p>}
                   </div>
                   <div className="text-right">
-                    <p className={`text-[15px] font-black mb-1 ${t.type === "credit" ? "text-success" : "text-destructive"}`}>{t.amt}</p>
+                    <p className={`text-[15px] font-black mb-1 ${t.type === "credit" ? "text-success" : "text-destructive"}`}>
+                      {t.type === "credit" ? "+" : "-"}{t.amount}
+                    </p>
                     <Badge color={t.type === "credit" ? "green" : "red"} sm>{t.type}</Badge>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-1.5 border-t border-border">
+                  <p className="text-[10px] text-text-light">{t.date}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] text-text-light">ID: {t.transaction_id}</p>
+                    {t.status && <Badge color={t.status === "completed" ? "green" : "amber"} sm>{t.status}</Badge>}
                   </div>
                 </div>
               </Card>
