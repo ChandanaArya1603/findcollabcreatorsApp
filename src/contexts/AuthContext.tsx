@@ -278,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, setAuthData }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData }}>
       {children}
     </AuthContext.Provider>
   );
@@ -291,7 +291,7 @@ export const useAuth = () => {
       return {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
-        login: async () => {}, register: async () => ({}),
+        login: async () => {}, loginWithGoogle: async () => {}, register: async () => ({}),
         logout: async () => {}, setAuthData: () => {},
       } as unknown as AuthContextType;
     }
