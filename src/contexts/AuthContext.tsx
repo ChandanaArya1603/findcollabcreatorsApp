@@ -237,6 +237,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [setAuthData]);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const res = await api.postForm("/google_login", { id_token: idToken, credential: idToken });
+    const rawUser = res.user ?? {
+      id: res.id ?? res.user_login_id,
+      fname: res.fname ?? res.first_name ?? "",
+      lname: res.lname ?? res.last_name ?? "",
+      email: res.email ?? "",
+      sign_up_type: res.sign_up_type ?? "google",
+    };
+    const userDetail = res.userDetail ?? res.user_detail ?? res;
+    const normalizedUser = normalizeUser(rawUser, userDetail);
+    setAuthData({ token: res.token, user: normalizedUser, userDetail });
+  }, [setAuthData]);
+
   const register = useCallback(async (data: Record<string, any>) => {
     const res = await api.postForm("/register_influencer", data);
     if (res.token) {
