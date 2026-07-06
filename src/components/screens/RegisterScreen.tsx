@@ -60,48 +60,33 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch }) => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-background px-6 py-10 overflow-hidden relative">
-      {/* Animated backdrop blobs */}
       <div aria-hidden className="pointer-events-none absolute -top-20 -left-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl animate-pulse" />
       <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-primary/15 blur-3xl animate-pulse [animation-delay:1s]" />
 
-      <div className="w-full max-w-sm relative z-10 animate-fade-in">
+      <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <img
             src={logoMark.url}
             alt="Findcollab"
-            className="h-16 w-16 mx-auto mb-3 object-contain drop-shadow-xl hover-scale animate-scale-in"
-            style={{ animation: "scale-in 0.5s ease-out, float 3s ease-in-out infinite 0.5s" }}
+            className="h-16 w-16 mx-auto mb-3 object-contain drop-shadow-xl transition-transform hover:scale-105"
           />
-          <img src={logoFull.url} alt="Findcollab" className="h-8 mx-auto mb-2 object-contain opacity-0 animate-fade-in [animation-delay:150ms] [animation-fill-mode:forwards]" />
-          <p className="text-sm text-text-mid opacity-0 animate-fade-in [animation-delay:300ms] [animation-fill-mode:forwards]">
-            Create your influencer account
-          </p>
+          <img src={logoFull.url} alt="Findcollab" className="h-8 mx-auto mb-2 object-contain" />
+          <p className="text-sm text-text-mid">Create your influencer account</p>
         </div>
 
-        <Card className="!p-5 opacity-0 animate-fade-in [animation-delay:400ms] [animation-fill-mode:forwards]">
+        <Card className="!p-5">
           <div className="flex flex-col gap-3.5">
-            {[
-              <AppInput key="fn" label="First Name" value={firstname} onChange={setFirstname} placeholder="John" />,
-              <AppInput key="em" label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />,
-              <AppInput key="ph" label="Phone Number" value={contactno} onChange={setContactno} placeholder="+91 98765 43210" />,
-              <AppInput key="pw" label="Password" value={password} onChange={setPassword} placeholder="••••••••" />,
-            ].map((field, i) => (
-              <div
-                key={i}
-                className="opacity-0 animate-fade-in [animation-fill-mode:forwards]"
-                style={{ animationDelay: `${500 + i * 90}ms` }}
-              >
-                {field}
-              </div>
-            ))}
-            <div className="opacity-0 animate-fade-in [animation-fill-mode:forwards]" style={{ animationDelay: "900ms" }}>
-              <AppButton full onClick={handleRegister} disabled={loading}>
-                {loading ? "Creating account…" : "Create Account"}
-              </AppButton>
-            </div>
+            <AppInput label="First Name" value={firstname} onChange={setFirstname} placeholder="John" />
+            <AppInput label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />
+            <AppInput label="Phone Number" value={contactno} onChange={setContactno} placeholder="+91 98765 43210" />
+            <AppInput label="Password" value={password} onChange={setPassword} placeholder="••••••••" />
+
+            <AppButton full onClick={handleRegister} disabled={loading}>
+              {loading ? "Creating account…" : "Create Account"}
+            </AppButton>
 
             {hasGoogle && (
-              <div className="opacity-0 animate-fade-in [animation-fill-mode:forwards]" style={{ animationDelay: "1000ms" }}>
+              <div>
                 <div className="flex items-center gap-2 my-1">
                   <div className="flex-1 h-px bg-border" />
                   <span className="text-[11px] text-text-mid uppercase tracking-wider">or</span>
@@ -122,7 +107,7 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch }) => {
           </div>
         </Card>
 
-        <p className="text-center text-xs text-text-mid mt-5 opacity-0 animate-fade-in [animation-delay:1100ms] [animation-fill-mode:forwards]">
+        <p className="text-center text-xs text-text-mid mt-5">
           Already have an account?{" "}
           <button onClick={onSwitch} className="text-primary font-bold story-link">Sign In</button>
         </p>
