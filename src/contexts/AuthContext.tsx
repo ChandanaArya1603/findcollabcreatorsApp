@@ -27,6 +27,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: Record<string, any>) => Promise<any>;
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
