@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMediaKit, useYoutubeData } from "@/hooks/useAppData";
+import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "@/hooks/use-toast";
+import { profileService } from "@/services/profileService";
+import { AppButton } from "../findcollab/AppButton";
 
 interface Props {
   onBack: () => void;
@@ -23,7 +25,7 @@ interface PlatformData {
   engagementRate: number;
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
-  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
+  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string; thumb: string }[];
   bio: string;
   link: string;
   username: string;
@@ -71,6 +73,30 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
     bio: "", link: "", username: "", profilePic: "",
   },
 };
+
+const MEDIA_KIT_THEMES = [
+  { id: "desi", label: "Desi", swatch: "bg-primary" },
+  { id: "mumbai-shaana", label: "Mumbai Shaana", swatch: "bg-warning" },
+  { id: "south-texas", label: "South Texas", swatch: "bg-destructive" },
+  { id: "sfo-breeze", label: "SFO Breeze", swatch: "bg-info" },
+  { id: "bong-bindaas", label: "Bong Bindaas", swatch: "bg-success" },
+  { id: "madras-machan", label: "Madras Machan", swatch: "bg-secondary" },
+  { id: "bengaluru-adjust-maadi", label: "Bengaluru", swatch: "bg-foreground" },
+];
+
+const MEDIA_KIT_BANNERS = [
+  { id: "theme-gradient", label: "Gradient" },
+  { id: "aurora-mesh", label: "Aurora" },
+  { id: "y2k-chrome", label: "Y2K" },
+  { id: "synthwave-sunset", label: "Sunset" },
+  { id: "acid-brutalist", label: "Acid" },
+  { id: "memphis-pop", label: "Memphis" },
+  { id: "graffiti-street", label: "Graffiti" },
+  { id: "cyber-neon", label: "Cyber" },
+  { id: "risograph", label: "Risograph" },
+  { id: "holo-foil", label: "Holo" },
+  { id: "bauhaus", label: "Bauhaus" },
+];
 
 // Instagram CDN images block hot-linking via Referer; route through a free image proxy
 const proxyImg = (url: string): string => {
