@@ -1,5 +1,10 @@
 {
   "appId": "com.findcollab.app",
   "appName": "FindCollab",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
 }
