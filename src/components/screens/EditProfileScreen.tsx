@@ -150,10 +150,37 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
         content_website: website,
         primary_account: primarySocial,
       });
+
+      // Save categories as IDs
+      const ids: number[] = [];
+      const unknown: string[] = [];
+      categories.forEach((c) => {
+        const id = catIdByName[c.toLowerCase()];
+        if (id) ids.push(id);
+        else unknown.push(c);
+      });
+      if (ids.length) {
+        try {
+          await profileService.updateCategories(ids);
+        } catch (catErr: any) {
+          toast.error(catErr?.message || "Could not save categories");
+        }
+      }
+      if (unknown.length) {
+        toast.error(`Not saved (unknown category): ${unknown.join(", ")}`);
+      }
+
+      // Refresh profile so the new values show everywhere immediately
+      try {
+        await refreshProfile();
+      } catch {
+        // ignore refresh failures — the save itself succeeded
+      }
+
       toast.success("Profile updated successfully!");
       onBack();
     } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+      toast.error(err?.message || "Failed to save");
     } finally {
       setSaving(false);
     }
