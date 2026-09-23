@@ -15,4 +15,7 @@ export const walletService = {
 
   submitWithdrawal: (data: { withdrawAmount: number; withdrawMethod: string; withdrawReason?: string }) =>
     api.postForm("/submit_withdrawal_request", data),
+
+  verifyPlayPurchase: (data: { product_id: string; purchase_token: string; order_id: string }) =>
+    api.postForm("/verify_play_purchase", data),
 };
