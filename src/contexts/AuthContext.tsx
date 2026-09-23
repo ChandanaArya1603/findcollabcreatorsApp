@@ -294,6 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     api.setToken(null);
     localStorage.removeItem("fc_user");
     localStorage.removeItem("fc_user_detail");
+    clearDashboardCache();
     setState({
       user: null,
       userDetail: null,
@@ -304,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
