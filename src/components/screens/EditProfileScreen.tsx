@@ -134,34 +134,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
   const removeCategory = (cat: string) => setCategories(categories.filter((c) => c !== cat));
 
-  const updateCommercial = (platform: string, index: number, field: keyof Commercial, value: string) => {
-    setCommercials((prev) => {
-      const updated = { ...prev };
-      updated[platform] = [...(updated[platform] || [])];
-      updated[platform][index] = { ...updated[platform][index], [field]: value };
-      return updated;
-    });
-  };
-
-  const addCommercial = (platform: string) => {
-    setCommercials((prev) => ({
-      ...prev,
-      [platform]: [...(prev[platform] || []), { service: "", rate: "", remarks: "" }],
-    }));
-  };
-
-  const removeCommercial = (platform: string, index: number) => {
-    setCommercials((prev) => ({
-      ...prev,
-      [platform]: (prev[platform] || []).filter((_, i) => i !== index),
-    }));
-  };
-
-  const addProject = () => setProjects([...projects, { brand: "", link: "" }]);
-  const removeProject = (index: number) => setProjects(projects.filter((_, i) => i !== index));
-  const updateProject = (index: number, field: keyof Project, value: string) => {
-    setProjects(projects.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
-  };
 
   const handleSave = async () => {
     setSaving(true);
