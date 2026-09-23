@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import React from "react";
+import { useMyCampaigns } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -36,47 +36,35 @@ function formatBudget(c: any): string {
 }
 
 const OffersScreen: React.FC<Props> = ({ push }) => {
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    // Offers come from my_campaigns with offer/invited status
-    api.get("/my_campaigns")
-      .then((res: any) => {
-        const list = res.campaigns || res.result || [];
-        // Filter for campaigns where brand made an offer (invited/offer sent)
-        const offerList = list
-          .filter((c: any) => {
-            const s = (c.status || "").toLowerCase();
-            return (
-              s.includes("offer") ||
-              s.includes("invited") ||
-              s.includes("enlisted") ||
-              s.includes("payment") ||
-              s.includes("complete")
-            );
+  // Offers come from the shared my_campaigns query, filtered by offer/invited status
+  const { data, isLoading: loading } = useMyCampaigns();
+  const list: any[] = data?.campaigns || data?.result || [];
+  const offers: Offer[] = list
+    .filter((c: any) => {
+      const s = (c.status || "").toLowerCase();
+      return (
+        s.includes("offer") ||
+        s.includes("invited") ||
+        s.includes("enlisted") ||
+        s.includes("payment") ||
+        s.includes("complete")
+      );
+    })
+    .map((c: any) => ({
+      id: c.id,
+      name: c.project_title || c.name || "",
+      brand: c.company_name || c.brand || "",
+      budget: formatBudget(c),
+      status: c.status || "Pending",
+      sc: statusColor(c.status),
+      due: c.end_date
+        ? new Date(c.end_date).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
           })
-          .map((c: any) => ({
-            id: c.id,
-            name: c.project_title || c.name || "",
-            brand: c.company_name || c.brand || "",
-            budget: formatBudget(c),
-            status: c.status || "Pending",
-            sc: statusColor(c.status),
-            due: c.end_date
-              ? new Date(c.end_date).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "",
-          }));
-        setOffers(offerList);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+        : "",
+    }));
 
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5">

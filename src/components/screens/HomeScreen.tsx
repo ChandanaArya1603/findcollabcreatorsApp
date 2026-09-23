@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { dashboardService } from "@/services/dashboardService";
-import { walletService } from "@/services/walletService";
-import { profileService } from "@/services/profileService";
-import { notificationService } from "@/services/notificationService";
-import { readDashboardCache, writeDashboardCache } from "@/lib/dashboardCache";
+import {
+  useDashboardStats,
+  useWalletBalance,
+  useMediaKit,
+  useNotifications,
+} from "@/hooks/useAppData";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -18,68 +19,24 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
-  const { user, isAuthenticated } = useAuth();
-  const cached = readDashboardCache(user?.id);
-  const [dashStats, setDashStats] = useState<any>(cached?.stats ?? undefined);
-  const [walletBalance, setWalletBalance] = useState<number | null>(cached?.walletBalance ?? null);
-  const [profileName, setProfileName] = useState<string>(cached?.profileName ?? "");
-  const [notifCount, setNotifCount] = useState<number>(cached?.notifCount ?? 0);
-  const [notifications, setNotifications] = useState<any[]>(cached?.notifications ?? []);
+  const { user } = useAuth();
+  const { data: dashStats } = useDashboardStats();
+  const { data: walletRes } = useWalletBalance();
+  const { data: mediaKit } = useMediaKit();
+  const { data: notifRes } = useNotifications(1);
   const [showNotifs, setShowNotifs] = useState(false);
-  const [loading, setLoading] = useState(!cached);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const userId = user?.id;
-    const hasCache = Boolean(readDashboardCache(userId));
-    setLoading(!hasCache);
-    let settled = 0;
-    const done = () => {
-      settled += 1;
-      if (settled >= 4) setLoading(false);
-    };
+  const walletBalance: number | null = walletRes?.wallet_balance ?? null;
+  const profileName: string = mediaKit?.fname || "";
 
-    // Each section updates as soon as its own call returns.
-    dashboardService.getStats()
-      .then((stats) => {
-        setDashStats(stats);
-        writeDashboardCache(userId, { stats });
-      })
-      .catch(() => {})
-      .finally(done);
-
-    walletService.getBalance()
-      .then((wallet) => {
-        const balance = wallet?.wallet_balance ?? null;
-        setWalletBalance(balance);
-        writeDashboardCache(userId, { walletBalance: balance });
-      })
-      .catch(() => {})
-      .finally(done);
-
-    profileService.getMediaKit()
-      .then((mediaKit) => {
-        if (mediaKit?.fname) {
-          setProfileName(mediaKit.fname);
-          writeDashboardCache(userId, { profileName: mediaKit.fname });
-        }
-      })
-      .catch(() => {})
-      .finally(done);
-
-    notificationService.getNotifications(1)
-      .then((notifRes: any) => {
-        const notifList = notifRes?.notifications || notifRes?.data?.notifications || notifRes?.items || [];
-        const list = Array.isArray(notifList) ? notifList : [];
-        const totalUnread = Number(notifRes?.unread_count ?? notifRes?.data?.unread_count ?? list.filter((n: any) => !n.is_read && n.is_read !== "1").length);
-        const count = totalUnread || list.length;
-        setNotifications(list);
-        setNotifCount(count);
-        writeDashboardCache(userId, { notifications: list.slice(0, 20), notifCount: count });
-      })
-      .catch(() => {})
-      .finally(done);
-  }, [isAuthenticated, user?.id]);
+  const rawNotifs = notifRes?.notifications || notifRes?.data?.notifications || notifRes?.items || [];
+  const notifications: any[] = Array.isArray(rawNotifs) ? rawNotifs : [];
+  const totalUnread = Number(
+    notifRes?.unread_count ??
+      notifRes?.data?.unread_count ??
+      notifications.filter((n: any) => !n.is_read && n.is_read !== "1").length
+  );
+  const notifCount = notifRes ? totalUnread || notifications.length : 0;
 
   const greeting = () => {
     const h = new Date().getHours();

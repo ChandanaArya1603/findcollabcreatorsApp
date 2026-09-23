@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { api } from "@/lib/api";
 import { clearDashboardCache } from "@/lib/dashboardCache";
 import { retryPendingPurchases } from "@/lib/pendingPurchases";
+import { clearQueryCache } from "@/lib/queryClient";
+import { prefetchAppData } from "@/hooks/useAppData";
 
 interface User {
   id: number;
@@ -189,7 +191,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    bootstrapAuth();
+    bootstrapAuth().then(() => {
+      if (api.getToken()) prefetchAppData();
+    });
 
     return () => {
       isMounted = false;
@@ -209,6 +213,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     // Confirm any Play Store purchases that were paid for but not yet credited
     retryPendingPurchases().catch(() => {});
+    // Warm the caches for the main tabs so screens open instantly
+    prefetchAppData();
     setState({
       token: data.token,
       user: normalizedUser,
@@ -298,6 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("fc_user");
     localStorage.removeItem("fc_user_detail");
     clearDashboardCache();
+    clearQueryCache();
     setState({
       user: null,
       userDetail: null,

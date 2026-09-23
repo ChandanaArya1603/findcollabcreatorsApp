@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { campaignService } from "@/services/campaignService";
+import React, { useState } from "react";
+import { useMyCampaigns } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -41,33 +41,20 @@ const statusSteps: Record<string, string[]> = {
 
 const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
   const [selected, setSelected] = useState<Campaign | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useMyCampaigns();
 
-  useEffect(() => {
-    setLoading(true);
-    campaignService.getMyCampaigns()
-      .then((res) => {
-        const list = res.campaigns || res.result || [];
-        if (list.length > 0) {
-          setCampaigns(
-            list.map((c: any) => ({
-              brand: c.brand_name || c.company_name || c.brand || "",
-              name: c.project_title || c.name || "",
-              status: c.status || "Applied",
-              sc: statusColor(c.status || "Applied"),
-              date: c.dateInvited || c.created_at || "",
-              details: c.briefs || c.description || "",
-              deliverables: c.deliverables || "",
-              budget: formatCampaignBudget(c),
-              type: formatCampaignType(c.campaign_type || c.type),
-            }))
-          );
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const list: any[] = data?.campaigns || data?.result || [];
+  const campaigns: Campaign[] = list.map((c: any) => ({
+    brand: c.brand_name || c.company_name || c.brand || "",
+    name: c.project_title || c.name || "",
+    status: c.status || "Applied",
+    sc: statusColor(c.status || "Applied"),
+    date: c.dateInvited || c.created_at || "",
+    details: c.briefs || c.description || "",
+    deliverables: c.deliverables || "",
+    budget: formatCampaignBudget(c),
+    type: formatCampaignType(c.campaign_type || c.type),
+  }));
 
   if (selected) {
     const steps = statusSteps[selected.status] || [selected.status];

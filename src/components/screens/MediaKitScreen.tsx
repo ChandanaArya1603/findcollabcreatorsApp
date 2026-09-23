@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { profileService } from "@/services/profileService";
+import { useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -111,15 +111,14 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [tab, setTab] = useState("stats");
   const [bioOpen, setBioOpen] = useState(false);
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
-  const [profileData, setProfileData] = useState<any>(null);
+  const { data: mediaKitRes } = useMediaKit();
+  const { data: ytDataRes } = useYoutubeData();
+  const profileData: any = mediaKitRes ?? null;
 
   useEffect(() => {
-    Promise.all([
-      profileService.getMediaKit().catch(() => null),
-      profileService.getYoutubeData().catch(() => null),
-    ]).then(([res, ytData]) => {
-      if (!res) return;
-      setProfileData(res);
+    const res: any = mediaKitRes;
+    const ytData: any = ytDataRes;
+    if (res) {
       const updated: Record<string, PlatformData> = {
         instagram: { ...EMPTY_PLATFORMS.instagram },
         youtube: { ...EMPTY_PLATFORMS.youtube },
@@ -281,8 +280,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       } catch {}
 
       setPlatforms(updated);
-    }).catch(() => {});
-  }, []);
+    }
+  }, [mediaKitRes, ytDataRes]);
 
   const platformKeys = Object.keys(platforms);
   const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";

@@ -3,7 +3,12 @@ import { Capacitor } from "@capacitor/core";
 import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
 import { toast } from "sonner";
 import { walletService } from "@/services/walletService";
-import { dashboardService } from "@/services/dashboardService";
+import {
+  useWalletBalance,
+  useCreditBalance,
+  useCreditTransactions,
+  invalidateWalletData,
+} from "@/hooks/useAppData";
 import { addPendingPurchase, removePendingPurchase, retryPendingPurchases } from "@/lib/pendingPurchases";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
@@ -33,60 +38,36 @@ const isNative = Capacitor.isNativePlatform();
 
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
-  const [balance, setBalance] = useState<number | null>(null);
-  const [credits, setCredits] = useState<{ total: number; earned: number; spent: number } | null>(null);
-  const [txns, setTxns] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [storePrices, setStorePrices] = useState<Record<string, string> | null>(null);
   const [storeFailed, setStoreFailed] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
-  const mapTxns = (txnRes: any) => {
-    if (!txnRes?.transactions) return;
-    setTxns(
-      txnRes.transactions.map((t: any) => ({
-        date: t.date || t.created_at || "",
-        transaction_id: t.transaction_id || t.id || "",
-        brand: t.brand || t.brand_name || "",
-        campaign: t.campaign || t.campaign_name || "",
-        description: t.description || "",
-        amount: String(t.amount ?? ""),
-        type: t.type || t.transaction_type || "",
-        status: t.status || "",
-      }))
-    );
-  };
+  const { data: balRes } = useWalletBalance();
+  const { data: creditRes } = useCreditBalance();
+  const { data: txnRes, isLoading: loading } = useCreditTransactions(1);
 
-  const applyCredits = (creditRes: any) => {
-    if (!creditRes) return;
-    setCredits({
-      total: creditRes.balance ?? 0,
-      earned: creditRes.total_earned ?? 0,
-      spent: creditRes.total_spent ?? 0,
-    });
-  };
+  const balance: number | null = balRes?.wallet_balance ?? null;
+  const credits = creditRes
+    ? {
+        total: creditRes.balance ?? 0,
+        earned: creditRes.total_earned ?? 0,
+        spent: creditRes.total_spent ?? 0,
+      }
+    : null;
 
-  const refreshCredits = useCallback(async () => {
-    const [creditRes, txnRes] = await Promise.all([
-      walletService.getCreditBalance().catch(() => null),
-      walletService.getCreditTransactions().catch(() => null),
-    ]);
-    applyCredits(creditRes);
-    mapTxns(txnRes);
-  }, []);
+  const txns: Transaction[] = (txnRes?.transactions || []).map((t: any) => ({
+    date: t.date || t.created_at || "",
+    transaction_id: t.transaction_id || t.id || "",
+    brand: t.brand || t.brand_name || "",
+    campaign: t.campaign || t.campaign_name || "",
+    description: t.description || "",
+    amount: String(t.amount ?? ""),
+    type: t.type || t.transaction_type || "",
+    status: t.status || "",
+  }));
 
-  useEffect(() => {
-    setLoading(true);
-
-    Promise.all([
-      walletService.getBalance().catch(() => null),
-      walletService.getCreditTransactions().catch(() => null),
-      walletService.getCreditBalance().catch(() => null),
-    ]).then(([balRes, txnRes, creditRes]) => {
-      if (balRes) setBalance(balRes.wallet_balance ?? 0);
-      applyCredits(creditRes);
-      mapTxns(txnRes);
-    }).finally(() => setLoading(false));
+  const refreshCredits = useCallback(() => {
+    invalidateWalletData();
   }, []);
 
   // Retry any purchases that were paid for but not yet confirmed by the server
