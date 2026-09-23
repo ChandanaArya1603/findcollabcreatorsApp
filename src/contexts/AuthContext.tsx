@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { clearDashboardCache } from "@/lib/dashboardCache";
+import { retryPendingPurchases } from "@/lib/pendingPurchases";
 
 interface User {
   id: number;
@@ -206,6 +207,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // ignore storage errors
       }
     }
+    // Confirm any Play Store purchases that were paid for but not yet credited
+    retryPendingPurchases().catch(() => {});
     setState({
       token: data.token,
       user: normalizedUser,

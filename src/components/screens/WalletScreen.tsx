@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
+import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
+import { toast } from "sonner";
 import { walletService } from "@/services/walletService";
 import { dashboardService } from "@/services/dashboardService";
+import { addPendingPurchase, removePendingPurchase, retryPendingPurchases } from "@/lib/pendingPurchases";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -18,12 +22,58 @@ interface Transaction {
   status: string;
 }
 
+const PLANS = [
+  { id: "credits_100", name: "Starter", credits: 100, price: "₹199", pop: false },
+  { id: "credits_300", name: "Growth", credits: 300, price: "₹499", pop: true },
+  { id: "credits_700", name: "Pro", credits: 700, price: "₹999", pop: false },
+  { id: "credits_1500", name: "Power", credits: 1500, price: "₹1,999", pop: false },
+];
+
+const isNative = Capacitor.isNativePlatform();
+
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
   const [balance, setBalance] = useState<number | null>(null);
   const [credits, setCredits] = useState<{ total: number; earned: number; spent: number } | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storePrices, setStorePrices] = useState<Record<string, string> | null>(null);
+  const [storeFailed, setStoreFailed] = useState(false);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+
+  const mapTxns = (txnRes: any) => {
+    if (!txnRes?.transactions) return;
+    setTxns(
+      txnRes.transactions.map((t: any) => ({
+        date: t.date || t.created_at || "",
+        transaction_id: t.transaction_id || t.id || "",
+        brand: t.brand || t.brand_name || "",
+        campaign: t.campaign || t.campaign_name || "",
+        description: t.description || "",
+        amount: String(t.amount ?? ""),
+        type: t.type || t.transaction_type || "",
+        status: t.status || "",
+      }))
+    );
+  };
+
+  const applyCredits = (creditRes: any) => {
+    if (!creditRes) return;
+    setCredits({
+      total: creditRes.balance ?? 0,
+      earned: creditRes.total_earned ?? 0,
+      spent: creditRes.total_spent ?? 0,
+    });
+  };
+
+  const refreshCredits = useCallback(async () => {
+    const [creditRes, txnRes] = await Promise.all([
+      walletService.getCreditBalance().catch(() => null),
+      walletService.getCreditTransactions().catch(() => null),
+    ]);
+    applyCredits(creditRes);
+    mapTxns(txnRes);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -34,37 +84,83 @@ const WalletScreen: React.FC = () => {
       walletService.getCreditBalance().catch(() => null),
     ]).then(([balRes, txnRes, creditRes]) => {
       if (balRes) setBalance(balRes.wallet_balance ?? 0);
-      if (creditRes) {
-        const total = creditRes.balance ?? 0;
-        const earned = creditRes.total_earned ?? 0;
-        const spent = creditRes.total_spent ?? 0;
-        setCredits({ total, earned, spent });
-      }
-      if (txnRes?.transactions) {
-        setTxns(
-          txnRes.transactions.map((t: any) => ({
-            date: t.date || t.created_at || "",
-            transaction_id: t.transaction_id || t.id || "",
-            brand: t.brand || t.brand_name || "",
-            campaign: t.campaign || t.campaign_name || "",
-            description: t.description || "",
-            amount: String(t.amount ?? ""),
-            type: t.type || t.transaction_type || "",
-            status: t.status || "",
-          }))
-        );
-      }
+      applyCredits(creditRes);
+      mapTxns(txnRes);
     }).finally(() => setLoading(false));
   }, []);
 
+  // Retry any purchases that were paid for but not yet confirmed by the server
+  useEffect(() => {
+    retryPendingPurchases().then((done) => {
+      if (done > 0) {
+        toast.success("Your credits have been added");
+        refreshCredits();
+      }
+    });
+  }, [refreshCredits]);
+
+  // Load Google Play prices
+  useEffect(() => {
+    if (!isNative) return;
+    NativePurchases.getProducts({
+      productIdentifiers: PLANS.map((p) => p.id),
+      productType: PURCHASE_TYPE.INAPP,
+    })
+      .then(({ products }) => {
+        const map: Record<string, string> = {};
+        (products || []).forEach((pr: any) => {
+          if (pr?.identifier && pr?.priceString) map[pr.identifier] = pr.priceString;
+        });
+        if (Object.keys(map).length === 0) {
+          setStoreFailed(true);
+        } else {
+          setStorePrices(map);
+        }
+      })
+      .catch(() => setStoreFailed(true));
+  }, []);
+
+  const handleBuy = async (plan: typeof PLANS[number]) => {
+    setBuyingId(plan.id);
+    try {
+      const txn: any = await NativePurchases.purchaseProduct({
+        productIdentifier: plan.id,
+        productType: PURCHASE_TYPE.INAPP,
+        isConsumable: true,
+        quantity: 1,
+      });
+
+      const payload = {
+        product_id: plan.id,
+        purchase_token: txn?.purchaseToken || txn?.transactionId || "",
+        order_id: txn?.orderId || txn?.transactionId || "",
+      };
+
+      try {
+        await walletService.verifyPlayPurchase(payload);
+        removePendingPurchase(payload.purchase_token);
+        toast.success(`${plan.credits} credits added`);
+        refreshCredits();
+      } catch {
+        addPendingPurchase(payload);
+        toast.success("Payment received, credits will be added shortly");
+      }
+    } catch (err: any) {
+      const msg = String(err?.message || "").toLowerCase();
+      if (msg.includes("cancel")) {
+        toast("Purchase cancelled");
+      } else {
+        toast.error(err?.message || "Purchase failed");
+      }
+    } finally {
+      setBuyingId(null);
+    }
+  };
+
   const displayBalance = balance !== null ? `₹${balance.toLocaleString()}` : "—";
 
-  const plans = [
-    { name: "Starter", credits: 100, price: "₹199", pop: false },
-    { name: "Growth", credits: 300, price: "₹499", pop: true },
-    { name: "Pro", credits: 700, price: "₹999", pop: false },
-    { name: "Power", credits: 1500, price: "₹1,999", pop: false },
-  ];
+  const plans = PLANS;
+
 
   return (
     <Screen>
@@ -170,8 +266,23 @@ const WalletScreen: React.FC = () => {
                     <p className="text-[11px] text-text-light">Valid 180 days</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-foreground mb-2">{p.price}</p>
-                    <AppButton className="!py-2 !px-4 !text-xs !rounded-[10px]">Buy Now</AppButton>
+                    <p className="text-lg font-black text-foreground mb-2">{storePrices?.[p.id] || p.price}</p>
+                    {isNative ? (
+                      <AppButton
+                        className="!py-2 !px-4 !text-xs !rounded-[10px]"
+                        disabled={storeFailed || buyingId !== null}
+                        onClick={() => handleBuy(p)}
+                      >
+                        {storeFailed ? "Unavailable" : buyingId === p.id ? "Processing…" : "Buy Now"}
+                      </AppButton>
+                    ) : (
+                      <AppButton
+                        className="!py-2 !px-3 !text-xs !rounded-[10px]"
+                        onClick={() => window.open("https://findcollab.com", "_blank", "noopener")}
+                      >
+                        Buy on findcollab.com
+                      </AppButton>
+                    )}
                   </div>
                 </div>
               </Card>
