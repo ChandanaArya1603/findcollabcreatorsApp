@@ -315,36 +315,50 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
               ))}
             </div>
             <Card>
-              <p className="text-sm font-extrabold text-foreground mb-3">
-                {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
-              </p>
-              {(commercials[commercialPlatform] || []).map((c, i) => (
-                <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <AppInput label="Service" value={c.service} onChange={(v) => updateCommercial(commercialPlatform, i, "service", v)} placeholder="Service name" />
-                      </div>
-                      <div className="w-24">
-                        <AppInput label="Rate(₹)" value={c.rate} onChange={(v) => updateCommercial(commercialPlatform, i, "rate", v)} placeholder="Amount" />
-                      </div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-extrabold text-foreground">
+                  {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
+                </p>
+                <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
+              </div>
+              {(commercials[commercialPlatform] || []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">—</p>
+              ) : (
+                (commercials[commercialPlatform] || []).map((c, i) => (
+                  <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
+                    <div className="flex justify-between gap-2">
+                      <p className="text-xs font-bold text-foreground">{c.service || "—"}</p>
+                      <p className="text-xs font-bold text-primary shrink-0">{c.rate ? `₹${c.rate}` : "—"}</p>
                     </div>
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <AppInput label="Remarks" value={c.remarks} onChange={(v) => updateCommercial(commercialPlatform, i, "remarks", v)} placeholder="Details" />
-                      </div>
-                      <button onClick={() => removeCommercial(commercialPlatform, i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
-                        <Icon name="close" size={16} className="text-destructive" />
-                      </button>
-                    </div>
+                    {c.remarks && <p className="text-[11px] text-muted-foreground mt-1">{c.remarks}</p>}
                   </div>
-                </div>
-              ))}
-              <button onClick={() => addCommercial(commercialPlatform)} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
-                + Add More
-              </button>
+                ))
+              )}
             </Card>
           </>
+        )}
+
+        {activeTab === "Past Projects" && (
+          <Card>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-extrabold text-foreground">Past Projects</p>
+              <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
+            </div>
+            {projects.length === 0 ? (
+              <p className="text-xs text-muted-foreground">—</p>
+            ) : (
+              projects.map((p, i) => (
+                <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
+                  <p className="text-xs font-bold text-foreground">{p.brand || "—"}</p>
+                  {p.link && (
+                    <a href={p.link} target="_blank" rel="noreferrer" className="text-[11px] text-primary break-all">
+                      {p.link}
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </Card>
         )}
 
         {activeTab === "Past Projects" && (
