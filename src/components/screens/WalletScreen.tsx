@@ -266,8 +266,23 @@ const WalletScreen: React.FC = () => {
                     <p className="text-[11px] text-text-light">Valid 180 days</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-foreground mb-2">{p.price}</p>
-                    <AppButton className="!py-2 !px-4 !text-xs !rounded-[10px]">Buy Now</AppButton>
+                    <p className="text-lg font-black text-foreground mb-2">{storePrices?.[p.id] || p.price}</p>
+                    {isNative ? (
+                      <AppButton
+                        className="!py-2 !px-4 !text-xs !rounded-[10px]"
+                        disabled={storeFailed || buyingId !== null}
+                        onClick={() => handleBuy(p)}
+                      >
+                        {storeFailed ? "Unavailable" : buyingId === p.id ? "Processing…" : "Buy Now"}
+                      </AppButton>
+                    ) : (
+                      <AppButton
+                        className="!py-2 !px-3 !text-xs !rounded-[10px]"
+                        onClick={() => window.open("https://findcollab.com", "_blank", "noopener")}
+                      >
+                        Buy on findcollab.com
+                      </AppButton>
+                    )}
                   </div>
                 </div>
               </Card>
