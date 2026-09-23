@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import React, { useState } from "react";
+import { useStartups } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -29,21 +29,10 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
     "Hi there,\n\nI'm reaching out to explore potential collaboration opportunities.\n\nLooking forward to connecting!"
   );
   const [search, setSearch] = useState("");
-  const [startups, setStartups] = useState<Startup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const { data, isLoading: loading } = useStartups();
 
-  useEffect(() => {
-    setLoading(true);
-    api.get("/startups")
-      .then((res: any) => {
-        const list = res.startups || res.result || [];
-        setTotal(res.total || list.length);
-        setStartups(list);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const startups: Startup[] = data?.startups || data?.result || [];
+  const total: number = data?.total || startups.length;
 
   const filtered = startups.filter((s) => {
     if (!search) return true;

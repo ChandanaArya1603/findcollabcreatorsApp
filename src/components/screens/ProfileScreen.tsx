@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { profileService } from "@/services/profileService";
+import { useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -21,18 +21,8 @@ const menu = [
 
 const ProfileScreen: React.FC<Props> = ({ push }) => {
   const { user, userDetail, logout } = useAuth();
-  const [mediaKit, setMediaKit] = useState<any>(null);
-  const [youtubeData, setYoutubeData] = useState<any>(null);
-
-  useEffect(() => {
-    Promise.all([
-      profileService.getMediaKit().catch(() => null),
-      profileService.getYoutubeData().catch(() => null),
-    ]).then(([mediaKitRes, youtubeRes]) => {
-      if (mediaKitRes) setMediaKit(mediaKitRes);
-      if (youtubeRes) setYoutubeData(youtubeRes);
-    });
-  }, []);
+  const { data: mediaKit } = useMediaKit();
+  const { data: youtubeData } = useYoutubeData();
 
   const ud = mediaKit?.userDetail || userDetail || {};
   const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";

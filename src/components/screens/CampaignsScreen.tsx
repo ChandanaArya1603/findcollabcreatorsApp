@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { campaignService } from "@/services/campaignService";
+import React, { useState } from "react";
+import { useCampaigns } from "@/hooks/useAppData";
 import { Screen } from "../findcollab/Screen";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -41,36 +41,24 @@ function timeAgo(dateStr: string): string {
 const CampaignsScreen: React.FC<Props> = ({ push }) => {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
+  const { data, isLoading: loading } = useCampaigns(1);
 
-  useEffect(() => {
-    setLoading(true);
-    campaignService.getCampaigns(1)
-      .then((res) => {
-        const results = res.result || res.campaigns || [];
-        setTotalCount(res.Total_Record || results.length);
-        setCampaigns(
-          results.map((c: any) => ({
-            id: c.id,
-            brand: c.brand_name || c.company_name || c.brand || "",
-            title: c.project_title || c.title || "",
-            type: formatCampaignType(c.campaign_type || c.type),
-            budget: formatCampaignBudget(c),
-            credits: c.credits || 10,
-            cat: c.category || c.cat || "",
-            plat: c.platform || c.plat || "Instagram",
-            desc: c.briefs || c.description || c.desc || "",
-            views: c.campaignViews || c.views || 0,
-            apps: c.applications || c.apps || 0,
-            days: timeAgo(c.timestamp || c.created_at || c.days || ""),
-          }))
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const results: any[] = data?.result || data?.campaigns || [];
+  const totalCount: number = data?.Total_Record || results.length;
+  const campaigns: Campaign[] = results.map((c: any) => ({
+    id: c.id,
+    brand: c.brand_name || c.company_name || c.brand || "",
+    title: c.project_title || c.title || "",
+    type: formatCampaignType(c.campaign_type || c.type),
+    budget: formatCampaignBudget(c),
+    credits: c.credits || 10,
+    cat: c.category || c.cat || "",
+    plat: c.platform || c.plat || "Instagram",
+    desc: c.briefs || c.description || c.desc || "",
+    views: c.campaignViews || c.views || 0,
+    apps: c.applications || c.apps || 0,
+    days: timeAgo(c.timestamp || c.created_at || c.days || ""),
+  }));
 
   const filters = ["All", "Barter", "Paid", "Affiliate"];
 
