@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
-import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "@/hooks/use-toast";
