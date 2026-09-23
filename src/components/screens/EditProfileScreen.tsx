@@ -361,30 +361,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
           </Card>
         )}
 
-        {activeTab === "Past Projects" && (
-          <Card>
-            <p className="text-sm font-extrabold text-foreground mb-3">Past Projects</p>
-            {projects.map((p, i) => (
-              <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                <div className="flex flex-col gap-2">
-                  <AppInput label="Brand Name" value={p.brand} onChange={(v) => updateProject(i, "brand", v)} placeholder="Brand name" />
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <AppInput label="Collaboration Link" value={p.link} onChange={(v) => updateProject(i, "link", v)} placeholder="https://..." />
-                    </div>
-                    <button onClick={() => removeProject(i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
-                      <Icon name="close" size={16} className="text-destructive" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button onClick={addProject} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
-              + Add More
-            </button>
-          </Card>
-        )}
-
         <AppButton full icon="check" onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save Changes"}
         </AppButton>
