@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
@@ -16,7 +17,7 @@ const LoginScreen: React.FC<Props> = ({ onSwitch }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
