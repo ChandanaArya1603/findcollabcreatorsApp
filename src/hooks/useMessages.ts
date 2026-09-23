@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { messageService } from "@/services/messageService";
+import { useChatUsers } from "@/hooks/useAppData";
 import { useAuth } from "@/contexts/AuthContext";
 
 /* ──────────────────── Types ──────────────────── */
@@ -114,28 +115,22 @@ export function useMessages() {
   const { user } = useAuth();
   const currentUserId = user?.id ?? 0;
 
-  const [chatUsers, setChatUsers] = useState<ChatUser[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* Fetch chat users */
-  const fetchChatUsers = useCallback(async () => {
-    try {
-      setError(null);
-      const res = await messageService.getChatUsers();
-      const list = Array.isArray(res) ? res : res?.chat_users ?? res?.users ?? res?.data ?? [];
-      setChatUsers(list.map(mapChatUser));
-    } catch (err: any) {
-      console.error("Failed to fetch chat users:", err);
-      setError(err.message ?? "Failed to load conversations");
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, []);
+  /* Chat users come from the shared cache so the list shows instantly */
+  const { data: chatUsersRes, isLoading: loadingUsers, refetch: refetchChatUsers } = useChatUsers();
+  const rawChatUsers: any[] = Array.isArray(chatUsersRes)
+    ? chatUsersRes
+    : chatUsersRes?.chat_users ?? chatUsersRes?.users ?? chatUsersRes?.data ?? [];
+  const chatUsers: ChatUser[] = rawChatUsers.map(mapChatUser);
+
+  const fetchChatUsers = useCallback(() => {
+    refetchChatUsers();
+  }, [refetchChatUsers]);
 
   /* Fetch messages for a specific user */
   const fetchMessages = useCallback(
@@ -197,10 +192,6 @@ export function useMessages() {
     }
   }, []);
 
-  /* Load chat users on mount */
-  useEffect(() => {
-    fetchChatUsers();
-  }, [fetchChatUsers]);
 
   /* Poll for new messages every 15s when viewing a chat */
   const startPolling = useCallback(

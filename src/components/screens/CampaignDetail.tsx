@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { campaignService } from "@/services/campaignService";
+import { invalidateCampaignData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -51,6 +52,7 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
     setApplying(true);
     try {
       await campaignService.applyCampaign(c.id);
+      invalidateCampaignData();
       toast.success("Campaign applied successfully!");
       setApplied(true);
     } catch (err: any) {
