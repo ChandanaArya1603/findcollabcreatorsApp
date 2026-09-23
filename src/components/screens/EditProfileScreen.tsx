@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
+import { utilityService } from "@/services/utilityService";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
@@ -27,7 +28,7 @@ interface Project {
 }
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
-  const { user, userDetail } = useAuth();
+  const { user, userDetail, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("Basic Information");
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -51,6 +52,8 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [barterInterest, setBarterInterest] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [newCat, setNewCat] = useState("");
+  // name -> id map, used to send category IDs to /update_categories
+  const [catIdByName, setCatIdByName] = useState<Record<string, number>>({});
 
   // Social Accounts
   const [instagram, setInstagram] = useState(userDetail?.instagram_username || "");
