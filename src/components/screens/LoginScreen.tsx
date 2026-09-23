@@ -6,7 +6,7 @@ import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Card } from "../findcollab/Card";
 import { toast } from "sonner";
-import logoFull from "@/assets/findcollab-logo-full.png.asset.json";
+const logoFull = { url: "/findcollab-logo-full.png" };
 
 interface Props {
   onSwitch: () => void;
