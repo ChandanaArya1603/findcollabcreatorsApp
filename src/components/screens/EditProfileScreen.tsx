@@ -78,6 +78,15 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     profileService.getMediaKit().then((res) => {
       if (res.userCategories) {
         setCategories(res.userCategories.map((c: any) => c.name || c.category_name || ""));
+        setCatIdByName((prev) => {
+          const next = { ...prev };
+          res.userCategories.forEach((c: any) => {
+            const nm = c.name || c.category_name;
+            const id = Number(c.category_id ?? c.id);
+            if (nm && id) next[String(nm).toLowerCase()] = id;
+          });
+          return next;
+        });
       }
       if (res.userCommercials) {
         const grouped: Record<string, Commercial[]> = { instagram: [], youtube: [], linkedin: [] };
@@ -99,6 +108,20 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
         setWebsite(res.userDetail.content_website || website);
         setPrimarySocial(res.userDetail.primary_account || primarySocial);
       }
+    }).catch(() => {});
+
+    // Full category catalogue so typed names can be mapped to IDs on save
+    utilityService.getCategories().then((res: any) => {
+      const list = Array.isArray(res) ? res : res?.categories || res?.data?.categories || [];
+      setCatIdByName((prev) => {
+        const next = { ...prev };
+        list.forEach((c: any) => {
+          const nm = c.name || c.category_name;
+          const id = Number(c.id ?? c.category_id);
+          if (nm && id) next[String(nm).toLowerCase()] = id;
+        });
+        return next;
+      });
     }).catch(() => {});
   }, []);
 
