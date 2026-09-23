@@ -4,6 +4,7 @@ import { dashboardService } from "@/services/dashboardService";
 import { walletService } from "@/services/walletService";
 import { profileService } from "@/services/profileService";
 import { notificationService } from "@/services/notificationService";
+import { readDashboardCache, writeDashboardCache } from "@/lib/dashboardCache";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
 import { Badge } from "../findcollab/Badge";
@@ -18,36 +19,67 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
   const { user, isAuthenticated } = useAuth();
-  const [dashStats, setDashStats] = useState<any>(undefined);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [profileName, setProfileName] = useState<string>("");
-  const [notifCount, setNotifCount] = useState<number>(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const cached = readDashboardCache(user?.id);
+  const [dashStats, setDashStats] = useState<any>(cached?.stats ?? undefined);
+  const [walletBalance, setWalletBalance] = useState<number | null>(cached?.walletBalance ?? null);
+  const [profileName, setProfileName] = useState<string>(cached?.profileName ?? "");
+  const [notifCount, setNotifCount] = useState<number>(cached?.notifCount ?? 0);
+  const [notifications, setNotifications] = useState<any[]>(cached?.notifications ?? []);
   const [showNotifs, setShowNotifs] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    setLoading(true);
-    Promise.all([
-      dashboardService.getStats().catch(() => null),
-      walletService.getBalance().catch(() => null),
-      profileService.getMediaKit().catch(() => null),
-      notificationService.getNotifications(1).catch(() => null),
-    ])
-      .then(([stats, wallet, mediaKit, notifRes]) => {
+    const userId = user?.id;
+    const hasCache = Boolean(readDashboardCache(userId));
+    setLoading(!hasCache);
+    let settled = 0;
+    const done = () => {
+      settled += 1;
+      if (settled >= 4) setLoading(false);
+    };
+
+    // Each section updates as soon as its own call returns.
+    dashboardService.getStats()
+      .then((stats) => {
         setDashStats(stats);
-        setWalletBalance(wallet?.wallet_balance ?? null);
+        writeDashboardCache(userId, { stats });
+      })
+      .catch(() => {})
+      .finally(done);
+
+    walletService.getBalance()
+      .then((wallet) => {
+        const balance = wallet?.wallet_balance ?? null;
+        setWalletBalance(balance);
+        writeDashboardCache(userId, { walletBalance: balance });
+      })
+      .catch(() => {})
+      .finally(done);
+
+    profileService.getMediaKit()
+      .then((mediaKit) => {
         if (mediaKit?.fname) {
           setProfileName(mediaKit.fname);
+          writeDashboardCache(userId, { profileName: mediaKit.fname });
         }
-        const notifList = notifRes?.notifications || notifRes?.data?.notifications || notifRes?.items || [];
-        const totalUnread = Number(notifRes?.unread_count ?? notifRes?.data?.unread_count ?? (Array.isArray(notifList) ? notifList.filter((n: any) => !n.is_read && n.is_read !== "1").length : 0));
-        setNotifications(Array.isArray(notifList) ? notifList : []);
-        setNotifCount(totalUnread || (Array.isArray(notifList) ? notifList.length : 0));
       })
-      .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+      .catch(() => {})
+      .finally(done);
+
+    notificationService.getNotifications(1)
+      .then((notifRes: any) => {
+        const notifList = notifRes?.notifications || notifRes?.data?.notifications || notifRes?.items || [];
+        const list = Array.isArray(notifList) ? notifList : [];
+        const totalUnread = Number(notifRes?.unread_count ?? notifRes?.data?.unread_count ?? list.filter((n: any) => !n.is_read && n.is_read !== "1").length);
+        const count = totalUnread || list.length;
+        setNotifications(list);
+        setNotifCount(count);
+        writeDashboardCache(userId, { notifications: list.slice(0, 20), notifCount: count });
+      })
+      .catch(() => {})
+      .finally(done);
+  }, [isAuthenticated, user?.id]);
 
   const greeting = () => {
     const h = new Date().getHours();
