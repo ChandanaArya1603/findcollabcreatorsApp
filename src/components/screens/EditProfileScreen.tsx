@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
-import { utilityService } from "@/services/utilityService";
+import { useMediaKit, useCategories, invalidateProfileData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
@@ -27,8 +27,38 @@ interface Project {
   link: string;
 }
 
+// Commercial keys returned by the API mapped to readable labels
+const RATE_LABELS: Record<string, string> = {
+  rate_per_reel: "Reel",
+  rate_per_static_post: "Static Post",
+  rate_per_video_story: "Video Story",
+  rate_per_static_story: "Static Story",
+  rate_per_carousel: "Carousel",
+  rate_per_dedicated_video: "Dedicated Video",
+  rate_per_integrated_video: "Integrated Video",
+  rate_per_shorts: "Shorts",
+  ugc_content_instagram: "UGC Content",
+};
+
+// userCommercials is an object of per-platform detail blobs, each possibly a JSON string
+const parseRates = (raw: any, valueKey: string, rateKey: string): Commercial[] => {
+  if (!raw) return [];
+  try {
+    const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return (Array.isArray(arr) ? arr : []).map((r: any) => ({
+      service: RATE_LABELS[r[valueKey]] || r[valueKey] || "Service",
+      rate: r[rateKey] != null && r[rateKey] !== "" ? String(Number(r[rateKey]) || r[rateKey]) : "",
+      remarks: r.remarks || r.remark || "",
+    }));
+  } catch {
+    return [];
+  }
+};
+
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const { user, userDetail, refreshProfile } = useAuth();
+  const { data: mediaKit } = useMediaKit();
+  const { data: categoryCatalogue } = useCategories();
   const [activeTab, setActiveTab] = useState("Basic Information");
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -46,7 +76,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
   // Basic Info - pre-fill from auth context
   const [name, setName] = useState(user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "");
-  const [bio, setBio] = useState(userDetail?.bio || "");
+  const [bio, setBio] = useState(userDetail?.bio || userDetail?.introduction || "");
   const [location, setLocation] = useState(userDetail?.city || "");
   const [gmail, setGmail] = useState(user?.email || "");
   const [barterInterest, setBarterInterest] = useState(true);
@@ -56,9 +86,9 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [catIdByName, setCatIdByName] = useState<Record<string, number>>({});
 
   // Social Accounts
-  const [instagram, setInstagram] = useState(userDetail?.instagram_username || "");
-  const [youtube, setYoutube] = useState(userDetail?.youtube_username || "");
-  const [linkedin, setLinkedin] = useState(userDetail?.linkedin_username || "");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [website, setWebsite] = useState(userDetail?.content_website || "");
   const [primarySocial, setPrimarySocial] = useState(userDetail?.primary_account || "instagram");
 
@@ -73,57 +103,71 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   // Past Projects
   const [projects, setProjects] = useState<Project[]>([]);
 
-  // Load media kit data to pre-fill
+  // Pre-fill from the shared /media_kit data
   useEffect(() => {
-    profileService.getMediaKit().then((res) => {
-      if (res.userCategories) {
-        setCategories(res.userCategories.map((c: any) => c.name || c.category_name || ""));
-        setCatIdByName((prev) => {
-          const next = { ...prev };
-          res.userCategories.forEach((c: any) => {
-            const nm = c.name || c.category_name;
-            const id = Number(c.category_id ?? c.id);
-            if (nm && id) next[String(nm).toLowerCase()] = id;
-          });
-          return next;
-        });
-      }
-      if (res.userCommercials) {
-        const grouped: Record<string, Commercial[]> = { instagram: [], youtube: [], linkedin: [] };
-        res.userCommercials.forEach((c: any) => {
-          const plat = (c.platform || "instagram").toLowerCase();
-          if (!grouped[plat]) grouped[plat] = [];
-          grouped[plat].push({ service: c.service || "", rate: c.rate || "", remarks: c.remarks || "" });
-        });
-        setCommercials(grouped);
-      }
-      if (res.userProjects) {
-        setProjects(res.userProjects.map((p: any) => ({ brand: p.brand || p.name || "", link: p.link || p.url || "" })));
-      }
-      if (res.userDetail) {
-        setBio(res.userDetail.bio || bio);
-        setInstagram(res.userDetail.instagram_username || instagram);
-        setYoutube(res.userDetail.youtube_username || youtube);
-        setLinkedin(res.userDetail.linkedin_username || linkedin);
-        setWebsite(res.userDetail.content_website || website);
-        setPrimarySocial(res.userDetail.primary_account || primarySocial);
-      }
-    }).catch(() => {});
+    const res: any = mediaKit;
+    if (!res) return;
+    const ud: any = res.userDetail || {};
 
-    // Full category catalogue so typed names can be mapped to IDs on save
-    utilityService.getCategories().then((res: any) => {
-      const list = Array.isArray(res) ? res : res?.categories || res?.data?.categories || [];
+    setBio((prev) => ud.bio || ud.introduction || prev);
+    setLocation((prev) => res.city || ud.city || prev);
+    setInstagram((prev) => ud.instagram_user_name || ud.instagram_username || ud.instagram_link || prev);
+    setYoutube((prev) =>
+      ud.youtube_user_name || ud.youtube_channel_name || ud.youtube_channel_link || ud.youtube_link || ud.youtube_url || prev
+    );
+    setLinkedin((prev) => ud.linkedin_user_name || ud.linkedin_username || ud.linkedin_url || ud.linkedin_link || prev);
+    setWebsite((prev) => ud.content_website || prev);
+    setPrimarySocial((prev) => ud.primary_account || prev);
+
+    if (Array.isArray(res.userCategories)) {
+      setCategories(
+        res.userCategories
+          .map((c: any) => c.Interested_in_industry || c.name || c.category_name || "")
+          .filter(Boolean)
+      );
       setCatIdByName((prev) => {
         const next = { ...prev };
-        list.forEach((c: any) => {
-          const nm = c.name || c.category_name;
-          const id = Number(c.id ?? c.category_id);
+        res.userCategories.forEach((c: any) => {
+          const nm = c.Interested_in_industry || c.name || c.category_name;
+          const id = Number(c.category_id ?? c.id);
           if (nm && id) next[String(nm).toLowerCase()] = id;
         });
         return next;
       });
-    }).catch(() => {});
-  }, []);
+    }
+
+    const uc: any = res.userCommercials || {};
+    setCommercials({
+      instagram: parseRates(uc.instagram_details, "instagram_values", "instagramrate"),
+      youtube: parseRates(uc.youtube_details, "youtube_values", "youtuberate"),
+      linkedin: parseRates(uc.linkedin_details, "linkedin_values", "linkedinrate"),
+    });
+
+    if (Array.isArray(res.userProjects)) {
+      setProjects(
+        res.userProjects.map((p: any) => ({
+          brand: p.brand_name || p.brand || p.name || "",
+          link: p.collaboration_link || p.link || p.url || "",
+        }))
+      );
+    }
+  }, [mediaKit]);
+
+  // Full category catalogue so typed names can be mapped to IDs on save
+  useEffect(() => {
+    const res: any = categoryCatalogue;
+    if (!res) return;
+    const list = Array.isArray(res) ? res : res?.categories || res?.data?.categories || [];
+    setCatIdByName((prev) => {
+      const next = { ...prev };
+      list.forEach((c: any) => {
+        const nm = c.Interested_in_industry || c.name || c.category_name;
+        const id = Number(c.id ?? c.category_id);
+        if (nm && id) next[String(nm).toLowerCase()] = id;
+      });
+      return next;
+    });
+  }, [categoryCatalogue]);
 
   const addCategory = () => {
     if (newCat.trim() && !categories.includes(newCat.trim())) {
@@ -143,10 +187,11 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
         fname,
         lname: rest.join(" "),
         bio,
+        city: location,
         mobile: userDetail?.mobile || "",
-        instagram_username: instagram,
-        youtube_username: youtube,
-        linkedin_username: linkedin,
+        instagram_user_name: instagram,
+        youtube_user_name: youtube,
+        linkedin_user_name: linkedin,
         content_website: website,
         primary_account: primarySocial,
       });
@@ -171,6 +216,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
       }
 
       // Refresh profile so the new values show everywhere immediately
+      invalidateProfileData();
       try {
         await refreshProfile();
       } catch {
