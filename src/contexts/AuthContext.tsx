@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
+import { clearDashboardCache } from "@/lib/dashboardCache";
 
 interface User {
   id: number;
@@ -31,6 +32,7 @@ interface AuthContextType extends AuthState {
   register: (data: Record<string, any>) => Promise<any>;
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -197,12 +199,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const normalizedUser = normalizeUser(data.user, data.userDetail);
     api.setToken(data.token);
     localStorage.setItem("fc_user", JSON.stringify(normalizedUser));
+    if (data.userDetail) {
+      try {
+        localStorage.setItem("fc_user_detail", JSON.stringify(data.userDetail));
+      } catch {
+        // ignore storage errors
+      }
+    }
     setState({
       token: data.token,
       user: normalizedUser,
       userDetail: data.userDetail,
       isAuthenticated: true,
       isLoading: false,
+    });
+  }, []);
+
+  // Re-fetch the profile from the server and sync context + localStorage.
+  const refreshProfile = useCallback(async () => {
+    const mk = await api.get("/media_kit");
+    const detail = mk?.userDetail ?? mk;
+    const baseUser = mk?.user ?? mk;
+    setState((s) => {
+      const hydratedUser = normalizeUser({ ...(s.user ?? {}), ...(baseUser ?? {}) }, mk);
+      try {
+        localStorage.setItem("fc_user", JSON.stringify(hydratedUser));
+        localStorage.setItem("fc_user_detail", JSON.stringify(detail));
+      } catch {
+        // ignore storage errors
+      }
+      return { ...s, user: hydratedUser, userDetail: detail };
     });
   }, []);
 
@@ -268,6 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     api.setToken(null);
     localStorage.removeItem("fc_user");
     localStorage.removeItem("fc_user_detail");
+    clearDashboardCache();
     setState({
       user: null,
       userDetail: null,
@@ -278,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
@@ -292,7 +319,7 @@ export const useAuth = () => {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
         login: async () => {}, loginWithGoogle: async () => {}, register: async () => ({}),
-        logout: async () => {}, setAuthData: () => {},
+        logout: async () => {}, setAuthData: () => {}, refreshProfile: async () => {},
       } as unknown as AuthContextType;
     }
     throw new Error("useAuth must be used within AuthProvider");

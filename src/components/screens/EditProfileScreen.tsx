@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
+import { utilityService } from "@/services/utilityService";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
@@ -27,7 +28,7 @@ interface Project {
 }
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
-  const { user, userDetail } = useAuth();
+  const { user, userDetail, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("Basic Information");
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -51,6 +52,8 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [barterInterest, setBarterInterest] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [newCat, setNewCat] = useState("");
+  // name -> id map, used to send category IDs to /update_categories
+  const [catIdByName, setCatIdByName] = useState<Record<string, number>>({});
 
   // Social Accounts
   const [instagram, setInstagram] = useState(userDetail?.instagram_username || "");
@@ -75,6 +78,15 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     profileService.getMediaKit().then((res) => {
       if (res.userCategories) {
         setCategories(res.userCategories.map((c: any) => c.name || c.category_name || ""));
+        setCatIdByName((prev) => {
+          const next = { ...prev };
+          res.userCategories.forEach((c: any) => {
+            const nm = c.name || c.category_name;
+            const id = Number(c.category_id ?? c.id);
+            if (nm && id) next[String(nm).toLowerCase()] = id;
+          });
+          return next;
+        });
       }
       if (res.userCommercials) {
         const grouped: Record<string, Commercial[]> = { instagram: [], youtube: [], linkedin: [] };
@@ -97,6 +109,20 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
         setPrimarySocial(res.userDetail.primary_account || primarySocial);
       }
     }).catch(() => {});
+
+    // Full category catalogue so typed names can be mapped to IDs on save
+    utilityService.getCategories().then((res: any) => {
+      const list = Array.isArray(res) ? res : res?.categories || res?.data?.categories || [];
+      setCatIdByName((prev) => {
+        const next = { ...prev };
+        list.forEach((c: any) => {
+          const nm = c.name || c.category_name;
+          const id = Number(c.id ?? c.category_id);
+          if (nm && id) next[String(nm).toLowerCase()] = id;
+        });
+        return next;
+      });
+    }).catch(() => {});
   }, []);
 
   const addCategory = () => {
@@ -108,34 +134,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
   const removeCategory = (cat: string) => setCategories(categories.filter((c) => c !== cat));
 
-  const updateCommercial = (platform: string, index: number, field: keyof Commercial, value: string) => {
-    setCommercials((prev) => {
-      const updated = { ...prev };
-      updated[platform] = [...(updated[platform] || [])];
-      updated[platform][index] = { ...updated[platform][index], [field]: value };
-      return updated;
-    });
-  };
-
-  const addCommercial = (platform: string) => {
-    setCommercials((prev) => ({
-      ...prev,
-      [platform]: [...(prev[platform] || []), { service: "", rate: "", remarks: "" }],
-    }));
-  };
-
-  const removeCommercial = (platform: string, index: number) => {
-    setCommercials((prev) => ({
-      ...prev,
-      [platform]: (prev[platform] || []).filter((_, i) => i !== index),
-    }));
-  };
-
-  const addProject = () => setProjects([...projects, { brand: "", link: "" }]);
-  const removeProject = (index: number) => setProjects(projects.filter((_, i) => i !== index));
-  const updateProject = (index: number, field: keyof Project, value: string) => {
-    setProjects(projects.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -152,10 +150,37 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
         content_website: website,
         primary_account: primarySocial,
       });
+
+      // Save categories as IDs
+      const ids: number[] = [];
+      const unknown: string[] = [];
+      categories.forEach((c) => {
+        const id = catIdByName[c.toLowerCase()];
+        if (id) ids.push(id);
+        else unknown.push(c);
+      });
+      if (ids.length) {
+        try {
+          await profileService.updateCategories(ids);
+        } catch (catErr: any) {
+          toast.error(catErr?.message || "Could not save categories");
+        }
+      }
+      if (unknown.length) {
+        toast.error(`Not saved (unknown category): ${unknown.join(", ")}`);
+      }
+
+      // Refresh profile so the new values show everywhere immediately
+      try {
+        await refreshProfile();
+      } catch {
+        // ignore refresh failures — the save itself succeeded
+      }
+
       toast.success("Profile updated successfully!");
       onBack();
     } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+      toast.error(err?.message || "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -290,59 +315,49 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
               ))}
             </div>
             <Card>
-              <p className="text-sm font-extrabold text-foreground mb-3">
-                {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
-              </p>
-              {(commercials[commercialPlatform] || []).map((c, i) => (
-                <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <AppInput label="Service" value={c.service} onChange={(v) => updateCommercial(commercialPlatform, i, "service", v)} placeholder="Service name" />
-                      </div>
-                      <div className="w-24">
-                        <AppInput label="Rate(₹)" value={c.rate} onChange={(v) => updateCommercial(commercialPlatform, i, "rate", v)} placeholder="Amount" />
-                      </div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-extrabold text-foreground">
+                  {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
+                </p>
+                <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
+              </div>
+              {(commercials[commercialPlatform] || []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">—</p>
+              ) : (
+                (commercials[commercialPlatform] || []).map((c, i) => (
+                  <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
+                    <div className="flex justify-between gap-2">
+                      <p className="text-xs font-bold text-foreground">{c.service || "—"}</p>
+                      <p className="text-xs font-bold text-primary shrink-0">{c.rate ? `₹${c.rate}` : "—"}</p>
                     </div>
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <AppInput label="Remarks" value={c.remarks} onChange={(v) => updateCommercial(commercialPlatform, i, "remarks", v)} placeholder="Details" />
-                      </div>
-                      <button onClick={() => removeCommercial(commercialPlatform, i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
-                        <Icon name="close" size={16} className="text-destructive" />
-                      </button>
-                    </div>
+                    {c.remarks && <p className="text-[11px] text-muted-foreground mt-1">{c.remarks}</p>}
                   </div>
-                </div>
-              ))}
-              <button onClick={() => addCommercial(commercialPlatform)} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
-                + Add More
-              </button>
+                ))
+              )}
             </Card>
           </>
         )}
 
         {activeTab === "Past Projects" && (
           <Card>
-            <p className="text-sm font-extrabold text-foreground mb-3">Past Projects</p>
-            {projects.map((p, i) => (
-              <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                <div className="flex flex-col gap-2">
-                  <AppInput label="Brand Name" value={p.brand} onChange={(v) => updateProject(i, "brand", v)} placeholder="Brand name" />
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <AppInput label="Collaboration Link" value={p.link} onChange={(v) => updateProject(i, "link", v)} placeholder="https://..." />
-                    </div>
-                    <button onClick={() => removeProject(i)} className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none">
-                      <Icon name="close" size={16} className="text-destructive" />
-                    </button>
-                  </div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-extrabold text-foreground">Past Projects</p>
+              <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
+            </div>
+            {projects.length === 0 ? (
+              <p className="text-xs text-muted-foreground">—</p>
+            ) : (
+              projects.map((p, i) => (
+                <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
+                  <p className="text-xs font-bold text-foreground">{p.brand || "—"}</p>
+                  {p.link && (
+                    <a href={p.link} target="_blank" rel="noreferrer" className="text-[11px] text-primary break-all">
+                      {p.link}
+                    </a>
+                  )}
                 </div>
-              </div>
-            ))}
-            <button onClick={addProject} className="w-full py-2.5 rounded-xl border-[1.5px] border-dashed border-border text-xs font-bold text-muted-foreground cursor-pointer bg-transparent mt-2">
-              + Add More
-            </button>
+              ))
+            )}
           </Card>
         )}
 
