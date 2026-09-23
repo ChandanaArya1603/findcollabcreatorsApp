@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
@@ -19,7 +20,7 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch }) => {
   const [password, setPassword] = useState("");
   const [contactno, setContactno] = useState("");
   const [loading, setLoading] = useState(false);
-  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
 
   const handleRegister = async () => {
     if (!firstname.trim() || !email.trim() || !password.trim() || !contactno.trim()) {
