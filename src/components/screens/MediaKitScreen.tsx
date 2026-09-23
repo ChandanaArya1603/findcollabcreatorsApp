@@ -136,6 +136,13 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
   const [bioOpen, setBioOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [theme, setTheme] = useState("desi");
+  const [banner, setBanner] = useState("bauhaus");
+  const [savedTheme, setSavedTheme] = useState("desi");
+  const [savedBanner, setSavedBanner] = useState("bauhaus");
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const { data: mediaKitRes } = useMediaKit();
   const { data: ytDataRes } = useYoutubeData();
@@ -145,6 +152,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
     const res: any = mediaKitRes;
     const ytData: any = ytDataRes;
     if (res) {
+      const currentTheme = String(res.theme || res.mediaKitTheme || res.userDetail?.media_kit_theme || "desi");
+      const currentBanner = String(res.banner || res.mediaKitBanner || res.userDetail?.media_kit_banner || "bauhaus");
+      setTheme(currentTheme);
+      setBanner(currentBanner);
+      setSavedTheme(currentTheme);
+      setSavedBanner(currentBanner);
       const updated: Record<string, PlatformData> = {
         instagram: { ...EMPTY_PLATFORMS.instagram },
         youtube: { ...EMPTY_PLATFORMS.youtube },
@@ -301,6 +314,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             likes: fmtPostNum(Number(m.like_count ?? m.fb_like_count ?? 0)),
             comments: fmtPostNum(Number(m.comment_count ?? 0)),
             date: fmtDate(Number(m.taken_at ?? 0)),
+            thumb: m.image_versions2?.additional_candidates?.first_frame?.url || m.image_versions2?.candidates?.[0]?.url || "",
           };
         });
       } catch {}
@@ -321,6 +335,9 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const bioSnippet = creatorBio.length > 90 ? creatorBio.slice(0, 90) + "…" : creatorBio;
   const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "";
   const categories: string[] = profileData?.userCategories?.map((c: any) => c.Interested_in_industry || c.name || c.category_name).filter(Boolean) || [];
+  const languages: string[] = (profileData?.userLanguages || profileData?.languages || [])
+    .map((language: any) => language.language_name || language.name || language.language)
+    .filter(Boolean);
 
   const p = platforms[activePlatform] || platforms.instagram;
 
@@ -341,6 +358,36 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       toast({ title: "Link copied", description: "Public media kit URL copied to clipboard" });
     } catch {
       toast({ title: "Share link", description: url });
+    }
+  };
+
+  const handleSaveTheme = async () => {
+    setSavingTheme(true);
+    try {
+      await profileService.saveMediaKitTheme(theme, banner);
+      setSavedTheme(theme);
+      setSavedBanner(banner);
+      invalidateProfileData();
+      toast({ title: "Media kit updated", description: "Your theme and banner are now live" });
+      setCustomizeOpen(false);
+    } catch (error) {
+      toast({ title: "Could not save", description: error instanceof Error ? error.message : "Please try again" });
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const result: any = await profileService.getMediaKitDownload();
+      const url = result?.url || result?.download_url || result?.pdf_url || result?.data?.url;
+      if (!url) throw new Error("Download is not available yet");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast({ title: "Could not download", description: error instanceof Error ? error.message : "Please try again" });
+    } finally {
+      setDownloading(false);
     }
   };
 
