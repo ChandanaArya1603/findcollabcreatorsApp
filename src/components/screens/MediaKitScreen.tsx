@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMediaKit, useYoutubeData } from "@/hooks/useAppData";
+import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
-import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "@/hooks/use-toast";
+import { profileService } from "@/services/profileService";
+import { AppButton } from "../findcollab/AppButton";
 
 interface Props {
   onBack: () => void;
@@ -23,7 +24,7 @@ interface PlatformData {
   engagementRate: number;
   rates: { service: string; rate: string }[];
   projects: { brand: string; link: string }[];
-  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string }[];
+  recentPosts: { type: string; caption: string; likes: string; comments: string; date: string; thumb: string }[];
   bio: string;
   link: string;
   username: string;
@@ -72,6 +73,30 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
   },
 };
 
+const MEDIA_KIT_THEMES = [
+  { id: "desi", label: "Desi", swatch: "bg-primary" },
+  { id: "mumbai-shaana", label: "Mumbai Shaana", swatch: "bg-warning" },
+  { id: "south-texas", label: "South Texas", swatch: "bg-destructive" },
+  { id: "sfo-breeze", label: "SFO Breeze", swatch: "bg-info" },
+  { id: "bong-bindaas", label: "Bong Bindaas", swatch: "bg-success" },
+  { id: "madras-machan", label: "Madras Machan", swatch: "bg-secondary" },
+  { id: "bengaluru-adjust-maadi", label: "Bengaluru", swatch: "bg-foreground" },
+];
+
+const MEDIA_KIT_BANNERS = [
+  { id: "theme-gradient", label: "Gradient" },
+  { id: "aurora-mesh", label: "Aurora" },
+  { id: "y2k-chrome", label: "Y2K" },
+  { id: "synthwave-sunset", label: "Sunset" },
+  { id: "acid-brutalist", label: "Acid" },
+  { id: "memphis-pop", label: "Memphis" },
+  { id: "graffiti-street", label: "Graffiti" },
+  { id: "cyber-neon", label: "Cyber" },
+  { id: "risograph", label: "Risograph" },
+  { id: "holo-foil", label: "Holo" },
+  { id: "bauhaus", label: "Bauhaus" },
+];
+
 // Instagram CDN images block hot-linking via Referer; route through a free image proxy
 const proxyImg = (url: string): string => {
   if (!url) return "";
@@ -110,6 +135,13 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [tab, setTab] = useState("stats");
   const [bioOpen, setBioOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [theme, setTheme] = useState("desi");
+  const [banner, setBanner] = useState("bauhaus");
+  const [savedTheme, setSavedTheme] = useState("desi");
+  const [savedBanner, setSavedBanner] = useState("bauhaus");
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const { data: mediaKitRes } = useMediaKit();
   const { data: ytDataRes } = useYoutubeData();
@@ -119,6 +151,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
     const res: any = mediaKitRes;
     const ytData: any = ytDataRes;
     if (res) {
+      const currentTheme = String(res.theme || res.mediaKitTheme || res.userDetail?.media_kit_theme || "desi");
+      const currentBanner = String(res.banner || res.mediaKitBanner || res.userDetail?.media_kit_banner || "bauhaus");
+      setTheme(currentTheme);
+      setBanner(currentBanner);
+      setSavedTheme(currentTheme);
+      setSavedBanner(currentBanner);
       const updated: Record<string, PlatformData> = {
         instagram: { ...EMPTY_PLATFORMS.instagram },
         youtube: { ...EMPTY_PLATFORMS.youtube },
@@ -275,6 +313,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             likes: fmtPostNum(Number(m.like_count ?? m.fb_like_count ?? 0)),
             comments: fmtPostNum(Number(m.comment_count ?? 0)),
             date: fmtDate(Number(m.taken_at ?? 0)),
+            thumb: m.image_versions2?.additional_candidates?.first_frame?.url || m.image_versions2?.candidates?.[0]?.url || "",
           };
         });
       } catch {}
@@ -295,8 +334,27 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const bioSnippet = creatorBio.length > 90 ? creatorBio.slice(0, 90) + "…" : creatorBio;
   const location = profileData ? [profileData.city, profileData.state, profileData.country].filter(Boolean).join(", ") : "";
   const categories: string[] = profileData?.userCategories?.map((c: any) => c.Interested_in_industry || c.name || c.category_name).filter(Boolean) || [];
+  const languages: string[] = (profileData?.userLanguages || profileData?.languages || [])
+    .map((language: any) => language.language_name || language.name || language.language)
+    .filter(Boolean);
 
   const p = platforms[activePlatform] || platforms.instagram;
+  const compactToNumber = (value: string) => {
+    if (value === "—") return 0;
+    const amount = Number.parseFloat(value);
+    if (!Number.isFinite(amount)) return 0;
+    if (value.endsWith("M")) return amount * 1_000_000;
+    if (value.endsWith("K")) return amount * 1_000;
+    return amount;
+  };
+  const totalReachValue = Object.values(platforms).reduce((sum, platform) => sum + compactToNumber(platform.followers), 0);
+  const totalReach = totalReachValue >= 1_000_000
+    ? `${(totalReachValue / 1_000_000).toFixed(1)}M`
+    : totalReachValue >= 1_000
+      ? `${(totalReachValue / 1_000).toFixed(1)}K`
+      : totalReachValue > 0 ? String(totalReachValue) : "—";
+  const selectedBanner = customizeOpen ? banner : savedBanner;
+  const selectedThemeLabel = MEDIA_KIT_THEMES.find((item) => item.id === (customizeOpen ? theme : savedTheme))?.label || "Desi";
 
   const handleShare = async () => {
     if (!user?.id) return;
@@ -318,233 +376,253 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
     }
   };
 
+  const handleSaveTheme = async () => {
+    setSavingTheme(true);
+    try {
+      await profileService.saveMediaKitTheme(theme, banner);
+      setSavedTheme(theme);
+      setSavedBanner(banner);
+      invalidateProfileData();
+      toast({ title: "Media kit updated", description: "Your theme and banner are now live" });
+      setCustomizeOpen(false);
+    } catch (error) {
+      toast({ title: "Could not save", description: error instanceof Error ? error.message : "Please try again" });
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const result: any = await profileService.getMediaKitDownload();
+      const url = result?.url || result?.download_url || result?.pdf_url || result?.data?.url;
+      if (!url) throw new Error("Download is not available yet");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast({ title: "Could not download", description: error instanceof Error ? error.message : "Please try again" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto bg-background pb-5">
+    <div className="flex-1 overflow-y-auto bg-background pb-6">
       <BackHeader title="My Media Kit" onBack={onBack} right={
-        <button
-          onClick={handleShare}
-          aria-label="Share media kit"
-          className="w-9 h-9 rounded-[10px] bg-primary-light border-none flex items-center justify-center cursor-pointer"
-        >
-          <Icon name="share" size={16} className="text-primary" />
-        </button>
+        <div className="flex items-center gap-2">
+          <AppButton variant="ghost" icon="edit" className="!h-9 !px-3 !py-0 !rounded-lg !text-xs" onClick={() => setCustomizeOpen((open) => !open)}>
+            Style
+          </AppButton>
+          <AppButton variant="ghost" icon="share" className="!h-9 !w-9 !p-0 !rounded-lg" onClick={handleShare}>
+            <span className="sr-only">Share</span>
+          </AppButton>
+        </div>
       } />
 
-      <div className="bg-card border-b border-border">
-        <div className="h-[70px] bg-primary-light" />
-        <div className="px-4 pb-4">
-          <div className="flex items-end gap-3 mb-3">
-            <div className="w-16 h-16 rounded-[18px] border-[3px] border-card -mt-8 shrink-0 overflow-hidden bg-primary flex items-center justify-center">
-              {platforms.instagram.profilePic ? (
-                <img
-                  src={proxyImg(platforms.instagram.profilePic)}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                />
-              ) : (
-                <span className="text-primary-foreground text-2xl font-black">{(user?.fname || "D").charAt(0)}</span>
-              )}
-            </div>
-            <div className="pb-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[17px] font-black text-foreground">{displayName}</p>
-                <Badge color="blue" sm>✓ Verified</Badge>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">📍 {location}</p>
-            </div>
+      {customizeOpen && (
+        <section className="bg-card border-b border-border px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Choose your theme</p>
+            <span className="text-[10px] font-bold text-primary">{selectedThemeLabel}</span>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {categories.map((t) => (
-              <Badge key={t} color="pink" sm>{t}</Badge>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3">
+            {MEDIA_KIT_THEMES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTheme(item.id)}
+                className={`shrink-0 flex items-center gap-2 h-9 px-3 rounded-full border text-[11px] font-bold transition-transform active:scale-95 ${theme === item.id ? "border-primary bg-primary-light text-primary" : "border-border bg-card text-foreground"}`}
+              >
+                <span className={`w-4 h-4 rounded-full ${item.swatch}`} />
+                {item.label}
+              </button>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="px-4 pt-3">
-        <button onClick={() => setBioOpen(!bioOpen)} className="w-full bg-card rounded-[14px] border border-border px-4 py-3 flex items-center justify-between cursor-pointer transition-all">
-          <div className="flex-1 text-left">
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">About</p>
-            {!bioOpen && <p className="text-[12px] text-foreground leading-relaxed">{bioSnippet}</p>}
-          </div>
-          <div className={`w-6 h-6 rounded-full bg-primary-light flex items-center justify-center shrink-0 ml-2 transition-transform ${bioOpen ? "rotate-180" : ""}`}>
-            <Icon name="chevD" size={14} className="text-primary" />
-          </div>
-        </button>
-        {bioOpen && (
-          <div className="bg-card border border-t-0 border-border rounded-b-[14px] px-4 pb-4 -mt-[14px] pt-3">
-            <div className="border-t border-dashed border-border pt-3">
-              <p className="text-[12px] text-foreground leading-relaxed">{creatorBio}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 pt-3 pb-1">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-          {platformKeys.map((key) => {
-            const plat = platforms[key];
-            const isActive = activePlatform === key;
-            return (
-              <button key={key} onClick={() => { setActivePlatform(key); setTab("stats"); }}
-                className={`flex flex-col items-start gap-1 min-w-[105px] px-3 py-2.5 rounded-[14px] border cursor-pointer transition-all shrink-0 ${
-                  isActive ? `${plat.bgActive} text-white border-transparent shadow-md` : "bg-card text-foreground border-border"
-                }`}
+          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">Choose a banner</p>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {MEDIA_KIT_BANNERS.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setBanner(item.id)}
+                className={`h-14 rounded-lg border overflow-hidden relative transition-transform active:scale-95 ${banner === item.id ? "border-2 border-primary" : "border-border"}`}
+                aria-label={item.label}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className={`text-[18px] font-black ${isActive ? "text-white" : "text-foreground"}`}>{plat.followers}</span>
-                  <Icon name={plat.ic} size={18} className={isActive ? "text-white/80" : plat.color} />
+                <span className={`absolute inset-0 ${index % 3 === 0 ? "gradient-primary" : index % 3 === 1 ? "bg-primary-light" : "bg-warning-light"}`} />
+                <span className={`absolute w-7 h-7 rounded-full ${index % 2 === 0 ? "bg-info" : "bg-primary"} -top-1 -right-1`} />
+                <span className={`absolute w-6 h-6 rotate-45 ${index % 2 === 0 ? "bg-warning" : "bg-success"} bottom-1 left-2`} />
+                <span className="absolute inset-x-0 bottom-0 bg-card/90 text-[8px] font-bold text-foreground py-1">{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <AppButton full disabled={savingTheme || (theme === savedTheme && banner === savedBanner)} onClick={handleSaveTheme}>
+            {savingTheme ? "Saving…" : "Save changes"}
+          </AppButton>
+        </section>
+      )}
+
+      <section className="relative h-52 overflow-hidden bg-warning-light border-b border-border">
+        {selectedBanner === "theme-gradient" || selectedBanner === "aurora-mesh" || selectedBanner === "holo-foil" ? (
+          <div className="absolute inset-0 gradient-primary opacity-90" />
+        ) : (
+          <>
+            <div className="absolute -top-10 -right-8 w-40 h-40 rounded-full bg-primary" />
+            <div className="absolute bottom-4 left-8 w-24 h-24 rotate-45 bg-info" />
+            <div className="absolute top-20 left-0 right-0 h-px bg-foreground/25" />
+            <div className="absolute top-0 bottom-0 right-16 w-1 bg-foreground/80" />
+            <div className="absolute bottom-6 right-20 w-20 h-20 rounded-tl-full bg-warning" />
+          </>
+        )}
+        <div className="absolute top-4 left-4 flex items-center gap-2 bg-card/90 backdrop-blur px-3 py-1.5 rounded-full border border-border shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-success" />
+          <span className="text-[10px] font-black text-foreground uppercase tracking-wider">Verified creator</span>
+        </div>
+        <div className="absolute top-4 right-4 bg-card/90 backdrop-blur px-3 py-1.5 rounded-full border border-border">
+          <span className="text-[10px] font-black text-primary uppercase tracking-wider">{selectedThemeLabel}</span>
+        </div>
+      </section>
+
+      <section className="px-5 -mt-14 relative z-10">
+        <div className="w-28 h-28 rounded-full border-[5px] border-card shadow-lg overflow-hidden bg-primary flex items-center justify-center">
+          {platforms.instagram.profilePic ? (
+            <img src={proxyImg(platforms.instagram.profilePic)} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          ) : (
+            <span className="text-primary-foreground text-4xl font-black">{(user?.fname || "D").charAt(0)}</span>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-foreground break-words">{displayName}</h1>
+              <span className="w-5 h-5 rounded-full bg-info text-primary-foreground flex items-center justify-center text-[11px] font-black shrink-0">✓</span>
+            </div>
+            {platforms.instagram.username && <p className="text-sm font-bold text-primary mt-0.5">@{platforms.instagram.username.replace(/^@/, "")}</p>}
+          </div>
+          <AppButton variant="ghost" icon="share" className="!w-10 !h-10 !p-0 !rounded-full shrink-0" onClick={handleShare}>
+            <span className="sr-only">Share</span>
+          </AppButton>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          {location && <span>⌖ {location}</span>}
+          {languages.length > 0 && <span>◎ {languages.join(", ")}</span>}
+        </div>
+        {categories.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mt-3">{categories.map((category) => <Badge key={category} color="pink" sm>{category}</Badge>)}</div>
+        )}
+
+        <button type="button" onClick={() => setBioOpen((open) => !open)} className="w-full mt-5 text-left border-y border-border py-4 flex items-start justify-between gap-3">
+          <p className={`text-[12px] text-foreground leading-relaxed ${bioOpen ? "" : "line-clamp-2"}`}>{bioOpen ? creatorBio : bioSnippet}</p>
+          <Icon name="chevD" size={15} className={`text-primary mt-0.5 transition-transform ${bioOpen ? "rotate-180" : ""}`} />
+        </button>
+      </section>
+
+      <section className="px-5 mt-6">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="gradient-primary rounded-lg p-4 text-primary-foreground">
+            <p className="text-[9px] font-black uppercase tracking-widest opacity-80">Total reach</p>
+            <p className="text-2xl font-black mt-1">{totalReach}</p>
+            <p className="text-[9px] mt-1 opacity-80">Combined platforms</p>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Engagement</p>
+              <p className="text-2xl font-black text-foreground mt-1">{p.engagementRate}%</p>
+            </div>
+            <EngagementDonut percentage={p.engagementRate} />
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 mt-7">
+        <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">Social platforms</p>
+        <div className="flex flex-col gap-2">
+          {platformKeys.map((key) => {
+            const platform = platforms[key];
+            const isActive = key === activePlatform;
+            return (
+              <button key={key} type="button" onClick={() => { setActivePlatform(key); setTab("stats"); }} className={`w-full min-h-16 px-4 py-3 rounded-lg border flex items-center justify-between gap-3 transition-transform active:scale-[0.98] ${isActive ? "bg-primary-light border-primary" : "bg-card border-border"}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center shrink-0"><Icon name={platform.ic} size={20} className={platform.color} /></span>
+                  <span className="text-left min-w-0">
+                    <span className="block text-sm font-black text-foreground">{platform.label}</span>
+                    <span className="block text-[10px] font-bold text-muted-foreground uppercase mt-0.5">{platform.followers} {platform.label === "YouTube" ? "subscribers" : "followers"}</span>
+                  </span>
                 </div>
-                <span className={`text-[9px] font-medium ${isActive ? "text-white/80" : "text-muted-foreground"}`}>{plat.followerLabel}</span>
+                <Icon name="chevR" size={18} className={isActive ? "text-primary" : "text-muted-foreground"} />
               </button>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div className="px-4 pt-1">
-        <div className="flex gap-2 mb-3.5">
-          {[["stats", "Stats"], ["rates", "Rates"], ["projects", "Projects"]].map(([id, label]) => (
-            <Pill key={id} active={tab === id} onClick={() => setTab(id)}>{label}</Pill>
-          ))}
+      <section className="px-5 mt-7">
+        <div className="flex gap-2 mb-4">
+          {[["stats", "Stats"], ["rates", "Rates"], ["projects", "Projects"]].map(([id, label]) => <Pill key={id} active={tab === id} onClick={() => setTab(id)}>{label}</Pill>)}
         </div>
 
         {tab === "stats" && (
-          <div className="flex flex-col gap-3">
-            {(p.profilePic || p.bio || p.link || p.username) && (
-              <Card>
-                <div className="flex items-start gap-3">
-                  <div className={`w-14 h-14 rounded-[16px] overflow-hidden shrink-0 flex items-center justify-center ${p.bgActive}`}>
-                    {p.profilePic ? (
-                      <img
-                        src={proxyImg(p.profilePic)}
-                        alt={`${p.label} profile`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                      />
-                    ) : (
-                      <Icon name={p.ic} size={22} className="text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Icon name={p.ic} size={13} className={p.color} />
-                      <p className="text-[13px] font-extrabold text-foreground">{p.label}</p>
-                    </div>
-                    {p.username && (
-                      <p className="text-[11px] text-muted-foreground mb-1">@{p.username.replace(/^@/, "")}</p>
-                    )}
-                    {p.bio && (
-                      <p className="text-[12px] text-foreground leading-snug whitespace-pre-line">{p.bio}</p>
-                    )}
-                    {p.link && (
-                      <a
-                        href={p.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-primary break-all"
-                      >
-                        🔗 {p.link.replace(/^https?:\/\//, "")}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            )}
-            <Card>
-              <p className="text-[15px] font-black text-foreground mb-3">Profile Engagement</p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 flex flex-col gap-3">
-                  {p.engagement.map((e) => (
-                    <div key={e.label} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-primary-light flex items-center justify-center">
-                          <Icon name={e.ic || "heart"} size={12} className="text-primary" />
-                        </div>
-                        <span className="text-[12px] text-muted-foreground">{e.label}</span>
-                      </div>
-                      <span className="text-[13px] font-black text-foreground">{e.value}</span>
-                    </div>
-                  ))}
-                </div>
-                <EngagementDonut percentage={p.engagementRate} />
+          <div className="space-y-6">
+            {(p.bio || p.username || p.link) && (
+              <div className="border-y border-border py-4">
+                <div className="flex items-center gap-2 mb-2"><Icon name={p.ic} size={16} className={p.color} /><p className="text-sm font-black text-foreground">{p.username ? `@${p.username.replace(/^@/, "")}` : p.label}</p></div>
+                {p.bio && <p className="text-[12px] leading-relaxed text-muted-foreground whitespace-pre-line">{p.bio}</p>}
+                {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="inline-block text-[11px] font-bold text-primary mt-2 break-all">{p.link.replace(/^https?:\/\//, "")}</a>}
               </div>
-            </Card>
-            <Card className="!bg-gradient-to-br from-primary-light to-card">
-              <p className="text-[13px] font-extrabold text-foreground mb-3">Quick Stats</p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {p.engagement.map((e) => (
-                  <div key={e.label}>
-                    <p className="text-lg font-black text-primary">{e.value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{e.label}</p>
+            )}
+            <div>
+              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">Profile performance</p>
+              <div className="grid grid-cols-3 gap-2">
+                {p.engagement.map((item) => (
+                  <div key={item.label} className="border border-border rounded-lg px-2 py-4 text-center bg-card">
+                    <p className="text-lg font-black text-foreground">{item.value}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground mt-1 leading-tight">{item.label}</p>
                   </div>
                 ))}
-                <div>
-                  <p className="text-lg font-black text-primary">{p.engagementRate}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Engagement Rate</p>
-                </div>
               </div>
-            </Card>
+            </div>
             {p.recentPosts.length > 0 && (
-              <Card>
-                <p className="text-[13px] font-extrabold text-foreground mb-3">Recent Posts</p>
-                <div className="flex flex-col gap-2.5">
-                  {p.recentPosts.map((post, i) => (
-                    <div key={i} className={`flex items-start gap-3 pb-2.5 ${i < p.recentPosts.length - 1 ? "border-b border-border" : ""}`}>
-                      <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
-                        <Icon name={p.ic} size={16} className="text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <Badge color="pink" sm>{post.type}</Badge>
-                          <span className="text-[9px] text-muted-foreground">{post.date}</span>
-                        </div>
-                        <p className="text-[11px] text-foreground leading-snug truncate">{post.caption}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="text-[10px] text-muted-foreground">❤️ {post.likes}</span>
-                          <span className="text-[10px] text-muted-foreground">💬 {post.comments}</span>
-                        </div>
-                      </div>
+              <div>
+                <div className="flex items-center justify-between mb-3"><p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Recent showcase</p><span className="text-[10px] font-black text-primary uppercase">Instagram</span></div>
+                <div className="grid grid-cols-3 gap-2">
+                  {p.recentPosts.slice(0, 6).map((post, index) => (
+                    <div key={`${post.date}-${index}`} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                      {post.thumb ? <img src={proxyImg(post.thumb)} alt={post.caption} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Icon name={p.ic} size={20} className="text-primary" /></div>}
+                      <div className="absolute inset-x-0 bottom-0 bg-surface-dark/70 px-2 py-1 text-primary-foreground text-[9px] font-bold">♥ {post.likes}</div>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
             )}
           </div>
         )}
 
         {tab === "rates" && (
-          <Card>
-            <p className="text-[13px] font-extrabold text-foreground mb-3">{p.label} Commercials</p>
-            {p.rates.length === 0 && <p className="text-xs text-muted-foreground">No rates set yet</p>}
-            {p.rates.map((r, i) => (
-              <div key={i} className={`flex justify-between items-center py-2.5 ${i < p.rates.length - 1 ? "border-b border-border" : ""}`}>
-                <p className="text-[13px] text-foreground">{r.service}</p>
-                <p className="text-sm font-black text-primary">{r.rate}</p>
-              </div>
-            ))}
-          </Card>
-        )}
-
-        {tab === "projects" && (
-          <div className="flex flex-col gap-2.5">
-            {p.projects.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No projects yet</p>}
-            {p.projects.map((proj, i) => (
-              <Card key={i} className="!p-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-primary-light flex items-center justify-center">
-                    <Icon name={p.ic} size={20} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{proj.brand}</p>
-                    <p className="text-[11px] text-primary mt-0.5">🔗 {proj.link}</p>
-                  </div>
-                </div>
-              </Card>
+          <div>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">{p.label} commercials</p>
+            {p.rates.length === 0 ? <p className="text-xs text-muted-foreground py-5 text-center">No rates set yet</p> : p.rates.map((rate, index) => (
+              <div key={`${rate.service}-${index}`} className="flex justify-between items-center gap-4 py-4 border-b border-border"><p className="text-sm font-bold text-foreground">{rate.service}</p><p className="text-sm font-black text-primary shrink-0">{rate.rate}</p></div>
             ))}
           </div>
         )}
+
+        {tab === "projects" && (
+          <div>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">Past collaborations</p>
+            {p.projects.length === 0 ? <p className="text-xs text-muted-foreground py-5 text-center">No projects yet</p> : p.projects.map((project, index) => (
+              <a key={`${project.brand}-${index}`} href={project.link || undefined} target={project.link ? "_blank" : undefined} rel="noopener noreferrer" className="flex items-center justify-between gap-3 py-4 border-b border-border">
+                <div className="flex items-center gap-3 min-w-0"><span className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center shrink-0"><Icon name="campaign" size={18} className="text-primary" /></span><span className="text-sm font-bold text-foreground truncate">{project.brand}</span></div>
+                {project.link && <Icon name="chevR" size={17} className="text-primary" />}
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="px-5 mt-8 grid grid-cols-2 gap-3">
+        <AppButton variant="outline" icon="share" full onClick={handleShare}>Share</AppButton>
+        <AppButton variant="primary" icon="arrowUp" full disabled={downloading} onClick={handleDownload}>{downloading ? "Preparing…" : "Download"}</AppButton>
       </div>
     </div>
   );

@@ -19,6 +19,9 @@ export const profileService = {
   getMediaKitDownload: () =>
     api.get("/media_kit_download"),
 
+  saveMediaKitTheme: (theme: string, banner: string) =>
+    api.postForm("/save-media-kit-theme", { theme, banner }),
+
   getKycDetails: () =>
     api.get("/kyc_details"),
 
