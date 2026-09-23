@@ -319,7 +319,7 @@ export const useAuth = () => {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
         login: async () => {}, loginWithGoogle: async () => {}, register: async () => ({}),
-        logout: async () => {}, setAuthData: () => {},
+        logout: async () => {}, setAuthData: () => {}, refreshProfile: async () => {},
       } as unknown as AuthContextType;
     }
     throw new Error("useAuth must be used within AuthProvider");
