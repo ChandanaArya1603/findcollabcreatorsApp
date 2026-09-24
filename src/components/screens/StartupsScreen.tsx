@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { useStartups } from "@/hooks/useAppData";
+import React, { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { startupService } from "@/services/startupService";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
-import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Icon } from "../findcollab/Icon";
@@ -23,25 +24,69 @@ interface Props {
   onBack: () => void;
 }
 
+const normalizeStartup = (s: any): Startup => ({
+  id: s.id,
+  name: s.name || s.startup_name || s.company_name || "",
+  cat: s.cat || s.category || s.category_name || "",
+  desc: s.desc || s.description || s.about || "",
+  website: s.website || s.website_url || "",
+  logo: s.logo || s.logo_url || s.image || "",
+  hot: Boolean(s.hot),
+  location: s.location || "",
+});
+
 const StartupsScreen: React.FC<Props> = ({ onBack }) => {
   const [pitchTarget, setPitchTarget] = useState<Startup | null>(null);
   const [pitchMsg, setPitchMsg] = useState(
     "Hi there,\n\nI'm reaching out to explore potential collaboration opportunities.\n\nLooking forward to connecting!"
   );
   const [search, setSearch] = useState("");
-  const { data, isLoading: loading } = useStartups();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sending, setSending] = useState(false);
+  const [pitchedIds, setPitchedIds] = useState<Set<number>>(new Set());
 
-  const startups: Startup[] = data?.startups || data?.result || [];
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["startups", debouncedSearch],
+    queryFn: () => startupService.getStartups(debouncedSearch || undefined),
+  });
+
+  const startups: Startup[] = (data?.startups || data?.result || []).map(normalizeStartup);
   const total: number = data?.total || startups.length;
 
+  // Local fallback filter (in case the server ignores the search param)
   const filtered = startups.filter((s) => {
-    if (!search) return true;
+    if (!debouncedSearch) return true;
+    const q = debouncedSearch.toLowerCase();
     return (
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.cat.toLowerCase().includes(search.toLowerCase()) ||
-      s.desc.toLowerCase().includes(search.toLowerCase())
+      (s.name || "").toLowerCase().includes(q) ||
+      (s.cat || "").toLowerCase().includes(q) ||
+      (s.desc || "").toLowerCase().includes(q)
     );
   });
+
+  const handleSendPitch = async () => {
+    if (!pitchTarget || sending) return;
+    if (!pitchMsg.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+    setSending(true);
+    try {
+      await startupService.sendPitch({ startup_id: pitchTarget.id, message: pitchMsg.trim() });
+      toast.success(`Pitch sent to ${pitchTarget.name}`);
+      setPitchedIds((prev) => new Set(prev).add(pitchTarget.id));
+      setPitchTarget(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send pitch");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5 relative">
@@ -104,8 +149,13 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
                 {s.desc.length > 120 ? s.desc.substring(0, 120) + "…" : s.desc}
               </p>
             ) : null}
-            <AppButton full icon="send" onClick={() => setPitchTarget(s)}>
-              Send Pitch
+            <AppButton
+              full
+              icon={pitchedIds.has(s.id) ? "check" : "send"}
+              disabled={pitchedIds.has(s.id)}
+              onClick={() => setPitchTarget(s)}
+            >
+              {pitchedIds.has(s.id) ? "Pitched ✓" : "Send Pitch"}
             </AppButton>
           </Card>
         ))}
@@ -116,7 +166,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
         <div className="fixed inset-0 z-[200]">
           <div
             className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            onClick={() => setPitchTarget(null)}
+            onClick={() => !sending && setPitchTarget(null)}
           />
           <div className="absolute inset-0 flex items-center justify-center p-5">
             <div className="bg-card rounded-[20px] p-5 shadow-2xl w-full max-w-[350px]">
@@ -142,6 +192,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
                 <AppButton
                   variant="outline"
                   className="flex-1"
+                  disabled={sending}
                   onClick={() => setPitchTarget(null)}
                 >
                   Cancel
@@ -149,9 +200,10 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
                 <AppButton
                   className="flex-[2]"
                   icon="send"
-                  onClick={() => setPitchTarget(null)}
+                  disabled={sending}
+                  onClick={handleSendPitch}
                 >
-                  Send Pitch
+                  {sending ? "Sending…" : "Send Pitch"}
                 </AppButton>
               </div>
             </div>
