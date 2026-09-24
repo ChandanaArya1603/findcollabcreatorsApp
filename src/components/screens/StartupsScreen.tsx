@@ -45,6 +45,96 @@ const normalizeStartup = (s: any): Startup => ({
   location: s.location || "",
 });
 
+const HIW_KEY = "fc_how_it_works_collapsed";
+
+const HIW_STEPS = [
+  "Search or pick an industry to find brands that fit your niche.",
+  "Tap Send Pitch and write a few lines on why you're a good fit. Your Media Kit is attached automatically.",
+  "Your pitch goes from your connected Gmail, so brands reply straight to your inbox.",
+];
+
+const HIW_FOOTER =
+  "Your first pitch each day is free. After that, each pitch costs 10 credits.";
+
+const HowItWorksCard: React.FC = () => {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(HIW_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const dismiss = () => {
+    setCollapsed(true);
+    try {
+      localStorage.setItem(HIW_KEY, "1");
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
+  const expand = () => {
+    setCollapsed(false);
+    try {
+      localStorage.removeItem(HIW_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
+  if (collapsed) {
+    return (
+      <div className="px-4 pt-3">
+        <button
+          type="button"
+          onClick={expand}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-light border border-border"
+        >
+          <Icon name="campaign" size={14} className="text-primary" />
+          <span className="text-xs font-bold text-primary">How it works</span>
+          <Icon name="chevD" size={14} className="text-primary ml-auto" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-3">
+      <div className="rounded-2xl bg-primary-light border border-primary-mid p-3.5">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <p className="text-sm font-black text-foreground leading-tight">
+            Pitch brands directly
+          </p>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss how it works"
+            className="shrink-0 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-[10px] leading-none text-muted-foreground"
+          >
+            ✕
+          </button>
+        </div>
+        <ol className="flex flex-col gap-2 mb-2.5">
+          {HIW_STEPS.map((step, i) => (
+            <li key={step} className="flex gap-2 items-start">
+              <span className="shrink-0 w-4 h-4 mt-0.5 rounded-full gradient-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <span className="text-[11px] text-muted-foreground leading-relaxed">
+                {step}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p className="text-[11px] text-primary font-semibold border-t border-border pt-2 leading-relaxed">
+          {HIW_FOOTER}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const StartupsScreen: React.FC<Props> = ({ onBack }) => {
   const [pitchTarget, setPitchTarget] = useState<Startup | null>(null);
   const [pitchMsg, setPitchMsg] = useState(
@@ -101,6 +191,8 @@ const StartupsScreen: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5 relative">
       <BackHeader title="Discover Startups" onBack={onBack} />
+
+      <HowItWorksCard />
 
       <div className="px-4 pb-2.5 bg-card border-b border-border">
         <div className="relative mb-2.5">
