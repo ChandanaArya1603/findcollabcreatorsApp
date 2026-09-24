@@ -24,10 +24,20 @@ interface Props {
   onBack: () => void;
 }
 
+const pickCategory = (s: any): string => {
+  const raw =
+    s.cat ?? s.category ?? s.category_name ?? s.startup_category ??
+    s.industry ?? s.sector ?? s.vertical ?? s.niche ?? s.category_title ?? "";
+  if (raw && typeof raw === "object") {
+    return String(raw.name || raw.title || raw.category_name || raw.label || "");
+  }
+  return String(raw || "");
+};
+
 const normalizeStartup = (s: any): Startup => ({
   id: s.id,
   name: s.name || s.startup_name || s.company_name || "",
-  cat: s.cat || s.category || s.category_name || "",
+  cat: pickCategory(s),
   desc: s.desc || s.description || s.about || "",
   website: s.website || s.website_url || "",
   logo: s.logo || s.logo_url || s.image || "",
