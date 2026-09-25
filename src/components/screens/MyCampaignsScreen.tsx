@@ -50,7 +50,7 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
     status: c.status || "Applied",
     sc: statusColor(c.status || "Applied"),
     date: c.dateInvited || c.created_at || "",
-    details: c.briefs || c.description || "",
+    details: stripHtml(c.briefs || c.description || ""),
     deliverables: c.deliverables || "",
     budget: formatCampaignBudget(c),
     type: formatCampaignType(c.campaign_type || c.type),

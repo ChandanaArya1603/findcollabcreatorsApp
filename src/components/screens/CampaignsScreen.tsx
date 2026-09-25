@@ -54,7 +54,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
     credits: c.credits || 10,
     cat: c.category || c.cat || "",
     plat: c.platform || c.plat || "Instagram",
-    desc: c.briefs || c.description || c.desc || "",
+    desc: stripHtml(c.briefs || c.description || c.desc || ""),
     views: c.campaignViews || c.views || 0,
     apps: c.applications || c.apps || 0,
     days: timeAgo(c.timestamp || c.created_at || c.days || ""),
