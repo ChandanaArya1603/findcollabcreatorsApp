@@ -4,7 +4,7 @@ import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Icon } from "../findcollab/Icon";
-import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
+import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
 
 interface Props {
   onBack: () => void;
@@ -70,7 +70,7 @@ const MyCampaignsScreen: React.FC<Props> = ({ onBack }) => {
               <span className="text-xl font-black text-foreground">{selected.budget}</span>
               <span className="text-[11px] text-text-mid">{selected.type}</span>
             </div>
-            {selected.details && <p className="text-xs text-text-mid mt-3 leading-relaxed">{selected.details}</p>}
+            {selected.details && <p className="text-xs text-text-mid mt-3 leading-relaxed whitespace-pre-line">{selected.details}</p>}
           </Card>
           <Card>
             <p className="text-sm font-extrabold text-foreground mb-3">Application Timeline</p>

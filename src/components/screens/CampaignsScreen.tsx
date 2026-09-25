@@ -6,7 +6,7 @@ import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
-import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
+import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
 
 export interface Campaign {
   id: number;
@@ -116,7 +116,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
                 </div>
                 <Badge color={c.type === "Paid" ? "green" : c.type === "Barter" ? "pink" : "blue"}>{c.type}</Badge>
               </div>
-              <p className="text-xs text-text-mid mb-3 leading-relaxed">{c.desc.substring(0, 80)}…</p>
+              <p className="text-xs text-text-mid mb-3 leading-relaxed">{c.desc.length > 80 ? `${c.desc.substring(0, 80)}…` : c.desc}</p>
             </div>
             <div className="px-3.5 py-2.5 border-t border-border flex justify-between items-center bg-background">
               <div>
