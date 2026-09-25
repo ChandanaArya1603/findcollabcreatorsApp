@@ -41,3 +41,15 @@ export function formatCampaignBudget(c: any): string {
 
   return "—";
 }
+
+/** Convert HTML briefs (e.g. "<p>We&rsquo;re…</p>") into plain readable text. */
+export function stripHtml(html: any): string {
+  if (!html) return "";
+  const s = String(html).replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
+  if (typeof document !== "undefined") {
+    const el = document.createElement("div");
+    el.innerHTML = s;
+    return (el.textContent || "").replace(/\u00a0/g, " ").replace(/\n{2,}/g, "\n").trim();
+  }
+  return s.replace(/<[^>]+>/g, "").trim();
+}

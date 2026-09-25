@@ -6,7 +6,7 @@ import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
-import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
+import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
 
 export interface Campaign {
   id: number;
@@ -54,7 +54,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
     credits: c.credits || 10,
     cat: c.category || c.cat || "",
     plat: c.platform || c.plat || "Instagram",
-    desc: c.briefs || c.description || c.desc || "",
+    desc: stripHtml(c.briefs || c.description || c.desc || ""),
     views: c.campaignViews || c.views || 0,
     apps: c.applications || c.apps || 0,
     days: timeAgo(c.timestamp || c.created_at || c.days || ""),
@@ -116,7 +116,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
                 </div>
                 <Badge color={c.type === "Paid" ? "green" : c.type === "Barter" ? "pink" : "blue"}>{c.type}</Badge>
               </div>
-              <p className="text-xs text-text-mid mb-3 leading-relaxed">{c.desc.substring(0, 80)}…</p>
+              <p className="text-xs text-text-mid mb-3 leading-relaxed">{c.desc.length > 80 ? `${c.desc.substring(0, 80)}…` : c.desc}</p>
             </div>
             <div className="px-3.5 py-2.5 border-t border-border flex justify-between items-center bg-background">
               <div>
