@@ -345,11 +345,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
       <BackHeader
         title="Discover Startups"
         onBack={onBack}
-        right={
-          <span className="text-[10px] font-extrabold text-primary whitespace-nowrap -ml-4">
-            {num(headerBalance)} cr
-          </span>
-        }
       />
 
       <HowItWorksCard />

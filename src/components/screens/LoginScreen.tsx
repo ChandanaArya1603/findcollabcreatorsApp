@@ -12,11 +12,12 @@ interface Props {
   onSwitch: () => void;
   onForgot?: () => void;
   onNeedVerify?: (info: { userId?: number; email: string }) => void;
+  initialEmail?: string;
 }
 
-const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify }) => {
+const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initialEmail }) => {
   const { login, loginWithGoogle } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
