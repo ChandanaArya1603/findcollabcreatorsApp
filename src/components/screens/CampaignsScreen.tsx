@@ -7,6 +7,13 @@ import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
+import { useCampaignCost } from "@/hooks/useCampaignCost";
+
+const CardCost: React.FC<{ id: number }> = ({ id }) => {
+  const q = useCampaignCost(id);
+  if (q.data?.cost == null) return null;
+  return <span className="text-[10px] text-text-light ml-1.5">{q.data.cost} credits</span>;
+};
 
 export interface Campaign {
   id: number;
@@ -121,7 +128,7 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
             <div className="px-3.5 py-2.5 border-t border-border flex justify-between items-center bg-background">
               <div>
                 <span className="text-[17px] font-black text-primary">{c.budget}</span>
-                <span className="text-[10px] text-text-light ml-1.5">{c.credits} credits</span>
+                <CardCost id={c.id} />
               </div>
               <AppButton className="!py-2 !px-4 !text-xs !rounded-[10px]">Apply →</AppButton>
             </div>

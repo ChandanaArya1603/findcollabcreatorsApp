@@ -196,7 +196,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   }, []);
 
   const g = gmail.data || {};
-  const gmailConnected = truthy(g.connected) && !truthy(g.needs_reconnect) && !truthy(g.token_expired);
+  const gmailConnected = truthy(g.connected) && !truthy(g.needs_reconnect);
   const d = daily.data || {};
   const freeUsed = truthy(d.free_pitch_used_today);
   const creditsRequired = Number(d.credits_required ?? (freeUsed ? d.credits_per_pitch ?? 10 : 0));
@@ -324,7 +324,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
       ) : (
         <>
           <p className="text-xs text-muted-foreground flex-1">
-            {truthy(g.needs_reconnect) || truthy(g.token_expired) ? "Gmail needs reconnecting" : "Gmail not connected"}
+            {truthy(g.needs_reconnect) ? "Gmail needs reconnecting" : "Gmail not connected"}
           </p>
           <AppButton className="!px-3 !py-1.5 !text-[11px]" onClick={handleConnect} disabled={connecting}>
             {connecting ? "Opening…" : "Connect Gmail"}
