@@ -1,3 +1,4 @@
+import { getProfilePhoto } from "@/lib/profilePhoto";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -22,7 +23,7 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileStep }) => {
-  const { user } = useAuth();
+  const { user, userDetail } = useAuth();
   const { data: dashStats } = useDashboardStats();
   const { data: walletRes } = useWalletBalance();
   const { data: mediaKit } = useMediaKit();
@@ -106,7 +107,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
               <Avatar
                 letter={initial}
                 size={38}
-                src={mediaKit?.profile_image || mediaKit?.profile_pic || mediaKit?.image || mediaKit?.userDetail?.profile_image || mediaKit?.userDetail?.profile_pic}
+                src={getProfilePhoto(mediaKit, user, userDetail) || undefined}
               />
             </button>
           </div>

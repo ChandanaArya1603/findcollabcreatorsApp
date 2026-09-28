@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMediaKit } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
 import { isUnknownMethod } from "@/lib/listParse";
+import { handleFrom } from "@/lib/profilePhoto";
 import { onboardingService } from "@/services/onboardingService";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
@@ -55,9 +56,9 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
   useEffect(() => {
     if (!mk) return;
     const ud: any = mk.userDetail || {};
-    setIg((p) => p || clean(ud.instagram_user_name || ud.instagram_username));
-    setYt((p) => p || clean(ud.youtube_user_name || ud.youtube_username || ud.youtube_channel_name));
-    setLi((p) => p || clean(ud.linkedin_user_name || ud.linkedin_username));
+    setIg((p) => p || handleFrom(mk.instagramData?.insta_handle) || handleFrom(ud.insta_url));
+    setYt((p) => p || handleFrom(ud.youtube_url));
+    setLi((p) => p || handleFrom(ud.linkedin_url));
     if (["instagram", "youtube", "linkedin"].includes(ud.primary_account)) setPrimary(ud.primary_account);
     const uc: any = mk.userCommercials || {};
     const b = String(uc.barter_campaign ?? ud.barter_campaign ?? "").toLowerCase();

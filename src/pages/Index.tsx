@@ -35,7 +35,7 @@ const AutoOnboarding: React.FC<{ dismissKey: string; onOpen: () => void }> = ({ 
   React.useEffect(() => {
     if (done.current || !ready) return;
     done.current = true;
-    if (percent < 100 && !localStorage.getItem(dismissKey)) onOpen();
+    if (percent < 100 && !sessionStorage.getItem(dismissKey)) onOpen();
   }, [ready, percent, dismissKey, onOpen]);
   return null;
 };
@@ -148,7 +148,7 @@ const Index = () => {
       <AutoOnboarding dismissKey={dismissKey} onOpen={() => setWizardStep(0)} />
       {wizardStep !== null && (
         <ProfileWizard key={wizardStep} initialStep={wizardStep}
-          onClose={() => { localStorage.setItem(dismissKey, "1"); setWizardStep(null); }} />
+          onClose={() => { sessionStorage.setItem(dismissKey, "1"); setWizardStep(null); }} />
       )}
       <BottomNav active={tab} setActive={handleTabChange} />
     </div>

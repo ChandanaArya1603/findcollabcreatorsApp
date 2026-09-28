@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { onboardingService } from "@/services/onboardingService";
 import { useMediaKit, invalidateCreditData } from "@/hooks/useAppData";
+import { useAuth } from "@/contexts/AuthContext";
+import { getProfilePhoto } from "@/lib/profilePhoto";
 
 export type StepKey = "basic" | "photo" | "social" | "commercials" | "projects";
 export const STEP_KEYS: StepKey[] = ["basic", "photo", "social", "commercials", "projects"];
@@ -19,19 +21,14 @@ const parseArr = (raw: any): any[] => {
   }
 };
 
-export const computeFromMediaKit = (mk: any): Record<StepKey, boolean> => {
+export const computeFromMediaKit = (mk: any, user?: any, userDetail?: any): Record<StepKey, boolean> => {
   const ud = mk?.userDetail || {};
-  const cats = mk?.userCategories;
-  const langs = mk?.userLanguages ?? mk?.languages ?? ud.languages;
   const basic =
-    has(mk?.fname || ud.fname) && has(ud.dob ?? mk?.dob) && has(ud.gender ?? mk?.gender) &&
-    has(ud.city ?? mk?.city) && Array.isArray(cats) && cats.length > 0 &&
-    (Array.isArray(langs) ? langs.length > 0 : has(langs));
-  const photo = has(mk?.profile_image || mk?.profile_pic || ud.profile_image || ud.profile_pic);
-  const social = [
-    ud.instagram_user_name, ud.instagram_username, ud.youtube_user_name, ud.youtube_username,
-    ud.youtube_channel_name, ud.linkedin_user_name, ud.linkedin_username,
-  ].some(has);
+    has(ud.dob) && has(ud.gender) && has(ud.country) && has(ud.city) &&
+    Array.isArray(mk?.userCategories) && mk.userCategories.length > 0 &&
+    Array.isArray(mk?.userLanguages) && mk.userLanguages.length > 0;
+  const photo = Boolean(getProfilePhoto(mk, user, userDetail));
+  const social = [ud.insta_url, ud.youtube_url, ud.linkedin_url].some(has) || !!mk?.instagramData || !!mk?.youtubeData;
   const uc = mk?.userCommercials || {};
   const commercials = [
     ...parseArr(uc.instagram_details).map((r) => r?.instagramrate),
@@ -45,6 +42,7 @@ export const computeFromMediaKit = (mk: any): Record<StepKey, boolean> => {
 
 export const useProfileCompletion = () => {
   const { data: mk, isLoading: mkLoading } = useMediaKit();
+  const { user, userDetail } = useAuth();
   const server = useQuery({
     queryKey: ["profile_completion"],
     queryFn: () => onboardingService.getProfileCompletion(),
@@ -54,7 +52,7 @@ export const useProfileCompletion = () => {
   const fromServer = s && s.steps && typeof s.steps === "object";
   const steps: Record<StepKey, boolean> = fromServer
     ? (Object.fromEntries(STEP_KEYS.map((k) => [k, truthy(s.steps[k])])) as Record<StepKey, boolean>)
-    : computeFromMediaKit(mk);
+    : computeFromMediaKit(mk, user, userDetail);
   const percent = fromServer && s.percent != null
     ? Math.round(Number(s.percent))
     : STEP_KEYS.filter((k) => steps[k]).length * 20;
