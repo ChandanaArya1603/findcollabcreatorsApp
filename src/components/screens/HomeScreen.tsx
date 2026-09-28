@@ -14,6 +14,7 @@ import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
+import CoinMark from "../findcollab/CoinMark";
 import ProfileStrengthCard from "../home/ProfileStrengthCard";
 import type { StepKey } from "@/hooks/useProfileCompletion";
 
@@ -150,10 +151,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
           <p className="text-muted-foreground text-xs mb-3">Your dashboard overview</p>
           <button
             onClick={() => (switchTab ? switchTab("wallet") : push("wallet"))}
-            className="relative flex items-center gap-2.5 mb-4 mt-0.5 px-3.5 py-2 rounded-[14px] bg-primary-light border border-primary-mid cursor-pointer"
+            className="relative flex items-center gap-2 mb-4 mt-0.5 px-3.5 py-2 rounded-[14px] bg-warning-light border border-warning/30 cursor-pointer"
             aria-label="Open wallet"
           >
-            <span className="text-[30px] leading-none font-black text-primary">{credits ?? "—"}</span>
+            <CoinMark size={30} />
+            <span className="text-[30px] leading-none font-black text-warning">{credits ?? "—"}</span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-mid leading-tight text-left">
               credits<br />available
             </span>
