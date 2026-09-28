@@ -109,7 +109,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
 
   const next = () => (step >= 2 ? onClose() : setStep(step + 1));
 
-  const saveSocial = async () => {
+  const saveSocial = async (advance: boolean) => {
     if (!ig.trim() && !yt.trim() && !li.trim()) return toast.error("Add at least one username");
     const r = await run(() =>
       onboardingService.updateSocialAccounts({
@@ -117,10 +117,10 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       })
     );
     if (r === "ok") toast.success("Social accounts saved");
-    if (r !== "error") next();
+    if (r !== "error" && advance) next();
   };
 
-  const saveCommercials = async () => {
+  const saveCommercials = async (advance: boolean) => {
     const all = (Object.keys(rows) as Platform[]).flatMap((p) => rows[p]);
     if (all.some((r) => !r.d || !(Number(r.rate) > 0))) return toast.error("Each row needs a deliverable and a rate");
     const ser = (p: Platform) =>
@@ -135,7 +135,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       })
     );
     if (r === "ok") toast.success("Commercials saved");
-    if (r !== "error") next();
+    if (r !== "error" && advance) next();
   };
 
   const addProject = async () => {
