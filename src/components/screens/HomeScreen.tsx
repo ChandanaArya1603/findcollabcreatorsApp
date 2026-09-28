@@ -82,7 +82,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
 
   return (
     <Screen>
-      <ProfileStrengthCard onOpenStep={(k) => (onOpenProfileStep ? onOpenProfileStep(k) : push("editprofile"))} />
       <div className="px-4 pt-4 pb-3 bg-card">
         <div className="flex justify-between items-center">
           <div>
@@ -150,6 +149,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
             <AppButton variant="ghost" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("mediakit")}>Media Kit</AppButton>
           </div>
         </div>
+
+        <ProfileStrengthCard onOpenStep={(k) => (onOpenProfileStep ? onOpenProfileStep(k) : push("editprofile"))} />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-2.5">
