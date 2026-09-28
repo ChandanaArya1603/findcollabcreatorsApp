@@ -15,6 +15,7 @@ import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import LoginScreen from "@/components/screens/LoginScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
+import { CreditBar } from "@/components/findcollab/CreditPill";
 
 interface StackItem {
   screen: string;
@@ -51,7 +52,7 @@ const Index = () => {
 
   const renderStack = (screen: string, data: any) => {
     switch (screen) {
-      case "campaign-detail": return <CampaignDetail campaign={data} onBack={pop} />;
+      case "campaign-detail": return <CampaignDetail campaign={data} onBack={pop} onOpenWallet={() => handleTabChange("wallet")} />;
       case "offer-detail": return <OfferDetail offer={data} onBack={pop} />;
       case "mediakit": return <MediaKitScreen onBack={pop} />;
       case "offers":
@@ -93,6 +94,7 @@ const Index = () => {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden relative">
       <div className="flex-1 overflow-hidden flex flex-col relative min-h-0">
+        {!chatOpen && <CreditBar onClick={() => handleTabChange("wallet")} />}
         <div className="flex-1 flex flex-col overflow-hidden">{renderMain()}</div>
         {current && (
           <div className="absolute inset-0 z-20 bg-background flex flex-col animate-slide-in">
