@@ -34,11 +34,8 @@ const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initia
     } catch (err: any) {
       const d = err?.data || {};
       const msg = String(err?.message || "");
-      const unverified = d.verification_required || d.is_verified === false || d.is_verified === 0 ||
-        d.not_verified || /verif/i.test(msg);
-      if (unverified && onNeedVerify) {
-        toast.error(msg || "Please verify your email first");
-        onNeedVerify({ userId: Number(d.user_id ?? d.id) || undefined, email: email.trim() });
+      if (d.not_verified && onNeedVerify) {
+        onNeedVerify({ userId: Number(d.user_id) || undefined, email: String(d.email || email).trim() });
         return;
       }
       toast.error(msg || "Login failed");
