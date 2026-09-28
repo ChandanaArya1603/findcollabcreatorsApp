@@ -150,6 +150,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
           </div>
         </div>
 
+        <ProfileStrengthCard onOpenStep={(k) => (onOpenProfileStep ? onOpenProfileStep(k) : push("editprofile"))} />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-2.5">
           {stats.map((s) => (
