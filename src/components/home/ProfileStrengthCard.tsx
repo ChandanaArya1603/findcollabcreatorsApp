@@ -16,7 +16,7 @@ const LABELS: Record<StepKey, string> = {
 interface Props { onOpenStep: (step: StepKey) => void }
 
 const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
-  const { steps, percent, ready, rewardCredits } = useProfileCompletion();
+  const { steps, percent, ready, rewardCredits, rewardClaimed } = useProfileCompletion();
   const [open, setOpen] = useState<boolean | null>(() => {
     const v = localStorage.getItem(KEY);
     return v === null ? null : v !== "1";
@@ -45,9 +45,15 @@ const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
               onClick={toggle}
               aria-expanded={open}
               aria-label={open ? "Collapse profile strength" : "Expand profile strength"}
-              className="w-full flex items-center justify-between gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
+              className="w-full flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
             >
-              <span className="text-sm font-black text-foreground">Profile strength</span>
+              <span className="text-sm font-black text-foreground truncate">Profile strength</span>
+              <span className="flex-1" />
+              {!rewardClaimed && (
+                <span className="gradient-primary text-primary-foreground text-[10px] font-black rounded-full px-2.5 py-1 flex items-center gap-1 shadow-primary whitespace-nowrap">
+                  <Icon name="gift" size={12} strokeWidth={2.6} />Earn +{rewardCredits} credits
+                </span>
+              )}
               <span className={`text-text-light transition-transform ${open ? "rotate-180" : ""}`}>
                 <Icon name="chevD" size={16} />
               </span>
