@@ -255,58 +255,47 @@ const WalletScreen: React.FC = () => {
             {!loading && txns.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>}
             {!loading && txns.map((t, i) => (
               <Card key={i} className="!p-3.5">
-                <div className="flex justify-between items-start mb-1.5">
-                  <div className="flex-1 mr-2.5">
+                <div className="flex justify-between items-start gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-primary-light flex items-center justify-center shrink-0">{typeIcon(t.type)}</span>
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground leading-snug">{t.description || t.campaign || "Transaction"}</p>
-                    {t.brand && <p className="text-[10px] text-text-mid mt-0.5">Brand: {t.brand}</p>}
                     {t.campaign && <p className="text-[10px] text-text-mid">Campaign: {t.campaign}</p>}
+                    <p className="text-[10px] text-text-light mt-0.5">{t.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-[15px] font-black mb-1 ${t.type === "credit" ? "text-success" : "text-destructive"}`}>
-                      {t.type === "credit" ? "+" : "-"}{t.amount}
+                    <p className={`text-[15px] font-black mb-1 ${isPlus(t) ? "text-success" : "text-destructive"}`}>
+                      {isPlus(t) ? "+" : "-"}{t.amount.replace(/^[+-]/, "")}
                     </p>
-                    <Badge color={t.type === "credit" ? "green" : "red"} sm>{t.type}</Badge>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center pt-1.5 border-t border-border">
-                  <p className="text-[10px] text-text-light">{t.date}</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[10px] text-text-light">ID: {t.transaction_id}</p>
-                    {t.status && <Badge color={t.status === "completed" ? "green" : "amber"} sm>{t.status}</Badge>}
+                    {t.type && <Badge color={isPlus(t) ? "green" : "red"} sm>{t.type.replace(/_/g, " ")}</Badge>}
                   </div>
                 </div>
               </Card>
             ))}
+            {history.hasNextPage && (
+              <AppButton variant="outline" full disabled={history.isFetchingNextPage} onClick={() => history.fetchNextPage()}>
+                {history.isFetchingNextPage ? "Loading…" : "Load more"}
+              </AppButton>
+            )}
           </div>
         )}
 
         {tab === "credits" && (
-          <div>
-            <Card className="!bg-warning/5 !border-warning/20 mb-3.5">
-              <p className="text-[13px] font-extrabold text-foreground mb-2.5">💳 How Credits Work</p>
-              {[["Barter / Affiliate", "10 credits"], ["Paid (₹1K–5K)", "15 credits"], ["Paid (₹5K–10K)", "20 credits"], ["Paid (₹25K+)", "30 credits"]].map(([k, v]) => (
-                <div key={k} className="flex justify-between mb-1.5">
-                  <span className="text-xs text-text-mid">{k}</span>
-                  <Badge color="amber" sm>{v}</Badge>
-                </div>
-              ))}
-            </Card>
-            <Card>
-              <p className="text-[13px] font-extrabold text-foreground mb-2.5">🎁 Earn Bonus Credits</p>
-              {[["Sign-up bonus", "20 credits"], ["Refer a friend", "50 credits"], ["Successful collab", "10 credits"]].map(([k, v]) => (
-                <div key={k} className="flex justify-between mb-1.5">
-                  <span className="text-xs text-text-mid">{k}</span>
-                  <Badge color="green" sm>{v}</Badge>
-                </div>
-              ))}
-            </Card>
-          </div>
+          <Card className="!bg-warning/5 !border-warning/20">
+            <p className="text-[13px] font-extrabold text-foreground mb-2.5">💳 What costs credits</p>
+            {costRows.length === 0 && <p className="text-xs text-muted-foreground">—</p>}
+            {costRows.map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-2 mb-1.5">
+                <span className="text-xs text-text-mid">{k}</span>
+                <Badge color="amber" sm>{v}</Badge>
+              </div>
+            ))}
+          </Card>
         )}
 
         {tab === "buy" && (
           <div className="flex flex-col gap-3">
             {plans.map((p) => (
-              <Card key={p.name} className={`!p-3.5 relative ${p.pop ? "!border-2 !border-primary" : ""}`}>
+              <Card key={p.id + p.name} className={`!p-3.5 relative ${p.pop ? "!border-2 !border-primary" : ""}`}>
                 {p.pop && (
                   <div className="absolute -top-2.5 right-3.5 bg-primary text-primary-foreground text-[9px] font-bold px-2.5 py-0.5 rounded-full">
                     MOST POPULAR
@@ -314,21 +303,21 @@ const WalletScreen: React.FC = () => {
                 )}
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-extrabold text-foreground mb-0.5">{p.name} Pack</p>
+                    <p className="text-sm font-extrabold text-foreground mb-0.5">{p.name}</p>
                     <p className="text-[22px] font-black text-primary mb-0.5">
                       {p.credits} <span className="text-xs text-text-light">credits</span>
                     </p>
-                    <p className="text-[11px] text-text-light">Valid 180 days</p>
+                    {p.validity && <p className="text-[11px] text-text-light">{p.validity}</p>}
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-black text-foreground mb-2">{storePrices?.[p.id] || p.price}</p>
                     {isNative ? (
                       <AppButton
                         className="!py-2 !px-4 !text-xs !rounded-[10px]"
-                        disabled={storeFailed || buyingId !== null}
+                        disabled={storeFailed || !p.playable || buyingId !== null}
                         onClick={() => handleBuy(p)}
                       >
-                        {storeFailed ? "Unavailable" : buyingId === p.id ? "Processing…" : "Buy Now"}
+                        {storeFailed || !p.playable ? "Unavailable" : buyingId === p.id ? "Processing…" : "Buy Now"}
                       </AppButton>
                     ) : (
                       <AppButton
