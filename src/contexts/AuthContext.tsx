@@ -291,7 +291,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = useCallback(async (data: Record<string, any>) => {
     const res = await api.postForm("/register_influencer", data);
-    if (res.token) {
+    // Manual sign-ups must verify their email first; only Google sign-ups log in right away.
+    if (res.token && (data.signup_by === "google" || res.signup_by === "google")) {
       setAuthData({ token: res.token, user: res.user, userDetail: res.userDetail });
     }
     return res;

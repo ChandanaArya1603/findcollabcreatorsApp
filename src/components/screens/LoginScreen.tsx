@@ -10,9 +10,11 @@ const logoFull = { url: "/findcollab-logo-full.png" };
 
 interface Props {
   onSwitch: () => void;
+  onForgot?: () => void;
+  onNeedVerify?: (info: { userId?: number; email: string }) => void;
 }
 
-const LoginScreen: React.FC<Props> = ({ onSwitch }) => {
+const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify }) => {
   const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +31,16 @@ const LoginScreen: React.FC<Props> = ({ onSwitch }) => {
       await login(email, password);
       toast.success("Logged in successfully!");
     } catch (err: any) {
-      toast.error(err.message || "Login failed");
+      const d = err?.data || {};
+      const msg = String(err?.message || "");
+      const unverified = d.verification_required || d.is_verified === false || d.is_verified === 0 ||
+        d.not_verified || /verif/i.test(msg);
+      if (unverified && onNeedVerify) {
+        toast.error(msg || "Please verify your email first");
+        onNeedVerify({ userId: Number(d.user_id ?? d.id) || undefined, email: email.trim() });
+        return;
+      }
+      toast.error(msg || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -62,6 +73,9 @@ const LoginScreen: React.FC<Props> = ({ onSwitch }) => {
           <div className="flex flex-col gap-3.5">
             <AppInput label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />
             <AppInput label="Password" value={password} onChange={setPassword} placeholder="••••••••" />
+            {onForgot && (
+              <button onClick={onForgot} className="text-xs font-bold text-primary self-end -mt-1.5">Forgot password?</button>
+            )}
             <AppButton full onClick={handleLogin} disabled={loading}>
               {loading ? "Signing in…" : "Sign In"}
             </AppButton>
