@@ -1,3 +1,4 @@
+import { getProfilePhoto } from "@/lib/profilePhoto";
 import React from "react";
 import { useCreditBalance, useMediaKit } from "@/hooks/useAppData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,8 +12,7 @@ export const CreditBar: React.FC<{ onClick?: () => void; onProfileClick?: () => 
   const bal = data?.balance ?? data?.credits_balance;
   const detail = mediaKit?.userDetail || userDetail || {};
   const name = mediaKit?.fname || user?.fname || "User";
-  const photo = mediaKit?.profile_image || mediaKit?.profile_pic || mediaKit?.image ||
-    detail.profile_image || detail.profile_pic || detail.image || detail.avatar || "";
+  const photo = getProfilePhoto(mediaKit, user, detail);
   return (
     <div className="flex items-center justify-end gap-2 px-4 pt-2 pb-1 bg-card shrink-0">
       <button
