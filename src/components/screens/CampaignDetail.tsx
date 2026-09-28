@@ -14,6 +14,7 @@ import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 interface Props {
   campaign: Campaign;
   onBack: () => void;
+  onOpenWallet?: () => void;
 }
 
 interface DetailField {
@@ -32,8 +33,8 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`;
 }
 
-const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
-  const [applying, setApplying] = useState(false);
+const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) => {
+  const [applyOpen, setApplyOpen] = useState(false);
   const [applied, setApplied] = useState(false);
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,20 +48,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [c.id]);
-
-  const handleApply = async () => {
-    setApplying(true);
-    try {
-      await campaignService.applyCampaign(c.id);
-      invalidateCampaignData();
-      toast.success("Campaign applied successfully!");
-      setApplied(true);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to apply");
-    } finally {
-      setApplying(false);
-    }
-  };
 
   // Merge list data with fetched detail
   const d = detail || {};
@@ -264,12 +251,14 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
             <AppButton
               full
               icon={applied ? "check" : "send"}
-              onClick={handleApply}
-              disabled={applying || applied}
+              onClick={() => setApplyOpen(true)}
+              disabled={applied}
             >
-              {applied ? "Applied ✓" : applying ? "Applying…" : "Apply →"}
+              {applied ? "Applied ✓" : "Apply →"}
             </AppButton>
           </Card>
+
+          <BrandContactCard campaignId={c.id} onOpenWallet={onOpenWallet} />
 
           {/* Description */}
           {description && (

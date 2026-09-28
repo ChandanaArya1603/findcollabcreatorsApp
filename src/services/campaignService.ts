@@ -7,8 +7,9 @@ export const campaignService = {
   getCampaignDetail: (id: number) =>
     api.get(`/campaignDetail/${id}`),
 
-  applyCampaign: (campaign_id: number) =>
-    api.postForm("/apply_campaign", { campaign_id }),
+  applyCampaign: (
+    body: number | { campaign_id: number; quote?: string; message?: string; delivery_time?: string; boost_credits?: number },
+  ) => api.postForm("/apply_campaign", typeof body === "number" ? { campaign_id: body } : body),
 
   getMyCampaigns: () =>
     api.get("/my_campaigns"),
