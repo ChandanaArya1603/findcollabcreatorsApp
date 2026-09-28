@@ -32,7 +32,9 @@ const PENDING_KEY = "fc_onboarding_pending";
 const STEP_INDEX: Partial<Record<StepKey, number>> = { social: 0, commercials: 1, projects: 2 };
 
 /** Auto-opens the wizard only once, on the first login after sign-up, unless skipped before. */
-const AutoOnboarding: React.FC<{ onOpen: (k: StepKey) => void; firstOpen: StepKey | null; ready: boolean; percent: number }> = ({ onOpen, firstOpen, ready, percent }) => {
+const AutoOnboarding: React.FC<{ onOpen: (k: StepKey) => void }> = ({ onOpen }) => {
+  const { ready, percent, steps } = useProfileCompletion();
+  const firstOpen = STEP_KEYS.find((k) => !steps[k]) ?? null;
   const done = React.useRef(false);
   React.useEffect(() => {
     if (done.current || !ready) return;
@@ -48,8 +50,6 @@ const Index = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [loginEmail, setLoginEmail] = useState("");
   const [wizardStep, setWizardStep] = useState<number | null>(null);
-  const completion = useProfileCompletion();
-  const firstIncomplete = (STEP_KEYS.find((k) => !completion.steps[k]) ?? null) as StepKey | null;
   const [authView, setAuthView] = useState<"login" | "register" | "verify" | "forgot">("login");
   const [verifyInfo, setVerifyInfo] = useState<{ userId?: number; email: string; notice?: string }>({ email: "" });
   const goVerify = (info: { userId?: number; email: string; notice?: string }) => {
@@ -151,7 +151,7 @@ const Index = () => {
         )}
       </div>
       {tab === "home" && !current && (
-        <AutoOnboarding ready={completion.ready} percent={completion.percent} firstOpen={firstIncomplete} onOpen={openProfileStep} />
+        <AutoOnboarding onOpen={openProfileStep} />
       )}
       {wizardStep !== null && (
         <ProfileWizard key={wizardStep} initialStep={wizardStep}

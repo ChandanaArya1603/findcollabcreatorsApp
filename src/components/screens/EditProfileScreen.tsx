@@ -15,6 +15,7 @@ import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Icon } from "../findcollab/Icon";
+import { PastProjectsEditor } from "../profile/PastProjectsEditor";
 
 interface Props { onBack: () => void }
 type Platform = "instagram" | "youtube" | "linkedin";
@@ -137,19 +138,12 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [website, setWebsite] = useState("");
   const [socialErrors, setSocialErrors] = useState<Record<string, string>>({});
   const baseRef = useRef<Record<string, any>>({});
-  const [editingId, setEditingId] = useState<number | string | null>(null);
 
   const [barter, setBarter] = useState<"yes" | "no">("no");
   const [commercialPlatform, setCommercialPlatform] = useState<Platform>("instagram");
   const [commercials, setCommercials] = useState<Record<Platform, Commercial[]>>({ instagram: [], youtube: [], linkedin: [] });
   const [contentRate, setContentRate] = useState("");
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [brand, setBrand] = useState("");
-  const [projectLink, setProjectLink] = useState("");
-  const [projectLogo, setProjectLogo] = useState<File | null>(null);
-  const [projectLogoPreview, setProjectLogoPreview] = useState("");
-  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const countryQ = useQuery({ queryKey: ["countries"], queryFn: utilityService.getCountries, staleTime: 36e5 });
   const countryOpts = useMemo(() => toOptions(countryQ.data), [countryQ.data]);
@@ -211,11 +205,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     setBarter(barterValue === "yes" || barterValue === "1" ? "yes" : "no");
     setContentRate(clean(parse(uc.content_writing_details)[0]?.cost_per_coverage));
 
-    setProjects(Array.isArray(mk.userProjects) ? mk.userProjects.map((p: any) => ({
-      id: p.id ?? p.project_id,
-      brand: p.brand_name || p.brand || "",
-      link: p.collaboration_link || p.link || "",
-    })) : []);
   }, [mediaKit]);
 
   useEffect(() => {
@@ -250,10 +239,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const id = readId(ud, ["city_id"]) || readId(mk, ["city_id"]) || matchId(cityOpts, ud.city || mk.city);
     if (id) { setCity(id); baseRef.current.city = id; }
   }, [mediaKit, cityOpts, city]);
-
-  useEffect(() => () => {
-    if (projectLogoPreview) URL.revokeObjectURL(projectLogoPreview);
-  }, [projectLogoPreview]);
 
   const refresh = async () => {
     refreshCompletion();
@@ -396,54 +381,6 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const setRow = (platform: Platform, index: number, patch: Partial<Commercial>) =>
     setCommercials((current) => ({ ...current, [platform]: current[platform].map((row, i) => i === index ? { ...row, ...patch } : row) }));
 
-  const chooseLogo = (file?: File) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return toast.error("Choose an image file");
-    if (file.size > 5 * 1024 * 1024) return toast.error("Logo must be under 5 MB");
-    setProjectLogo(file);
-    setProjectLogoPreview(URL.createObjectURL(file));
-  };
-
-  const readProject = () => {
-    const b = brand.trim();
-    let link = projectLink.trim();
-    if (!b) { toast.error("Enter the brand name"); return null; }
-    if (b.length > 100) { toast.error("Brand name must be 100 characters or less"); return null; }
-    if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
-    if (!validUrl(link)) { toast.error("Enter a valid collaboration link"); return null; }
-    if (link.length > 100) { toast.error("Link must be 100 characters or less"); return null; }
-    return { b, link };
-  };
-
-  const resetProjectForm = () => {
-    setBrand(""); setProjectLink(""); setEditingId(null);
-    setProjectLogo(null); setProjectLogoPreview("");
-    if (logoInputRef.current) logoInputRef.current.value = "";
-  };
-
-  const addProject = async () => {
-    const v = readProject();
-    if (!v) return;
-    const ok = editingId != null
-      ? await run(() => onboardingService.updateProject(editingId, v.b, v.link), "Project updated")
-      : await run(() => onboardingService.addProject(v.b, v.link), "Project added");
-    if (ok) {
-      if (projectLogo) toast("Project saved. Logo upload needs backend support.");
-      resetProjectForm();
-    }
-  };
-
-  const editProject = (project: Project) => {
-    if (!project.id) return toast.error("This project cannot be edited yet");
-    setEditingId(project.id); setBrand(project.brand); setProjectLink(project.link);
-  };
-
-  const removeProject = async (project: Project) => {
-    if (!project.id) return toast.error("This project cannot be removed yet");
-    await run(() => onboardingService.deleteProject(project.id as number | string), "Project removed");
-    if (editingId === project.id) resetProjectForm();
-  };
-
   const toggleCategory = (id: number) => {
     setCategoryIds((current) => {
       if (current.includes(id)) return current.filter((value) => value !== id);
@@ -584,29 +521,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
           </Card>
         </>}
 
-        {activeTab === tabs[3] && <>
-          <Card className="!p-4 flex flex-col gap-3">
-            <p className="text-sm font-extrabold text-foreground">{editingId != null ? "Edit project" : "Add past project"}</p>
-            <AppInput label="Brand name" value={brand} onChange={setBrand} placeholder="Brand" />
-            <AppInput label="Collaboration link" value={projectLink} onChange={setProjectLink} placeholder="https://" />
-            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => chooseLogo(e.target.files?.[0])} />
-            <div className="flex items-center gap-3">
-              {projectLogoPreview ? <img src={projectLogoPreview} alt="Project logo preview" className="w-14 h-14 rounded-lg border border-border object-contain bg-card" /> : <div className="w-14 h-14 rounded-lg border border-dashed border-border bg-muted flex items-center justify-center"><Icon name="plus" size={18} className="text-text-mid" /></div>}
-              <div className="flex-1">
-                <AppButton variant="outline" onClick={() => logoInputRef.current?.click()} className="!py-2.5">Choose logo</AppButton>
-                <p className="text-[10px] text-text-mid mt-1.5">Logo upload will be enabled when supported by the server.</p>
-              </div>
-            </div>
-            <AppButton full icon={editingId != null ? "check" : "plus"} onClick={addProject} disabled={saving}>{editingId != null ? "Save changes" : "Add project"}</AppButton>
-            {editingId != null && <AppButton full variant="ghost" onClick={resetProjectForm}>Cancel edit</AppButton>}
-          </Card>
-          {projects.length === 0 ? <p className="text-xs text-text-mid text-center">No projects yet</p> : projects.map((project, index) => <Card key={project.id ?? index} className="!p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-primary font-black">{(project.brand || "P").charAt(0).toUpperCase()}</div>
-            <div className="flex-1 min-w-0"><p className="text-sm font-bold text-foreground truncate">{project.brand || "—"}</p><p className="text-[11px] text-text-mid truncate">{project.link || "—"}</p></div>
-            <button type="button" aria-label={`Edit ${project.brand}`} onClick={() => editProject(project)} disabled={saving} className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary"><Icon name="edit" size={15} /></button>
-            <AppButton variant="ghost" onClick={() => removeProject(project)} disabled={saving} className="!px-3 !py-2">Remove</AppButton>
-          </Card>)}
-        </>}
+        {activeTab === tabs[3] && <PastProjectsEditor />}
 
         {sectionSave && <AppButton full icon="check" onClick={sectionSave} disabled={saving}>{saving ? "Saving…" : `Save ${activeTab === tabs[0] ? "basic information" : activeTab === tabs[1] ? "social accounts" : "commercials"}`}</AppButton>}
       </div>
