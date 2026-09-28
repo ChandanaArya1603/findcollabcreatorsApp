@@ -69,9 +69,10 @@ const WalletScreen: React.FC = () => {
     earned: pick(dash, "total_earned", "earned", "summary.total_earned") ?? creditRes?.total_earned ?? 0,
     spent: pick(dash, "total_spent", "spent", "summary.total_spent") ?? creditRes?.total_spent ?? 0,
   };
-  const lowBalance = Boolean(pick(dash, "low_balance", "low_balance_warning")) || (dash && creditBal < 20);
-  const expiring: any[] = pick(dash, "expiring_credits", "expiring", "expiring_soon") || [];
-  const expiringList = Array.isArray(expiring) ? expiring : [];
+  const lowBalance = Boolean(dash?.low_balance_warning);
+  const expiringCredits = toNum(dash?.expiring_credits, 0);
+  const expiringWarning = Boolean(dash?.expiring_warning);
+  void creditBal;
 
   const txns: Transaction[] = (history.data?.pages || []).flatMap((pg: any) => pg?.transactions || []).map((t: any) => ({
     date: t.date || t.created_at || "",
@@ -102,23 +103,12 @@ const WalletScreen: React.FC = () => {
       })
     : PLANS.map((p) => ({ ...p, validity: "Valid 180 days", playable: true }));
 
-  const costRows: [string, string][] = (() => {
-    const k = costsRes || {};
-    const rows: [string, string][] = [];
-    const tiers = pick(k, "apply_tiers", "application_tiers", "apply", "costs.apply_tiers");
-    if (Array.isArray(tiers)) {
-      tiers.forEach((t: any) => rows.push([String(t.label || t.name || t.tier || t.campaign_type || "Apply"), `${t.credits ?? t.cost ?? "—"} credits`]));
-    } else if (tiers && typeof tiers === "object") {
-      Object.entries(tiers).forEach(([n, v]: any) => rows.push([`Apply · ${n}`, `${typeof v === "object" ? v.credits ?? v.cost : v} credits`]));
-    }
-    const bmin = pick(k, "boost.min", "boost_min"); const bmax = pick(k, "boost.max", "boost_max");
-    if (bmin != null || bmax != null) rows.push(["Boost application", `${bmin ?? 0}–${bmax ?? "—"} credits`]);
-    const pitch = pick(k, "pitch_price", "startup_pitch", "credits_per_pitch", "pitch.credits");
-    if (pitch != null) rows.push(["Startup pitch (after first free)", `${typeof pitch === "object" ? pitch.credits : pitch} credits`]);
-    const unlock = pick(k, "contact_unlock_price", "brand_contact", "contact_unlock", "unlock_contact");
-    if (unlock != null) rows.push(["Unlock brand contact", `${typeof unlock === "object" ? unlock.credits : unlock} credits`]);
-    return rows;
-  })();
+  const costActions: any[] = Array.isArray(costsRes?.actions) ? costsRes.actions : [];
+  const costLabel = (a: any) => {
+    if (a?.action === "proposal_boost" && (a.min != null || a.max != null)) return `${a.min ?? 0}–${a.max ?? "—"} credits`;
+    if (typeof a?.cost === "number" || /^\d+(\.\d+)?$/.test(String(a?.cost ?? ""))) return `${a.cost} credits`;
+    return a?.cost != null && a.cost !== "" ? String(a.cost) : "—";
+  };
 
   const typeIcon = (t: string) =>
     ({ purchase: "🛒", application: "📝", bonus: "🎁", referral: "🤝", collaboration: "💼", expiry: "⌛", startup_pitch: "🚀" } as Record<string, string>)[t] || "🪙";
@@ -214,15 +204,9 @@ const WalletScreen: React.FC = () => {
               <AppButton className="!py-1.5 !px-3 !text-[11px] !rounded-[10px]" onClick={() => setTab("buy")}>Buy Credits</AppButton>
             </div>
           )}
-          {expiringList.length > 0 && (
-            <div className="mt-3">
-              <p className="text-[11px] font-bold text-foreground mb-1">Expiring soon</p>
-              {expiringList.map((e: any, i: number) => (
-                <div key={i} className="flex justify-between text-[11px] text-text-mid">
-                  <span>{e.credits ?? e.amount ?? "—"} credits</span>
-                  <span>{e.expires_at || e.expiry_date || e.date || "—"}</span>
-                </div>
-              ))}
+          {expiringWarning && (
+            <div className="mt-3 p-2.5 rounded-xl bg-warning-light">
+              <p className="text-[11px] font-bold text-foreground">⌛ {expiringCredits} credits expiring soon</p>
             </div>
           )}
         </div>
@@ -282,13 +266,28 @@ const WalletScreen: React.FC = () => {
         {tab === "credits" && (
           <Card className="!bg-warning/5 !border-warning/20">
             <p className="text-[13px] font-extrabold text-foreground mb-2.5">💳 What costs credits</p>
-            {costRows.length === 0 && <p className="text-xs text-muted-foreground">—</p>}
-            {costRows.map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-2 mb-1.5">
-                <span className="text-xs text-text-mid">{k}</span>
-                <Badge color="amber" sm>{v}</Badge>
-              </div>
-            ))}
+            {costActions.length === 0 && <p className="text-xs text-muted-foreground">—</p>}
+            {costActions
+              .filter((a) => a?.action !== "proposal_boost" || a.enabled !== false)
+              .map((a, i) => (
+                <div key={a.action || i} className="mb-2.5">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-xs font-semibold text-foreground">{a.label || a.action}</span>
+                    <Badge color="amber" sm>{costLabel(a)}</Badge>
+                  </div>
+                  {a.note && <p className="text-[10px] text-text-light mt-0.5">{a.note}</p>}
+                  {a.tiers && typeof a.tiers === "object" && !Array.isArray(a.tiers) && (
+                    <div className="mt-1 pl-2 border-l-2 border-warning/30 flex flex-col gap-0.5">
+                      {Object.entries(a.tiers).map(([n, v]: any) => (
+                        <div key={n} className="flex justify-between text-[11px] text-text-mid">
+                          <span>{n}</span>
+                          <span className="font-bold">{v} credits</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
           </Card>
         )}
 

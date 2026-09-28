@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { creditService, pick, toNum } from "@/services/creditService";
 import { campaignService } from "@/services/campaignService";
 import { invalidateCampaignData } from "@/hooks/useAppData";
+import { useCampaignCost, getBoostAction } from "@/hooks/useCampaignCost";
+import { walletService } from "@/services/walletService";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 
@@ -15,11 +17,9 @@ interface Props {
 }
 
 export const ApplySheet: React.FC<Props> = ({ campaignId, onClose, onApplied, onOpenWallet }) => {
-  const cost = useQuery({
-    queryKey: ["campaign_credit_cost", campaignId],
-    queryFn: () => creditService.getCampaignCost(campaignId),
-  });
+  const cost = useCampaignCost(campaignId);
   const costs = useQuery({ queryKey: ["credit_costs"], queryFn: () => creditService.getCosts() });
+  const creditBal = useQuery({ queryKey: ["credit_balance"], queryFn: () => walletService.getCreditBalance() });
 
   const [quote, setQuote] = useState("");
   const [message, setMessage] = useState("");
@@ -28,15 +28,16 @@ export const ApplySheet: React.FC<Props> = ({ campaignId, onClose, onApplied, on
   const [sending, setSending] = useState(false);
   const [need, setNeed] = useState<{ r: any; b: any } | null>(null);
 
-  const c = cost.data || {};
+  const c: any = cost.data || {};
   const k = costs.data || {};
-  const applyCost = toNum(pick(c, "credits_required", "required_credits", "credits", "cost", "application_cost"));
+  const applyCost = toNum(c.cost, 0);
   const balance = toNum(
-    pick(c, "credits_balance", "current_balance", "balance") ?? pick(k, "credits_balance", "current_balance", "balance")
+    pick(k, "credits_balance", "current_balance", "balance") ?? pick(creditBal.data, "balance", "credits_balance", "credit_balance")
   );
-  const boostMin = toNum(pick(k, "boost.min", "boost_min", "boost_credits_min", "costs.boost.min", "boost.min_credits"), 0);
-  const boostMax = toNum(pick(k, "boost.max", "boost_max", "boost_credits_max", "costs.boost.max", "boost.max_credits"), 0);
-  const hasBoost = boostMax > 0;
+  const boostCfg = getBoostAction(k);
+  const boostMin = boostCfg.min;
+  const boostMax = boostCfg.max;
+  const hasBoost = boostCfg.enabled && boostMax > 0;
   const total = applyCost + boost;
   const after = balance - total;
   const tooLow = !cost.isLoading && after < 0;

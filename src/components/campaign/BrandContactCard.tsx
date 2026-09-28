@@ -31,7 +31,7 @@ export const BrandContactCard: React.FC<Props> = ({ campaignId, onOpenWallet }) 
     setNeed(null);
     try {
       const res: any = await creditService.viewBrandContact(campaignId);
-      setContact(res.contact || res.brand || res);
+      setContact(res?.contact_info || res?.contact || res?.brand || res);
       qc.invalidateQueries({ queryKey: ["brand_contact_status", campaignId] });
       invalidateCreditData();
     } catch (err: any) {

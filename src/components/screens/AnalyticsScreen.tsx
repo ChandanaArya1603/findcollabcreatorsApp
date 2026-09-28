@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { socialService } from "@/services/socialService";
 import { qk } from "@/lib/queryKeys";
 import { flattenStats, findStat } from "@/lib/statsFlatten";
+import { instagramStats, youtubeStats } from "@/lib/socialStats";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
@@ -29,9 +30,11 @@ const AnalyticsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const yt = useQuery({ queryKey: qk.youtubeData, queryFn: () => socialService.getYoutubeData(), enabled: tab === "youtube" });
   const li = useQuery({ queryKey: ["linkedin_data"], queryFn: () => socialService.getLinkedinData(), enabled: tab === "linkedin" });
   const q = tab === "instagram" ? ig : tab === "youtube" ? yt : li;
-  const rows = q.data ? flattenStats(q.data) : [];
-  const followers = findStat(rows, /follower|subscriber|connection/i);
-  const engagement = findStat(rows, /engagement/i);
+  const clean = (r: [string, string][]) => r.filter(([k]) => !/\b(id|ids|fbid|strong id|id acc|num results|youtube id)\b/i.test(k) && !/id$/i.test(k.replace(/\s/g, "")));
+  const mapped = q.data ? (tab === "instagram" ? instagramStats(q.data) : tab === "youtube" ? youtubeStats(q.data) : null) : null;
+  const rows = mapped ? mapped.rows : q.data ? clean(flattenStats(q.data)) : [];
+  const followers = mapped ? mapped.followers : findStat(rows, /follower|subscriber|connection/i);
+  const engagement = mapped ? mapped.engagement : findStat(rows, /engagement/i);
 
   const [username, setUsername] = useState("");
   const [calc, setCalc] = useState<[string, string][] | null>(null);
@@ -93,7 +96,7 @@ const AnalyticsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
           {calc && (
             <div className="mt-3">
-              {calc.length ? <StatGrid rows={calc} /> : <p className="text-xs text-muted-foreground">No metrics returned</p>}
+              {calc.length ? <StatGrid rows={clean(calc)} /> : <p className="text-xs text-muted-foreground">No metrics returned</p>}
             </div>
           )}
         </Card>

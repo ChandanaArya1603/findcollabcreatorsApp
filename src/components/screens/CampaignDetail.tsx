@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { ApplySheet } from "../campaign/ApplySheet";
 import { BrandContactCard } from "../campaign/BrandContactCard";
 import type { Campaign } from "./CampaignsScreen";
-import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
+import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
+import { useCampaignCost } from "@/hooks/useCampaignCost";
 
 interface Props {
   campaign: Campaign;
@@ -55,9 +56,10 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
   const title = d.project_title || c.title;
   const brand = d.company_name || c.brand;
   const brandName = d.brand_name || brand;
-  const description = d.briefs || d.description || c.desc;
+  const description = stripHtml(d.briefs || d.description || c.desc || "");
   const budget = detail ? formatCampaignBudget(detail) : c.budget;
-  const credits = d.credits || c.credits || 10;
+  const costQ = useCampaignCost(c.id);
+  const credits = costQ.data?.cost ?? "—";
   const campaignType = formatCampaignType(d.campaign_type || c.type);
   const country = d.country || "";
   const views = d.campaignViews || c.views || 0;
@@ -129,7 +131,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
   const platform = platforms.length > 0 ? platforms.join(", ") : c.plat || "Instagram";
 
   // About brand info
-  const companyEmail = d.company_email || "";
 
   // Campaign images
   const campaignImages: string[] = d.campaignImages || [];
@@ -337,11 +338,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
                   <p className="text-[11px] text-text-mid">{brand}</p>
                 </div>
               </div>
-              {companyEmail && (
-                <p className="text-xs text-text-mid">
-                  ✉ {companyEmail}
-                </p>
-              )}
               {country && (
                 <p className="text-xs text-text-mid mt-1">
                   📍 {country}
