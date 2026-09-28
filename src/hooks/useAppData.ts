@@ -73,15 +73,26 @@ export const invalidateProfileData = () => {
   queryClient.invalidateQueries({ queryKey: qk.youtubeData });
 };
 
+/** Refresh every credit-related query (header balance, wallet, costs). */
+export const invalidateCreditData = () => {
+  queryClient.invalidateQueries({ queryKey: qk.creditBalance });
+  queryClient.invalidateQueries({ queryKey: ["credit_dashboard"] });
+  queryClient.invalidateQueries({ queryKey: ["credit_costs"] });
+  queryClient.invalidateQueries({ queryKey: ["credit_transactions"] });
+  queryClient.invalidateQueries({ queryKey: ["credit_history"] });
+  queryClient.invalidateQueries({ queryKey: ["daily_pitch_status"] });
+};
+
 export const invalidateCampaignData = () => {
   queryClient.invalidateQueries({ queryKey: qk.myCampaigns });
   queryClient.invalidateQueries({ queryKey: ["campaigns"] });
   queryClient.invalidateQueries({ queryKey: qk.dashboardStats });
-  queryClient.invalidateQueries({ queryKey: qk.creditBalance });
+  queryClient.invalidateQueries({ queryKey: ["campaign_application_status"] });
+  queryClient.invalidateQueries({ queryKey: ["campaign_credit_cost"] });
+  invalidateCreditData();
 };
 
 export const invalidateWalletData = () => {
   queryClient.invalidateQueries({ queryKey: qk.walletBalance });
-  queryClient.invalidateQueries({ queryKey: qk.creditBalance });
-  queryClient.invalidateQueries({ queryKey: ["credit_transactions"] });
+  invalidateCreditData();
 };
