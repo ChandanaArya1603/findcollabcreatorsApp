@@ -76,11 +76,14 @@ class ApiClient {
     const text = await res.text();
 
     const jsonStart = text.indexOf("{");
-    if (jsonStart === -1) {
-      throw new Error(`Request failed (${res.status})`);
+    let json: any;
+    try {
+      if (jsonStart === -1) throw new Error("non-json");
+      json = sanitize(JSON.parse(text.slice(jsonStart)));
+    } catch {
+      // Server returned non-JSON (e.g. an HTML error page) — never surface raw parser text.
+      throw new Error("The server couldn't save this right now. Please try again later.");
     }
-
-    const json = sanitize(JSON.parse(text.slice(jsonStart)));
 
     if (!res.ok || json?.data?.status === false) {
       const msg = json?.data?.message || `Request failed (${res.status})`;
