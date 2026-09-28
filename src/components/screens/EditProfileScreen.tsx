@@ -111,7 +111,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const selected = Array.isArray(mk.userCategories)
       ? mk.userCategories.map((c: any) => Number(c.category_id ?? c.id)).filter((id: number) => id > 0)
       : [];
-    setCategoryIds(selected);
+    if (selected.length) setCategoryIds(selected);
 
     const uc = mk.userCommercials || {};
     const map = (raw: any, platform: Platform): Commercial[] => parse(raw)
@@ -132,6 +132,15 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
       link: p.collaboration_link || p.link || "",
     })) : []);
   }, [mediaKit]);
+
+  useEffect(() => {
+    if (!mediaKit || !categoryOpts.length || categoryIds.length) return;
+    const existing = Array.isArray((mediaKit as any).userCategories) ? (mediaKit as any).userCategories : [];
+    const ids = existing
+      .map((category: any) => matchId(categoryOpts, category.Interested_in_industry || category.name || category.category_name))
+      .filter((id: number) => id > 0);
+    if (ids.length) setCategoryIds(ids);
+  }, [mediaKit, categoryOpts, categoryIds.length]);
 
   useEffect(() => {
     if (!mediaKit || !countryOpts.length || country) return;
