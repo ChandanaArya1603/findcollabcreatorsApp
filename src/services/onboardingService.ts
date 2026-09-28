@@ -1,19 +1,27 @@
 import { api } from "@/lib/api";
 
+export interface SocialPayload {
+  instagram_username: string; youtube_username: string; linkedin_username: string;
+  primary_account: string; content_website?: string;
+}
+
 export const onboardingService = {
-  updateSocialAccounts: (d: { instagram_username: string; youtube_username: string; linkedin_username: string; primary_account: string }) =>
+  updateSocialAccounts: (d: SocialPayload) =>
     api.postForm("/update_social_accounts", d),
 
   updateCommercials: (d: {
-    barter_campaign: "yes" | "no";
-    instagram_details: string;
-    youtube_details: string;
-    linkedin_details: string;
-    content_writing_details: string;
+    barter_campaign?: "yes" | "no";
+    instagram_details?: string;
+    youtube_details?: string;
+    linkedin_details?: string;
+    content_writing_details?: string;
   }) => api.postForm("/update_commercials", d),
 
   addProject: (brand_name: string, collaboration_link: string) =>
     api.postForm("/add_project", { brand_name, collaboration_link }),
+
+  updateProject: (project_id: number | string, brand_name: string, collaboration_link: string) =>
+    api.postForm("/update_project", { project_id, brand_name, collaboration_link }),
 
   deleteProject: (project_id: number | string) =>
     api.postForm("/delete_project", { project_id }),
