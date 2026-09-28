@@ -118,6 +118,8 @@ const Sheet: React.FC<{ onClose: () => void; children: React.ReactNode }> = ({ o
 const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   const qc = useQueryClient();
   const [view, setView] = useState<"discover" | "mine">("discover");
+  const [indSheet, setIndSheet] = useState(false);
+  const [indSearch, setIndSearch] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [industryId, setIndustryId] = useState<number | null>(null);
@@ -279,6 +281,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   };
 
   const industries: any[] = industriesQ.data?.industries || [];
+  const sortedIndustries = [...industries].sort((a, b) => Number(b.startup_count || 0) - Number(a.startup_count || 0));
   const startups: Startup[] = (list.data?.pages || []).flatMap((p: any) =>
     (p?.startups || p?.result || []).map(normalizeStartup)
   );
@@ -406,19 +409,57 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
                   industryId === null ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border")}>
                 All Industries
               </button>
-              {industries.map((ind) => {
-                const count = Number(ind.startup_count || 0);
-                const active = industryId === Number(ind.id);
-                return (
-                  <button key={ind.id} disabled={count === 0} onClick={() => setIndustryId(Number(ind.id))}
-                    className={cn("px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap",
-                      active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border",
-                      count === 0 && "opacity-40 cursor-not-allowed")}>
-                    {ind.name} ({count})
-                  </button>
-                );
-              })}
+              {(() => {
+                const top = sortedIndustries.slice(0, 12);
+                const sel = sortedIndustries.find((i) => Number(i.id) === industryId);
+                const shown = sel && !top.includes(sel) ? [sel, ...top] : top;
+                return shown.map((ind) => {
+                  const count = Number(ind.startup_count || 0);
+                  const active = industryId === Number(ind.id);
+                  return (
+                    <button key={ind.id} disabled={count === 0} onClick={() => setIndustryId(Number(ind.id))}
+                      className={cn("px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap",
+                        active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border",
+                        count === 0 && "opacity-40 cursor-not-allowed")}>
+                      {ind.name} ({count})
+                    </button>
+                  );
+                });
+              })()}
+              {sortedIndustries.length > 12 && (
+                <button onClick={() => { setIndSearch(""); setIndSheet(true); }}
+                  className="px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-primary-light text-primary">
+                  More ▾
+                </button>
+              )}
             </div>
+            {indSheet && (
+              <div className="fixed inset-0 z-[200]">
+                <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setIndSheet(false)} />
+                <div className="absolute inset-x-0 bottom-0 bg-card rounded-t-[22px] p-4 max-h-[80vh] flex flex-col">
+                  <div className="w-9 h-1 rounded-full bg-border mx-auto mb-3" />
+                  <p className="text-base font-black text-foreground mb-2">All industries</p>
+                  <input value={indSearch} onChange={(e) => setIndSearch(e.target.value)} placeholder="Search industries…"
+                    className="w-full px-3 py-2.5 mb-2 rounded-xl border-[1.5px] border-border text-sm bg-card text-foreground outline-none focus:border-primary" />
+                  <div className="flex-1 overflow-y-auto">
+                    {sortedIndustries
+                      .filter((i) => String(i.name || "").toLowerCase().includes(indSearch.trim().toLowerCase()))
+                      .map((ind) => {
+                        const count = Number(ind.startup_count || 0);
+                        return (
+                          <button key={ind.id} disabled={count === 0}
+                            onClick={() => { setIndustryId(Number(ind.id)); setIndSheet(false); }}
+                            className={cn("w-full flex justify-between py-2.5 border-b border-border text-sm text-left",
+                              industryId === Number(ind.id) ? "text-primary font-bold" : "text-foreground",
+                              count === 0 && "opacity-40")}>
+                            <span>{ind.name}</span><span className="text-muted-foreground text-xs">{count}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between mt-2">
               <p className="text-xs text-muted-foreground">{num(total)} startups</p>
               <label className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
