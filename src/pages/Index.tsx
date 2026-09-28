@@ -18,7 +18,6 @@ import CheckInboxScreen from "@/components/screens/auth/CheckInboxScreen";
 import ProfileWizard from "@/components/onboarding/ProfileWizard";
 import { useProfileCompletion, type StepKey } from "@/hooks/useProfileCompletion";
 import ForgotPasswordScreen from "@/components/screens/auth/ForgotPasswordScreen";
-import AnalyticsScreen from "@/components/screens/AnalyticsScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 import { CreditBar } from "@/components/findcollab/CreditPill";
 
