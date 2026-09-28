@@ -109,7 +109,11 @@ const Index = () => {
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden relative">
-      <CreditBar onClick={() => handleTabChange("wallet")} onProfileClick={() => { setChatOpen(false); setStack([{ screen: "profile" }]); }} />
+      <CreditBar
+        onClick={() => handleTabChange("wallet")}
+        onProfileClick={() => { setChatOpen(false); setStack([{ screen: "profile" }]); }}
+        showProfile={tab !== "home" || Boolean(current)}
+      />
       <div className="flex-1 overflow-hidden flex flex-col relative min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">{renderMain()}</div>
         {current && (

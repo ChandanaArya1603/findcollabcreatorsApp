@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar } from "./Avatar";
 
 /** Slim bar showing the credit balance, used above every main tab. */
-export const CreditBar: React.FC<{ onClick?: () => void; onProfileClick?: () => void }> = ({ onClick, onProfileClick }) => {
+export const CreditBar: React.FC<{ onClick?: () => void; onProfileClick?: () => void; showProfile?: boolean }> = ({ onClick, onProfileClick, showProfile = true }) => {
   const { data } = useCreditBalance();
   const { data: mediaKit } = useMediaKit();
   const { user, userDetail } = useAuth();
@@ -21,9 +21,11 @@ export const CreditBar: React.FC<{ onClick?: () => void; onProfileClick?: () => 
       >
         🪙 {bal ?? "—"} credits
       </button>
-      <button onClick={onProfileClick} aria-label="Open profile" className="rounded-[10px]">
-        <Avatar letter={name.charAt(0).toUpperCase()} src={photo || undefined} size={32} />
-      </button>
+      {showProfile && (
+        <button onClick={onProfileClick} aria-label="Open profile" className="rounded-[10px]">
+          <Avatar letter={name.charAt(0).toUpperCase()} src={photo || undefined} size={32} />
+        </button>
+      )}
     </div>
   );
 };
