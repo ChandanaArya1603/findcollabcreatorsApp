@@ -66,6 +66,13 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [state, setState] = useState<number | "">("");
   const [city, setCity] = useState<number | "">("");
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
+  const [languageIds, setLanguageIds] = useState<number[]>([]);
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [address, setAddress] = useState("");
+  const [uploadedPhoto, setUploadedPhoto] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
@@ -97,19 +104,31 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   });
   const cityOpts = useMemo(() => toOptions(cityQ.data), [cityQ.data]);
   const categoryOpts = useMemo(() => toOptions(categoryCatalogue), [categoryCatalogue]);
+  const languageQ = useQuery({ queryKey: ["languages"], queryFn: utilityService.getLanguages, staleTime: 36e5 });
+  const languageOpts = useMemo(() => toOptions(languageQ.data), [languageQ.data]);
 
   useEffect(() => {
     const mk: any = mediaKit;
     if (!mk) return;
     const ud = mk.userDetail || {};
-    setBio(ud.bio || ud.introduction || "");
+    setBio(clean(ud.introduction));
+    const fullName = clean(ud.firstname) || [clean(mk.user?.fname), clean(mk.user?.lname)].filter(Boolean).join(" ");
+    if (fullName) setName(fullName);
+    setDob(clean(ud.dob).slice(0, 10));
+    const g = clean(ud.gender).toLowerCase();
+    setGender(g ? g[0].toUpperCase() + g.slice(1) : "");
+    setAddress(clean(ud.address));
+    const langs = Array.isArray(mk.userLanguages)
+      ? mk.userLanguages.map((l: any) => Number(l.language_id ?? l.id)).filter((id: number) => id > 0)
+      : [];
+    setLanguageIds(langs);
     setInstagram(handleFrom(mk.instagramData?.insta_handle) || handleFrom(ud.insta_url) || handleFrom(ud.instagram_user_name));
     setYoutube(handleFrom(ud.youtube_url) || handleFrom(ud.youtube_user_name));
     setLinkedin(handleFrom(ud.linkedin_url) || handleFrom(ud.linkedin_user_name));
     if (["instagram", "youtube", "linkedin"].includes(ud.primary_account)) setPrimarySocial(ud.primary_account);
 
     const selected = Array.isArray(mk.userCategories)
-      ? mk.userCategories.map((c: any) => Number(c.category_id ?? c.id)).filter((id: number) => id > 0)
+      ? mk.userCategories.map((c: any) => Number(c.id ?? c.category_id)).filter((id: number) => id > 0)
       : [];
     if (selected.length) setCategoryIds(selected);
 
@@ -199,15 +218,76 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
   const saveBasic = async () => {
     if (!name.trim()) return toast.error("Enter your name");
+    if (!dob) return toast.error("Select your date of birth");
+    if (!gender) return toast.error("Select your gender");
     if (!country || !state || !city) return toast.error("Select your country, state and city");
     if (!categoryIds.length) return toast.error("Pick at least one category");
-    const [fname, ...rest] = name.trim().split(/\s+/);
-    await run(async () => {
-      await profileService.updateProfile({
-        fname, lname: rest.join(" "), bio, mobile: userDetail?.mobile || "", country, state, city,
-      });
-      await profileService.updateCategories(categoryIds);
-    }, "Basic information saved");
+    if (!languageIds.length) return toast.error("Pick at least one language");
+    setSaving(true);
+    const failed: string[] = [];
+    const attempt = async (label: string, work: () => Promise<any>) => {
+      try { await work(); } catch (err: any) {
+        failed.push(`${label}: ${isUnknownMethod(err) ? "not available yet" : err?.message || "failed"}`);
+      }
+    };
+    await attempt("Profile details", () => profileService.updateProfile(mediaKit, {
+      firstname: name, introduction: bio, dob, gender, address, country, state, city,
+    }));
+    await attempt("Categories", () => profileService.updateCategories(categoryIds));
+    await attempt("Languages", () => profileService.updateLanguages(languageIds));
+    await refresh().catch(() => undefined);
+    setSaving(false);
+    if (failed.length) {
+      toast.error(`Couldn't save — ${failed.join(" · ")}`);
+      return;
+    }
+    toast.success("Saved");
+    onBack();
+  };
+
+  const toggleLanguage = (id: number) =>
+    setLanguageIds((cur) => cur.includes(id) ? cur.filter((v) => v !== id) : [...cur, id]);
+
+  const compress = (file: File): Promise<File> => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, 800 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => blob ? resolve(new File([blob], "profile.jpg", { type: "image/jpeg" })) : reject(new Error("Could not process image")), "image/jpeg", 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read image")); };
+    img.src = url;
+  });
+
+  const choosePhoto = async (file?: File) => {
+    if (photoInputRef.current) photoInputRef.current.value = "";
+    if (!file) return;
+    if (!/^image\/(jpe?g|png)$/i.test(file.type)) return toast.error("Choose a JPG or PNG image");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Photo must be under 2 MB");
+    setUploadingPhoto(true);
+    const localPreview = URL.createObjectURL(file);
+    setUploadedPhoto(localPreview);
+    try {
+      const res: any = await profileService.uploadProfileImage(await compress(file));
+      const url = [res?.image_url, res?.url, res?.profile_image, res?.img_name, res?.data?.image_url, res?.data?.img_name]
+        .find((v) => typeof v === "string" && v.trim());
+      if (url) {
+        setUploadedPhoto(url);
+        qc.setQueryData(qk.mediaKit, (old: any) => old ? { ...old, userDetail: { ...(old.userDetail || {}), img_name: url } } : old);
+      }
+      toast.success("Profile photo updated");
+      await refresh().catch(() => undefined);
+    } catch (err: any) {
+      setUploadedPhoto("");
+      toast.error(err?.message || "Could not upload photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const saveSocial = () => {
@@ -271,7 +351,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     });
   };
 
-  const photo = getProfilePhoto(mediaKit, user, userDetail);
+  const photo = (uploadedPhoto && !uploadedPhoto.startsWith("blob:") ? uploadedPhoto : "") || getProfilePhoto(mediaKit, user, userDetail) || uploadedPhoto;
   const chip = (selected: boolean) => `px-3 py-2 rounded-xl text-xs font-bold ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-text-mid"}`;
   const sectionSave = activeTab === tabs[0] ? saveBasic : activeTab === tabs[1] ? saveSocial : activeTab === tabs[2] ? saveCommercials : undefined;
 
@@ -279,9 +359,15 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     <div className="flex-1 overflow-y-auto bg-background pb-5">
       <BackHeader title="Edit Profile" onBack={onBack} />
       <div className="flex justify-center pt-3 pb-2">
-        <div className="w-20 h-20 rounded-full bg-primary overflow-hidden flex items-center justify-center">
-          {photo ? <img src={photo} alt="Profile" className="w-full h-full object-cover" /> : <span className="text-primary-foreground text-[32px] font-black">{(user?.fname || "D").charAt(0)}</span>}
-        </div>
+        <button type="button" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto} aria-label="Change profile photo" className="relative">
+          <div className="w-20 h-20 rounded-full bg-primary overflow-hidden flex items-center justify-center">
+            {photo ? <img src={photo} alt="Profile" className={`w-full h-full object-cover ${uploadingPhoto ? "opacity-60" : ""}`} /> : <span className="text-primary-foreground text-[32px] font-black">{(user?.fname || "D").charAt(0)}</span>}
+          </div>
+          <span className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-primary border-2 border-card flex items-center justify-center">
+            <Icon name="camera" size={13} className="text-primary-foreground" />
+          </span>
+        </button>
+        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => choosePhoto(e.target.files?.[0])} />
       </div>
 
       <div className="px-4 pb-3">
@@ -301,6 +387,11 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
             <p className="text-sm font-extrabold text-foreground">Basic information</p>
             <AppInput label="Full name" value={name} onChange={setName} placeholder="Your name" />
             <AppInput label="Bio" value={bio} onChange={setBio} placeholder="Short bio" multiline />
+            <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Date of birth</label>
+            <input type="date" value={dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDob(e.target.value)} className={selectCls} />
+            <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Gender</label>
+            <div className="flex gap-2">{["Female", "Male", "Other"].map((g) => <button key={g} type="button" onClick={() => setGender(g)} className={`${chip(gender === g)} flex-1`}>{g}</button>)}</div>
+            <AppInput label="Address (optional)" value={address} onChange={setAddress} placeholder="Street, area" />
             <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Location</label>
             <select value={country} onChange={(e) => { setCountry(Number(e.target.value) || ""); setState(""); setCity(""); }} className={selectCls}>
               <option value="">{countryQ.isFetching ? "Loading countries…" : "Country"}</option>
@@ -323,6 +414,15 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
             {categoryOpts.length ? <div className="flex flex-wrap gap-2">{categoryOpts.map((option) => (
               <button key={option.id} type="button" onClick={() => toggleCategory(option.id)} className={chip(categoryIds.includes(option.id))}>{option.name}</button>
             ))}</div> : <p className="text-xs text-text-mid">{categoryCatalogue ? "No categories available" : "Loading categories…"}</p>}
+          </Card>
+          <Card className="!p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-extrabold text-foreground">Languages</p>
+              <span className="text-[11px] text-text-mid">{languageIds.length} selected</span>
+            </div>
+            {languageOpts.length ? <div className="flex flex-wrap gap-2">{languageOpts.map((option) => (
+              <button key={option.id} type="button" onClick={() => toggleLanguage(option.id)} className={chip(languageIds.includes(option.id))}>{option.name}</button>
+            ))}</div> : <p className="text-xs text-text-mid">{languageQ.data ? "No languages available" : "Loading languages…"}</p>}
           </Card>
         </>}
 
