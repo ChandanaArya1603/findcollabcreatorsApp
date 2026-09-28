@@ -18,7 +18,6 @@ import CheckInboxScreen from "@/components/screens/auth/CheckInboxScreen";
 import ProfileWizard from "@/components/onboarding/ProfileWizard";
 import { useProfileCompletion, type StepKey } from "@/hooks/useProfileCompletion";
 import ForgotPasswordScreen from "@/components/screens/auth/ForgotPasswordScreen";
-import AnalyticsScreen from "@/components/screens/AnalyticsScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 import { CreditBar } from "@/components/findcollab/CreditPill";
 
@@ -97,7 +96,6 @@ const Index = () => {
       case "startups": return <StartupsScreen onBack={pop} onOpenWallet={() => handleTabChange("wallet")} />;
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
-      case "analytics": return <AnalyticsScreen onBack={pop} />;
       case "editprofile": return <EditProfileScreen onBack={pop} />;
       case "profile": return <ProfileScreen push={push} />;
       default: return null;
