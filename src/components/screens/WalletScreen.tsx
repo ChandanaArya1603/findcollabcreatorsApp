@@ -16,6 +16,8 @@ import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
+import WithdrawSheet, { readKyc } from "../wallet/WithdrawSheet";
+import { profileService } from "@/services/profileService";
 
 interface Transaction {
   date: string;
@@ -45,6 +47,23 @@ const WalletScreen: React.FC = () => {
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const { data: balRes } = useWalletBalance();
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const kycQ = useQuery({ queryKey: ["kyc_details"], queryFn: () => profileService.getKycDetails(), retry: false });
+  const kycInfo = readKyc(kycQ.data);
+  const withdrawals = useInfiniteQuery({
+    queryKey: ["withdrawal_history"],
+    initialPageParam: 1,
+    enabled: tab === "withdrawals",
+    queryFn: ({ pageParam }) => walletService.getTransactions(pageParam as number, 10),
+    getNextPageParam: (last: any, all) => {
+      const rows = last?.transactions || last?.data || last?.result || [];
+      return Array.isArray(rows) && rows.length >= 10 ? all.length + 1 : undefined;
+    },
+  });
+  const wRows: any[] = (withdrawals.data?.pages || []).flatMap((pg: any) => {
+    const r = pg?.transactions || pg?.data || pg?.result || [];
+    return Array.isArray(r) ? r : [];
+  });
   const { data: creditRes } = useCreditBalance();
   const { data: dash } = useQuery({ queryKey: ["credit_dashboard"], queryFn: () => creditService.getDashboard() });
   const { data: costsRes } = useQuery({ queryKey: ["credit_costs"], queryFn: () => creditService.getCosts() });
@@ -215,20 +234,20 @@ const WalletScreen: React.FC = () => {
           <p className="text-[11px] text-primary-foreground/50 uppercase tracking-widest mb-1">Available Balance</p>
           <p className="text-4xl font-black text-primary-foreground mb-1">{displayBalance}</p>
           <p className="text-[11px] text-primary-foreground/40 mb-4">Updated from your account</p>
-          <AppButton icon="arrowUp" className="!py-2.5 !px-4 !text-xs !rounded-[10px]">Withdraw</AppButton>
+          <AppButton icon="arrowUp" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => setWithdrawOpen(true)}>Withdraw</AppButton>
         </div>
         <div className="grid grid-cols-1 gap-2.5">
           <div className="bg-success-light rounded-[14px] p-3">
             <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">KYC Status</p>
-            <p className="text-base font-black text-success mt-1 mb-0.5">Verified ✓</p>
-            <p className="text-[10px] text-text-mid">Bank connected</p>
+            <p className={`text-base font-black mt-1 mb-0.5 ${kycInfo.verified ? "text-success" : "text-warning"}`}>{kycQ.isLoading ? "—" : kycInfo.verified ? "Verified ✓" : "Not verified"}</p>
+            <p className="text-[10px] text-text-mid">{kycInfo.methods.length ? `${kycInfo.methods.map((m) => m.label).join(", ")} connected` : "No payout method yet"}</p>
           </div>
         </div>
       </div>
 
       <div className="px-4 pt-3.5">
         <div className="flex gap-2 mb-3.5">
-          {[["txns", "Credit history"], ["credits", "Costs"], ["buy", "Buy Credits"]].map(([id, label]) => (
+          {[["txns", "Credit history"], ["withdrawals", "Withdrawals"], ["credits", "Costs"], ["buy", "Buy Credits"]].map(([id, label]) => (
             <Pill key={id} active={tab === id} onClick={() => setTab(id)}>{label}</Pill>
           ))}
         </div>
@@ -258,6 +277,32 @@ const WalletScreen: React.FC = () => {
             {history.hasNextPage && (
               <AppButton variant="outline" full disabled={history.isFetchingNextPage} onClick={() => history.fetchNextPage()}>
                 {history.isFetchingNextPage ? "Loading…" : "Load more"}
+              </AppButton>
+            )}
+          </div>
+        )}
+
+        {tab === "withdrawals" && (
+          <div className="flex flex-col gap-2.5">
+            <p className="text-sm font-extrabold text-foreground">Withdrawal history</p>
+            {withdrawals.isLoading && <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>}
+            {!withdrawals.isLoading && wRows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No withdrawals yet</p>}
+            {wRows.map((w, i) => {
+              const st = String(w.status ?? "").toLowerCase();
+              return (
+                <Card key={w.id ?? w.transaction_id ?? i} className="!p-3.5 flex justify-between items-center gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">₹{Number(w.amount ?? w.withdrawAmount ?? 0).toLocaleString()}</p>
+                    <p className="text-[10px] text-text-mid capitalize">{String(w.method ?? w.withdrawMethod ?? w.payment_method ?? "—")}</p>
+                    <p className="text-[10px] text-text-light">{w.date || w.created_at || "—"}</p>
+                  </div>
+                  <Badge color={/(paid|success|complete|approved)/.test(st) ? "green" : /(reject|fail|cancel)/.test(st) ? "red" : "amber"}>{w.status || "Pending"}</Badge>
+                </Card>
+              );
+            })}
+            {withdrawals.hasNextPage && (
+              <AppButton variant="outline" full disabled={withdrawals.isFetchingNextPage} onClick={() => withdrawals.fetchNextPage()}>
+                {withdrawals.isFetchingNextPage ? "Loading…" : "Load more"}
               </AppButton>
             )}
           </div>
