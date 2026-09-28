@@ -1,6 +1,6 @@
 const BASE_URL = "https://findcollab.com/api";
 
-const SECRET_KEYS = new Set(["password", "password_reset_token", "mailverificationcode", "passwordflag", "fbid", "partnerid"]);
+const SECRET_KEYS = new Set(["password", "password_reset_token", "mailverificationcode", "passwordflag", "fbid", "partnerid", "sender_mob_no", "sender_email"]);
 
 /** Deep-remove secret fields from any API payload before it reaches the app or storage. */
 export const sanitize = <T = any>(value: T): T => {

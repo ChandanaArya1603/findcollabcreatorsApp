@@ -1,4 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { isUnknownMethod } from "@/lib/listParse";
+
+const LOCAL_THEME_KEY = "fc_mediakit_theme";
+const readLocalTheme = (): { theme?: string; banner?: string } => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_THEME_KEY) || "{}") || {}; } catch { return {}; }
+};
 import { useAuth } from "@/contexts/AuthContext";
 import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
@@ -143,6 +149,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [savedBanner, setSavedBanner] = useState("bauhaus");
   const [savingTheme, setSavingTheme] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const kitRef = useRef<HTMLDivElement>(null);
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const { data: mediaKitRes } = useMediaKit();
   const { data: ytDataRes } = useYoutubeData();
@@ -152,8 +159,9 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
     const res: any = mediaKitRes;
     const ytData: any = ytDataRes;
     if (res) {
-      const currentTheme = String(res.theme || res.mediaKitTheme || res.userDetail?.media_kit_theme || "desi");
-      const currentBanner = String(res.banner || res.mediaKitBanner || res.userDetail?.media_kit_banner || "bauhaus");
+      const local = readLocalTheme();
+      const currentTheme = String(local.theme || res.userDetail?.media_kit_theme || res.theme || res.mediaKitTheme || "desi");
+      const currentBanner = String(local.banner || res.userDetail?.media_kit_banner || res.banner || res.mediaKitBanner || "bauhaus");
       setTheme(currentTheme);
       setBanner(currentBanner);
       setSavedTheme(currentTheme);
@@ -387,6 +395,14 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       toast({ title: "Media kit updated", description: "Your theme and banner are now live" });
       setCustomizeOpen(false);
     } catch (error) {
+      if (isUnknownMethod(error)) {
+        try { localStorage.setItem(LOCAL_THEME_KEY, JSON.stringify({ theme, banner })); } catch { /* ignore */ }
+        setSavedTheme(theme);
+        setSavedBanner(banner);
+        setCustomizeOpen(false);
+        toast({ title: "Saved on this device", description: "Syncing to your web profile is coming soon" });
+        return;
+      }
       toast({ title: "Could not save", description: error instanceof Error ? error.message : "Please try again" });
     } finally {
       setSavingTheme(false);
@@ -396,10 +412,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const result: any = await profileService.getMediaKitDownload();
-      const url = result?.url || result?.download_url || result?.pdf_url || result?.data?.url;
-      if (!url) throw new Error("Download is not available yet");
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (!kitRef.current) throw new Error("Media kit is not ready yet");
+      const safeName = (displayName || "Creator").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Creator";
+      const { exportMediaKitPdf } = await import("@/lib/mediaKitPdf");
+      await exportMediaKitPdf(kitRef.current, `${safeName}-FindCollab-MediaKit.pdf`);
     } catch (error) {
       toast({ title: "Could not download", description: error instanceof Error ? error.message : "Please try again" });
     } finally {
@@ -408,8 +424,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background pb-6">
-      <BackHeader title="My Media Kit" onBack={onBack} right={
+    <div ref={kitRef} className="flex-1 overflow-y-auto bg-background pb-6">
+      <div data-html2canvas-ignore="true"><BackHeader title="My Media Kit" onBack={onBack} right={
         <div className="flex items-center gap-2">
           <AppButton variant="ghost" icon="edit" className="!h-9 !px-3 !py-0 !rounded-lg !text-xs" onClick={() => setCustomizeOpen((open) => !open)}>
             Style
@@ -418,10 +434,10 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             <span className="sr-only">Share</span>
           </AppButton>
         </div>
-      } />
+      } /></div>
 
       {customizeOpen && (
-        <section className="bg-card border-b border-border px-4 py-4">
+        <section data-html2canvas-ignore="true" className="bg-card border-b border-border px-4 py-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Choose your theme</p>
             <span className="text-[10px] font-bold text-primary">{selectedThemeLabel}</span>
@@ -621,9 +637,9 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         )}
       </section>
 
-      <div className="px-5 mt-8 grid grid-cols-2 gap-3">
+      <div data-html2canvas-ignore="true" className="px-5 mt-8 grid grid-cols-2 gap-3">
         <AppButton variant="outline" icon="share" full onClick={handleShare}>Share</AppButton>
-        <AppButton variant="primary" icon="arrowUp" full disabled={downloading} onClick={handleDownload}>{downloading ? "Preparing…" : "Download"}</AppButton>
+        <AppButton variant="primary" icon="arrowUp" full disabled={downloading} onClick={handleDownload}>{downloading ? "Preparing PDF…" : "Download"}</AppButton>
       </div>
     </div>
   );

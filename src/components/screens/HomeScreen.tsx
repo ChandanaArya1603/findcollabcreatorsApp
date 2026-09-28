@@ -71,11 +71,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
         { l: "Views", v: "—", sub: "", ic: "search", c: "text-warning" },
       ];
 
-  const profileViews = dashStats?.profileViews ?? { total: 0, directPercentage: 0 };
-
-  const bars = [140, 180, 200, 165, 210, 190, 220, 195, 240, 260, 230, 290];
-  const mx = Math.max(...bars);
-  const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+  const profileViews: any = dashStats?.profileViews ?? {};
+  const pvNum = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  const pvTotal = pvNum(profileViews.total);
+  const pvDirect = pvNum(profileViews.direct);
+  const pvExternal = pvNum(profileViews.external);
+  const directPct = Math.max(0, Math.min(100, pvNum(profileViews.directPercentage)));
+  const externalPct = Math.max(0, Math.min(100, pvNum(profileViews.externalPercentage) || (pvTotal ? 100 - directPct : 0)));
+  const monthly: { label: string; v: number }[] = Array.isArray(profileViews.monthly)
+    ? profileViews.monthly.map((m: any, i: number) => typeof m === "object" && m
+        ? { label: String(m.month ?? m.label ?? i + 1).slice(0, 3), v: pvNum(m.count ?? m.views ?? m.total ?? m.value) }
+        : { label: String(i + 1), v: pvNum(m) })
+    : [];
+  const mx = Math.max(1, ...monthly.map((m) => m.v));
 
   const actions = [
     { id: "campaigns", l: "Search", ic: "search" },
@@ -208,20 +216,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
           <div className="flex justify-between items-center mb-3.5">
             <div>
               <p className="text-sm font-extrabold text-foreground">Profile Views</p>
-              <p className="text-[11px] text-text-light mt-0.5">{profileViews.total?.toLocaleString() ?? "—"} total</p>
+              <p className="text-[11px] text-text-light mt-0.5">{dashStats?.profileViews ? pvTotal.toLocaleString() : "—"} total</p>
             </div>
-            <Badge color="green">↑ {profileViews.directPercentage ?? 0}% direct</Badge>
+            <Badge color="green">{directPct}% direct</Badge>
           </div>
-          <div className="h-[90px] flex items-end gap-[3px]">
-            {bars.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                <div
-                  className={`w-full rounded-t ${i === 11 ? "bg-primary" : "bg-primary/20"}`}
-                  style={{ height: `${(v / mx) * 78}px` }}
-                />
-                <span className="text-[7px] text-text-light">{months[i]}</span>
-              </div>
-            ))}
+          {monthly.length > 0 && (
+            <div className="h-[90px] flex items-end gap-[3px] mb-3">
+              {monthly.map((m, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                  <div className={`w-full rounded-t ${i === monthly.length - 1 ? "bg-primary" : "bg-primary/20"}`} style={{ height: `${(m.v / mx) * 78}px` }} />
+                  <span className="text-[7px] text-text-light">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="h-2.5 rounded-full bg-muted overflow-hidden flex">
+            <div className="h-full bg-primary" style={{ width: `${directPct}%` }} />
+            <div className="h-full bg-primary/30" style={{ width: `${externalPct}%` }} />
+          </div>
+          <div className="flex justify-between mt-2 text-[11px]">
+            <span className="flex items-center gap-1.5 text-text-mid"><span className="w-2 h-2 rounded-full bg-primary" />Direct <b className="text-foreground">{pvDirect.toLocaleString()}</b> · {directPct}%</span>
+            <span className="flex items-center gap-1.5 text-text-mid"><span className="w-2 h-2 rounded-full bg-primary/30" />External <b className="text-foreground">{pvExternal.toLocaleString()}</b> · {externalPct}%</span>
           </div>
         </Card>
 
