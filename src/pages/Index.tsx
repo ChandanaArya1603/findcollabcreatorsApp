@@ -97,7 +97,6 @@ const Index = () => {
       case "startups": return <StartupsScreen onBack={pop} onOpenWallet={() => handleTabChange("wallet")} />;
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
-      case "analytics": return <AnalyticsScreen onBack={pop} />;
       case "editprofile": return <EditProfileScreen onBack={pop} />;
       case "profile": return <ProfileScreen push={push} />;
       default: return null;
