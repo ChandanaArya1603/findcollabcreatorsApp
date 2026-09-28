@@ -19,12 +19,15 @@ export interface AppButtonProps {
   full?: boolean;
   className?: string;
   disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
-export const AppButton: React.FC<AppButtonProps> = ({
-  children, onClick, variant = "primary", icon, full, className, disabled,
-}) => (
+export const AppButton = React.forwardRef<HTMLButtonElement, AppButtonProps>(({
+  children, onClick, variant = "primary", icon, full, className, disabled, type = "button",
+}, ref) => (
   <button
+    ref={ref}
+    type={type}
     onClick={onClick}
     disabled={disabled}
     className={cn(
@@ -37,4 +40,6 @@ export const AppButton: React.FC<AppButtonProps> = ({
     {icon && <Icon name={icon} size={15} />}
     {children}
   </button>
-);
+));
+
+AppButton.displayName = "AppButton";
