@@ -78,7 +78,10 @@ class ApiClient {
         window.location.reload();
       }
 
-      throw new Error(msg);
+      const err: any = new Error(msg);
+      err.data = json?.data;
+      err.status = res.status;
+      throw err;
     }
 
     return json.data;
