@@ -142,7 +142,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
     return () => clearTimeout(t);
   }, [search]);
 
-  const credit = useCreditBalance();
   const stats = useQuery({ queryKey: K.stats, queryFn: () => startupService.getStats() });
   const industriesQ = useQuery({ queryKey: K.industries, queryFn: () => startupService.getIndustries() });
   const daily = useQuery({ queryKey: K.daily, queryFn: () => startupService.getDailyPitchStatus() });
