@@ -51,7 +51,7 @@ const CheckInboxScreen: React.FC<Props> = ({ email, notice, onSignIn }) => {
             <p className="text-xs font-semibold text-foreground bg-warning-light rounded-xl p-2.5">{notice}</p>
           )}
           <AppButton full onClick={openMail}>Open email app</AppButton>
-          <AppButton full onClick={() => onSignIn(email)}>I've verified, Sign in</AppButton>
+          <AppButton full variant="outline" onClick={() => onSignIn(email)}>I've verified, Sign in</AppButton>
           <button onClick={resend} disabled={cooldown > 0 || sending}
             className="w-full text-xs font-bold text-primary disabled:text-muted-foreground">
             {sending ? "Sending…" : cooldown > 0 ? `Resend link in ${cooldown}s` : "Resend link"}

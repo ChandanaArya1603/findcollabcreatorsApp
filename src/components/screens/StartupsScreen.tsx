@@ -203,7 +203,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   const freeUsed = truthy(d.free_pitch_used_today);
   const creditsRequired = Number(d.credits_required ?? (freeUsed ? d.credits_per_pitch ?? 10 : 0));
   const dailyBalance = d.credits_balance;
-  const headerBalance = credit.data?.balance ?? credit.data?.credits_balance ?? dailyBalance;
 
   const handleConnect = async () => {
     if (connecting) return;

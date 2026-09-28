@@ -270,7 +270,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
 
       <div className="p-4 bg-card border-t border-border flex gap-2">
         {step > 0 && (
-          <AppButton onClick={() => setStep(step - 1)} disabled={saving}>Back</AppButton>
+          <AppButton variant="outline" onClick={() => setStep(step - 1)} disabled={saving}>Back</AppButton>
         )}
         <div className="flex-1">
           <AppButton full disabled={saving}
