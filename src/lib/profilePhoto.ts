@@ -21,7 +21,11 @@ export const instagramPic = (mk: any): string => {
 };
 
 /** Profile photo: logged-in user object first, then Instagram profile picture. */
+export const isAbsUrl = (v: any) => ok(v) && /^https?:\/\//i.test(String(v).trim());
+
 export const getProfilePhoto = (mk: any, user?: any, userDetail?: any): string => {
+  const img = mk?.userDetail?.img_name ?? userDetail?.img_name;
+  if (isAbsUrl(img)) return String(img).trim();
   const cands = [
     user?.profile_image, user?.profile_pic, user?.image, user?.avatar,
     userDetail?.profile_image, userDetail?.profile_pic, userDetail?.image,

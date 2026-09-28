@@ -6,6 +6,7 @@ import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
+import { getProfilePhoto } from "@/lib/profilePhoto";
 
 interface Props {
   push: (screen: string, data?: any) => void;
@@ -27,6 +28,7 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
   const ud = mediaKit?.userDetail || userDetail || {};
   const displayName = user ? `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""}` : "User";
   const initial = (user?.fname || "D").charAt(0).toUpperCase();
+  const photo = getProfilePhoto(mediaKit, user, userDetail);
 
   // Parse Instagram from nested json_data
   let igUser: any = {};
@@ -100,8 +102,8 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
         <div className="h-20 gradient-hero" />
         <div className="px-4 pb-5">
           <div className="flex justify-between items-end mb-3">
-            <div className="w-[72px] h-[72px] rounded-[22px] bg-primary border-4 border-card -mt-9 flex items-center justify-center">
-              <span className="text-primary-foreground text-[28px] font-black">{initial}</span>
+            <div className="w-[72px] h-[72px] rounded-full bg-primary border-4 border-card -mt-9 flex items-center justify-center overflow-hidden">
+              {photo ? <img src={photo} alt={displayName} className="w-full h-full object-cover" /> : <span className="text-primary-foreground text-[28px] font-black">{initial}</span>}
             </div>
             <AppButton variant="ghost" icon="edit" className="!py-2 !px-3.5 !text-xs !rounded-[10px]" onClick={() => push("editprofile")}>Edit</AppButton>
           </div>

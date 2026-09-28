@@ -1,5 +1,20 @@
 const BASE_URL = "https://findcollab.com/api";
 
+const SECRET_KEYS = new Set(["password", "password_reset_token", "mailverificationcode", "passwordflag", "fbid", "partnerid"]);
+
+/** Deep-remove secret fields from any API payload before it reaches the app or storage. */
+export const sanitize = <T = any>(value: T): T => {
+  if (Array.isArray(value)) return value.map(sanitize) as any;
+  if (value && typeof value === "object" && !(value instanceof File) && !(value instanceof Blob)) {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value as any)) {
+      if (!SECRET_KEYS.has(k.toLowerCase())) out[k] = sanitize(v);
+    }
+    return out as T;
+  }
+  return value;
+};
+
 class ApiClient {
   private token: string | null = null;
 
@@ -65,7 +80,7 @@ class ApiClient {
       throw new Error(`Request failed (${res.status})`);
     }
 
-    const json = JSON.parse(text.slice(jsonStart));
+    const json = sanitize(JSON.parse(text.slice(jsonStart)));
 
     if (!res.ok || json?.data?.status === false) {
       const msg = json?.data?.message || `Request failed (${res.status})`;

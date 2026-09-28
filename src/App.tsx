@@ -6,7 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { queryClient, persister, getCacheBuster, CACHE_MAX_AGE } from "@/lib/queryClient";
+import { queryClient, persister, getCacheBuster, CACHE_MAX_AGE, shouldPersistQuery } from "@/lib/queryClient";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -15,7 +15,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 const App = () => (
   <PersistQueryClientProvider
     client={queryClient}
-    persistOptions={{ persister, maxAge: CACHE_MAX_AGE, buster: getCacheBuster() }}
+    persistOptions={{ persister, maxAge: CACHE_MAX_AGE, buster: getCacheBuster(), dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery as any } }}
   >
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>

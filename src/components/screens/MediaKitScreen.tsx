@@ -8,6 +8,7 @@ import { Icon } from "../findcollab/Icon";
 import { toast } from "@/hooks/use-toast";
 import { profileService } from "@/services/profileService";
 import { AppButton } from "../findcollab/AppButton";
+import { getProfilePhoto } from "@/lib/profilePhoto";
 
 interface Props {
   onBack: () => void;
@@ -484,8 +485,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
       <section className="px-5 -mt-14 relative z-10">
         <div className="w-28 h-28 rounded-full border-[5px] border-card shadow-lg overflow-hidden bg-primary flex items-center justify-center">
-          {platforms.instagram.profilePic ? (
-            <img src={proxyImg(platforms.instagram.profilePic)} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          {(getProfilePhoto(mediaKitRes, user) || platforms.instagram.profilePic) ? (
+            <img src={getProfilePhoto(mediaKitRes, user) || proxyImg(platforms.instagram.profilePic)} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
           ) : (
             <span className="text-primary-foreground text-4xl font-black">{(user?.fname || "D").charAt(0)}</span>
           )}
