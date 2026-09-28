@@ -6,6 +6,7 @@ import {
   useWalletBalance,
   useMediaKit,
   useNotifications,
+  useCreditBalance,
 } from "@/hooks/useAppData";
 import { Screen } from "../findcollab/Screen";
 import { Avatar } from "../findcollab/Avatar";
@@ -29,6 +30,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
   const { data: mediaKit } = useMediaKit();
   const { data: notifRes } = useNotifications(1);
   const [showNotifs, setShowNotifs] = useState(false);
+
+  const { data: creditRes } = useCreditBalance();
+  const credits: number | null = creditRes?.balance ?? creditRes?.credits_balance ?? null;
 
   const walletBalance: number | null = walletRes?.wallet_balance ?? null;
   const profileName: string = mediaKit?.fname || "";
@@ -143,7 +147,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
           <p className="text-foreground text-[22px] font-black mt-2 mb-1 leading-tight">
             Welcome back,<br />{displayName} 🚀
           </p>
-          <p className="text-muted-foreground text-xs mb-3.5">Your dashboard overview</p>
+          <p className="text-muted-foreground text-xs mb-3">Your dashboard overview</p>
+          <button
+            onClick={() => (switchTab ? switchTab("wallet") : push("wallet"))}
+            className="relative flex items-center gap-2.5 mb-4 mt-0.5 px-3.5 py-2 rounded-[14px] bg-primary-light border border-primary-mid cursor-pointer"
+            aria-label="Open wallet"
+          >
+            <span className="text-[30px] leading-none font-black text-primary">{credits ?? "—"}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-mid leading-tight text-left">
+              credits<br />available
+            </span>
+          </button>
           <div className="flex gap-2">
             <AppButton className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => switchTab ? switchTab("campaigns") : push("campaigns")}>Find Campaigns</AppButton>
             <AppButton variant="ghost" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => push("mediakit")}>Media Kit</AppButton>
