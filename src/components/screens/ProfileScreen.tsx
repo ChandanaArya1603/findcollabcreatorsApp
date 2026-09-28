@@ -18,7 +18,6 @@ const menu = [
   { label: "Messages", ic: "msg", id: "messages", badge: "" },
   { label: "Discover Startups", ic: "startup", id: "startups", badge: "" },
   { label: "Analytics & LinkedIn calculator", ic: "eye", id: "analytics", badge: "" },
-  { label: "Preview public profile", ic: "person", id: "publicprofile", badge: "" },
 ];
 
 const ProfileScreen: React.FC<Props> = ({ push }) => {
