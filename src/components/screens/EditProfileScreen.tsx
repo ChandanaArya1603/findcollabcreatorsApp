@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMediaKit, useCategories } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
 import { handleFrom, getProfilePhoto } from "@/lib/profilePhoto";
-import { isUnknownMethod, toOptions, type Opt } from "@/lib/listParse";
+import { toOptions, type Opt } from "@/lib/listParse";
+import { applyProfileResponse, applyCommercialsResponse, applyPhoto, refreshCompletion, reportSocialResult, validUrl } from "@/lib/profileSync";
 import { profileService } from "@/services/profileService";
 import { onboardingService } from "@/services/onboardingService";
 import { utilityService } from "@/services/utilityService";
@@ -133,6 +134,10 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const [youtube, setYoutube] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [primarySocial, setPrimarySocial] = useState<Platform>("instagram");
+  const [website, setWebsite] = useState("");
+  const [socialErrors, setSocialErrors] = useState<Record<string, string>>({});
+  const baseRef = useRef<Record<string, any>>({});
+  const [editingId, setEditingId] = useState<number | string | null>(null);
 
   const [barter, setBarter] = useState<"yes" | "no">("no");
   const [commercialPlatform, setCommercialPlatform] = useState<Platform>("instagram");
@@ -173,10 +178,16 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const g = clean(ud.gender).toLowerCase();
     setGender(g ? g[0].toUpperCase() + g.slice(1) : "");
     setAddress(clean(ud.address));
+    setWebsite(clean(ud.content_website));
+    Object.assign(baseRef.current, {
+      firstname: fullName, introduction: clean(ud.introduction), dob: clean(ud.dob).slice(0, 10),
+      gender: g ? g[0].toUpperCase() + g.slice(1) : "", address: clean(ud.address),
+    });
     const langs = Array.isArray(mk.userLanguages)
       ? mk.userLanguages.map((l: any) => Number(l.language_id ?? l.id)).filter((id: number) => id > 0)
       : [];
     setLanguageIds(langs);
+    baseRef.current.languages = [...langs].sort().join(",");
     setInstagram(handleFrom(mk.instagramData?.insta_handle) || handleFrom(ud.insta_url) || handleFrom(ud.instagram_user_name));
     setYoutube(handleFrom(ud.youtube_url) || handleFrom(ud.youtube_user_name));
     setLinkedin(handleFrom(ud.linkedin_url) || handleFrom(ud.linkedin_user_name));
@@ -185,7 +196,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const selected = Array.isArray(mk.userCategories)
       ? mk.userCategories.map((c: any) => Number(c.id ?? c.category_id)).filter((id: number) => id > 0)
       : [];
-    if (selected.length) setCategoryIds(selected);
+    if (selected.length) { setCategoryIds(selected); baseRef.current.categories = [...selected].sort().join(","); }
 
     const uc = mk.userCommercials || {};
     const map = (raw: any, platform: Platform): Commercial[] => parse(raw)
@@ -213,7 +224,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const ids = existing
       .map((category: any) => matchId(categoryOpts, category.Interested_in_industry || category.name || category.category_name))
       .filter((id: number) => id > 0);
-    if (ids.length) setCategoryIds(ids);
+    if (ids.length) { setCategoryIds(ids); baseRef.current.categories = [...ids].sort().join(","); }
   }, [mediaKit, categoryOpts, categoryIds.length]);
 
   useEffect(() => {
@@ -221,7 +232,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const mk: any = mediaKit;
     const ud = mk.userDetail || {};
     const id = readId(ud, ["country_id"]) || readId(mk, ["country_id"]) || matchId(countryOpts, ud.country || mk.country);
-    if (id) setCountry(id);
+    if (id) { setCountry(id); baseRef.current.country = id; }
   }, [mediaKit, countryOpts, country]);
 
   useEffect(() => {
@@ -229,7 +240,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const mk: any = mediaKit;
     const ud = mk.userDetail || {};
     const id = readId(ud, ["state_id"]) || readId(mk, ["state_id"]) || matchId(stateOpts, ud.state || mk.state);
-    if (id) setState(id);
+    if (id) { setState(id); baseRef.current.state = id; }
   }, [mediaKit, stateOpts, state]);
 
   useEffect(() => {
@@ -237,7 +248,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     const mk: any = mediaKit;
     const ud = mk.userDetail || {};
     const id = readId(ud, ["city_id"]) || readId(mk, ["city_id"]) || matchId(cityOpts, ud.city || mk.city);
-    if (id) setCity(id);
+    if (id) { setCity(id); baseRef.current.city = id; }
   }, [mediaKit, cityOpts, city]);
 
   useEffect(() => () => {
@@ -245,21 +256,22 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   }, [projectLogoPreview]);
 
   const refresh = async () => {
-    await qc.invalidateQueries({ queryKey: qk.mediaKit });
-    await qc.invalidateQueries({ queryKey: ["profile_completion"] });
+    refreshCompletion();
     await refetchMediaKit();
     await refreshProfile().catch(() => undefined);
   };
 
-  const run = async (work: () => Promise<any>, success: string) => {
+  const run = async (work: () => Promise<any>, success: string | null, apply?: (res: any) => void) => {
     setSaving(true);
     try {
-      await work();
-      await refresh();
-      toast.success(success);
-      return true;
+      const res = await work();
+      apply?.(res);
+      refreshCompletion();
+      if (!apply) await refetchMediaKit();
+      if (success) toast.success(success);
+      return res ?? true;
     } catch (err: any) {
-      toast.error(isUnknownMethod(err) ? "Saving this section will be available shortly" : err?.message || "Could not save");
+      toast.error(err?.message || "Could not save");
       return false;
     } finally { setSaving(false); }
   };
@@ -278,29 +290,23 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     if (!country || !state || !city) return toast.error("Select your country, state and city");
     if (!categoryIds.length) return toast.error("Pick at least one category");
     if (!languageIds.length) return toast.error("Pick at least one language");
-    setSaving(true);
-    const failedLabels: string[] = [];
-    const attempt = async (label: string, work: () => Promise<any>) => {
-      try { await work(); return true; } catch { failedLabels.push(label); return false; }
-    };
-    const profileSaved = await attempt("Profile details", () => profileService.updateProfile(mediaKit, {
-      firstname: name, introduction: bio, dob, gender, address, country, state, city,
-    }));
-    const categoriesSaved = await attempt("Categories", () => profileService.updateCategories(categoryIds));
-    const languagesSaved = await attempt("Languages", () => profileService.updateLanguages(languageIds));
-    await refresh().catch(() => undefined);
-    setSaving(false);
-    if (!profileSaved) {
-      toast.error("Couldn't save your profile details. Please try again.");
-      return;
+    const b = baseRef.current;
+    const changes: Record<string, any> = {};
+    const text = { firstname: name.trim(), introduction: bio.trim(), dob, gender, address: address.trim() };
+    for (const [k, v] of Object.entries(text)) if (v !== (b[k] ?? "")) changes[k] = v;
+    if (country !== b.country) changes.country = country;
+    if (state !== b.state) changes.state = state;
+    if (city !== b.city) changes.city = city;
+    if ([...categoryIds].sort().join(",") !== (b.categories ?? "")) changes.categories = categoryIds;
+    if ([...languageIds].sort().join(",") !== (b.languages ?? "")) changes.languages = languageIds;
+    if (!Object.keys(changes).length) { toast("No changes to save"); return; }
+    const res = await run(() => profileService.updateProfile(changes), "Saved", applyProfileResponse);
+    if (res) {
+      Object.assign(baseRef.current, text, { country, state, city,
+        categories: [...categoryIds].sort().join(","), languages: [...languageIds].sort().join(",") });
+      refreshProfile().catch(() => undefined);
+      onBack();
     }
-    if (!categoriesSaved || !languagesSaved) {
-      const names = [!categoriesSaved && "Categories", !languagesSaved && "Languages"].filter(Boolean).join(" and ");
-      toast.error(`Profile saved. ${names} couldn't be updated right now.`);
-      return;
-    }
-    toast.success("Saved");
-    onBack();
   };
 
   const toggleLanguage = (id: number) =>
@@ -332,14 +338,11 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     setUploadedPhoto(localPreview);
     try {
       const res: any = await profileService.uploadProfileImage(await compress(file));
-      const url = [res?.image_url, res?.url, res?.profile_image, res?.img_name, res?.data?.image_url, res?.data?.img_name]
-        .find((v) => typeof v === "string" && v.trim());
-      if (url) {
-        setUploadedPhoto(url);
-        qc.setQueryData(qk.mediaKit, (old: any) => old ? { ...old, userDetail: { ...(old.userDetail || {}), img_name: url } } : old);
-      }
+      const url = [res?.image_url, res?.url, res?.img_name].find((v) => typeof v === "string" && v.trim());
+      if (url) { setUploadedPhoto(url); applyPhoto(url); }
       toast.success("Profile photo updated");
-      await refresh().catch(() => undefined);
+      refreshCompletion();
+      refreshProfile().catch(() => undefined);
     } catch (err: any) {
       setUploadedPhoto("");
       toast.error(err?.message || "Could not upload photo");
@@ -348,11 +351,31 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     }
   };
 
-  const saveSocial = () => {
-    if (!instagram.trim() && !youtube.trim() && !linkedin.trim()) return toast.error("Add at least one username");
-    return run(() => onboardingService.updateSocialAccounts({
-      instagram_username: handleFrom(instagram), youtube_username: handleFrom(youtube), linkedin_username: handleFrom(linkedin), primary_account: primarySocial,
-    }), "Social accounts saved");
+  const saveSocial = async () => {
+    const handles = { instagram: handleFrom(instagram), youtube: handleFrom(youtube), linkedin: handleFrom(linkedin) };
+    const sent = (Object.keys(handles) as Platform[]).filter((p) => handles[p]);
+    if (!sent.length) return toast.error("Add at least one username");
+    const primary = sent.includes(primarySocial) ? primarySocial : sent[0];
+    if (primary !== primarySocial) setPrimarySocial(primary);
+    let site = website.trim();
+    if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`;
+    if (site && !validUrl(site)) return toast.error("Enter a valid website link");
+    setSocialErrors({});
+    setSaving(true);
+    try {
+      const res: any = await onboardingService.updateSocialAccounts({
+        instagram_username: handles.instagram, youtube_username: handles.youtube, linkedin_username: handles.linkedin,
+        primary_account: primary, content_website: site,
+      });
+      reportSocialResult(res);
+      refreshCompletion();
+      await refetchMediaKit();
+    } catch (err: any) {
+      const field = String(err?.data?.field || "");
+      const key = (["instagram", "youtube", "linkedin"] as Platform[]).find((p) => field.includes(p)) || (field.includes("website") ? "website" : "");
+      if (key) setSocialErrors({ [key]: err?.message || "Already used by another creator" });
+      toast.error(err?.message || "Could not save");
+    } finally { setSaving(false); }
   };
 
   const saveCommercials = () => {
@@ -367,7 +390,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
       barter_campaign: barter,
       instagram_details: serialize("instagram"), youtube_details: serialize("youtube"), linkedin_details: serialize("linkedin"),
       content_writing_details: JSON.stringify({ cost_per_coverage: contentRate }),
-    }), "Commercials saved");
+    }), "Commercials saved", applyCommercialsResponse);
   };
 
   const setRow = (platform: Platform, index: number, patch: Partial<Commercial>) =>
@@ -381,24 +404,44 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     setProjectLogoPreview(URL.createObjectURL(file));
   };
 
-  const addProject = async () => {
+  const readProject = () => {
     const b = brand.trim();
     let link = projectLink.trim();
-    if (!b) return toast.error("Enter the brand name");
+    if (!b) { toast.error("Enter the brand name"); return null; }
+    if (b.length > 100) { toast.error("Brand name must be 100 characters or less"); return null; }
     if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
-    if (!/^https?:\/\/\S+\.\S+/.test(link)) return toast.error("Enter a valid collaboration link");
-    const ok = await run(() => onboardingService.addProject(b, link), "Project added");
+    if (!validUrl(link)) { toast.error("Enter a valid collaboration link"); return null; }
+    if (link.length > 100) { toast.error("Link must be 100 characters or less"); return null; }
+    return { b, link };
+  };
+
+  const resetProjectForm = () => {
+    setBrand(""); setProjectLink(""); setEditingId(null);
+    setProjectLogo(null); setProjectLogoPreview("");
+    if (logoInputRef.current) logoInputRef.current.value = "";
+  };
+
+  const addProject = async () => {
+    const v = readProject();
+    if (!v) return;
+    const ok = editingId != null
+      ? await run(() => onboardingService.updateProject(editingId, v.b, v.link), "Project updated")
+      : await run(() => onboardingService.addProject(v.b, v.link), "Project added");
     if (ok) {
-      setBrand(""); setProjectLink("");
       if (projectLogo) toast("Project saved. Logo upload needs backend support.");
-      setProjectLogo(null); setProjectLogoPreview("");
-      if (logoInputRef.current) logoInputRef.current.value = "";
+      resetProjectForm();
     }
+  };
+
+  const editProject = (project: Project) => {
+    if (!project.id) return toast.error("This project cannot be edited yet");
+    setEditingId(project.id); setBrand(project.brand); setProjectLink(project.link);
   };
 
   const removeProject = async (project: Project) => {
     if (!project.id) return toast.error("This project cannot be removed yet");
     await run(() => onboardingService.deleteProject(project.id as number | string), "Project removed");
+    if (editingId === project.id) resetProjectForm();
   };
 
   const toggleCategory = (id: number) => {
@@ -497,12 +540,17 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
             const setters = { instagram: setInstagram, youtube: setYoutube, linkedin: setLinkedin };
             return <div key={platform}>
               <AppInput label={`${platform === "youtube" ? "YouTube" : platform[0].toUpperCase() + platform.slice(1)} username`} value={values[platform]} onChange={setters[platform]} placeholder="username" />
+              {socialErrors[platform] && <p className="text-[11px] font-semibold text-destructive mt-1">{socialErrors[platform]}</p>}
               <label className="flex items-center gap-1.5 mt-1.5">
                 <input type="radio" checked={primarySocial === platform} onChange={() => setPrimarySocial(platform)} className="accent-primary" />
                 <span className="text-[10px] text-muted-foreground">{primarySocial === platform ? "Primary" : "Make primary"}</span>
               </label>
             </div>;
           })}
+          <div>
+            <AppInput label="Website (optional)" value={website} onChange={setWebsite} placeholder="https://yourblog.com" />
+            {socialErrors.website && <p className="text-[11px] font-semibold text-destructive mt-1">{socialErrors.website}</p>}
+          </div>
         </Card>}
 
         {activeTab === tabs[2] && <>
@@ -538,7 +586,7 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
 
         {activeTab === tabs[3] && <>
           <Card className="!p-4 flex flex-col gap-3">
-            <p className="text-sm font-extrabold text-foreground">Add past project</p>
+            <p className="text-sm font-extrabold text-foreground">{editingId != null ? "Edit project" : "Add past project"}</p>
             <AppInput label="Brand name" value={brand} onChange={setBrand} placeholder="Brand" />
             <AppInput label="Collaboration link" value={projectLink} onChange={setProjectLink} placeholder="https://" />
             <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => chooseLogo(e.target.files?.[0])} />
@@ -549,11 +597,13 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
                 <p className="text-[10px] text-text-mid mt-1.5">Logo upload will be enabled when supported by the server.</p>
               </div>
             </div>
-            <AppButton full icon="plus" onClick={addProject} disabled={saving}>Add project</AppButton>
+            <AppButton full icon={editingId != null ? "check" : "plus"} onClick={addProject} disabled={saving}>{editingId != null ? "Save changes" : "Add project"}</AppButton>
+            {editingId != null && <AppButton full variant="ghost" onClick={resetProjectForm}>Cancel edit</AppButton>}
           </Card>
           {projects.length === 0 ? <p className="text-xs text-text-mid text-center">No projects yet</p> : projects.map((project, index) => <Card key={project.id ?? index} className="!p-3 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-primary font-black">{(project.brand || "P").charAt(0).toUpperCase()}</div>
             <div className="flex-1 min-w-0"><p className="text-sm font-bold text-foreground truncate">{project.brand || "—"}</p><p className="text-[11px] text-text-mid truncate">{project.link || "—"}</p></div>
+            <button type="button" aria-label={`Edit ${project.brand}`} onClick={() => editProject(project)} disabled={saving} className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary"><Icon name="edit" size={15} /></button>
             <AppButton variant="ghost" onClick={() => removeProject(project)} disabled={saving} className="!px-3 !py-2">Remove</AppButton>
           </Card>)}
         </>}

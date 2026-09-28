@@ -60,18 +60,16 @@ export const useProfileCompletion = () => {
   const rewardCredits = Number(s?.reward_credits ?? 10) || 10;
   const rewardClaimed = truthy(s?.reward_claimed);
 
-  // One-time celebration when the reward flips to claimed.
-  const prev = useRef<boolean | null>(null);
+  // Celebrate only when the server says the reward was granted in this response.
+  const seenAt = useRef(0);
   useEffect(() => {
-    if (!s) return;
-    const key = "fc_profile_reward_celebrated";
-    if (prev.current === false && rewardClaimed && !localStorage.getItem(key)) {
-      localStorage.setItem(key, "1");
-      toast.success(`+${rewardCredits} credits added`);
+    if (!s || !server.dataUpdatedAt || seenAt.current === server.dataUpdatedAt) return;
+    seenAt.current = server.dataUpdatedAt;
+    if (truthy(s.reward_granted) && server.dataUpdatedAt > Date.now() - 60_000) {
+      toast.success(`+${rewardCredits} credits added 🎉`);
       invalidateCreditData();
     }
-    prev.current = rewardClaimed;
-  }, [s, rewardClaimed, rewardCredits]);
+  }, [s, server.dataUpdatedAt, rewardCredits]);
 
   return { steps, percent, ready, rewardCredits, rewardClaimed, mediaKit: mk };
 };
