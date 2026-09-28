@@ -39,7 +39,7 @@ const isNative = Capacitor.isNativePlatform();
 
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
-  void Pill;
+
   const [storePrices, setStorePrices] = useState<Record<string, string> | null>(null);
   const [storeFailed, setStoreFailed] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
