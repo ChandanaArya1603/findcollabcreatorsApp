@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { startupService } from "@/services/startupService";
-import { useCreditBalance } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
