@@ -61,6 +61,16 @@ function formatTime(dateStr: string): string {
   }
 }
 
+/** Newest message time we've actually loaded per chat (in memory only). */
+const latestLoaded = new Map<number, string>();
+const ts = (v: any): number => {
+  if (!v) return 0;
+  const t = new Date(String(v).replace(" ", "T")).getTime();
+  return Number.isFinite(t) ? t : 0;
+};
+const newest = (...vals: any[]): string =>
+  vals.filter(Boolean).reduce((best: string, v: any) => (ts(v) > ts(best) ? String(v) : best), "");
+
 /** Map raw API chat-user to our UI shape */
 function mapChatUser(raw: any): ChatUser {
   // API returns: sent_id (the other user's id), sender_name, message, date_added, etc.
@@ -71,7 +81,7 @@ function mapChatUser(raw: any): ChatUser {
     name,
     avatar: raw.avatar ?? raw.profile_pic ?? raw.profile_image ?? undefined,
     lastMessage: raw.message ?? raw.last_message ?? raw.lastMessage ?? "",
-    lastMessageTime: raw.date_added ?? raw.last_message_time ?? raw.updated_at ?? raw.created_at ?? "",
+    lastMessageTime: newest(raw.last_message_time, raw.last_message_date, raw.chat_messages_datetime, raw.updated_at, raw.date_added, raw.created_at),
     unreadCount: Number(raw.unread_count ?? raw.unreadCount ?? 0),
     isOnline: Boolean(raw.is_online ?? raw.isOnline ?? false),
   };
@@ -126,7 +136,12 @@ export function useMessages() {
   const rawChatUsers: any[] = Array.isArray(chatUsersRes)
     ? chatUsersRes
     : chatUsersRes?.chat_users ?? chatUsersRes?.users ?? chatUsersRes?.data ?? [];
-  const chatUsers: ChatUser[] = rawChatUsers.map(mapChatUser);
+  const [loadedTick, setLoadedTick] = useState(0);
+  const chatUsers: ChatUser[] = rawChatUsers
+    .map(mapChatUser)
+    .map((c) => ({ ...c, lastMessageTime: newest(c.lastMessageTime, latestLoaded.get(c.id)) }))
+    .sort((a, b) => ts(b.lastMessageTime) - ts(a.lastMessageTime));
+  void loadedTick;
 
   const fetchChatUsers = useCallback(() => {
     refetchChatUsers();
@@ -144,6 +159,11 @@ export function useMessages() {
           .map((m: any) => mapMessage(m, currentUserId))
           .filter((m: Message) => m.message?.trim() || m.attachment);
         setMessages(mapped);
+        const last = newest(...mapped.map((m: Message) => m.createdAt));
+        if (last && ts(last) > ts(latestLoaded.get(receiverId))) {
+          latestLoaded.set(receiverId, last);
+          setLoadedTick((t) => t + 1);
+        }
       } catch (err: any) {
         console.error("Failed to fetch messages:", err);
         setError(err.message ?? "Failed to load messages");
