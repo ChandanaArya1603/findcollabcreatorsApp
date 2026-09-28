@@ -38,7 +38,10 @@ interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Keep one context instance across hot reloads so the provider and consumers always match.
+const g = globalThis as any;
+const AuthContext: React.Context<AuthContextType | undefined> =
+  g.__fcAuthContext || (g.__fcAuthContext = createContext<AuthContextType | undefined>(undefined));
 const BLOCKED_FULL_NAME = "Access delayed. Only the owner of the page can access this information";
 
 const isMeaningfulValue = (value: unknown): value is string => {

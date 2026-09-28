@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { campaignService } from "@/services/campaignService";
-import { invalidateCampaignData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -8,12 +7,15 @@ import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "sonner";
+import { ApplySheet } from "../campaign/ApplySheet";
+import { BrandContactCard } from "../campaign/BrandContactCard";
 import type { Campaign } from "./CampaignsScreen";
 import { formatCampaignBudget, formatCampaignType } from "@/lib/campaignFormat";
 
 interface Props {
   campaign: Campaign;
   onBack: () => void;
+  onOpenWallet?: () => void;
 }
 
 interface DetailField {
@@ -32,8 +34,8 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`;
 }
 
-const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
-  const [applying, setApplying] = useState(false);
+const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) => {
+  const [applyOpen, setApplyOpen] = useState(false);
   const [applied, setApplied] = useState(false);
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,20 +49,6 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [c.id]);
-
-  const handleApply = async () => {
-    setApplying(true);
-    try {
-      await campaignService.applyCampaign(c.id);
-      invalidateCampaignData();
-      toast.success("Campaign applied successfully!");
-      setApplied(true);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to apply");
-    } finally {
-      setApplying(false);
-    }
-  };
 
   // Merge list data with fetched detail
   const d = detail || {};
@@ -264,12 +252,14 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
             <AppButton
               full
               icon={applied ? "check" : "send"}
-              onClick={handleApply}
-              disabled={applying || applied}
+              onClick={() => setApplyOpen(true)}
+              disabled={applied}
             >
-              {applied ? "Applied ✓" : applying ? "Applying…" : "Apply →"}
+              {applied ? "Applied ✓" : "Apply →"}
             </AppButton>
           </Card>
+
+          <BrandContactCard campaignId={c.id} onOpenWallet={onOpenWallet} />
 
           {/* Description */}
           {description && (
@@ -379,6 +369,14 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack }) => {
 
         <div className="h-4" />
       </div>
+      {applyOpen && (
+        <ApplySheet
+          campaignId={c.id}
+          onClose={() => setApplyOpen(false)}
+          onApplied={() => { setApplied(true); setApplyOpen(false); }}
+          onOpenWallet={onOpenWallet}
+        />
+      )}
     </div>
   );
 };
