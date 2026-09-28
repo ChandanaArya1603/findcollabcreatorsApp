@@ -14,7 +14,9 @@ import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
 import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import LoginScreen from "@/components/screens/LoginScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
-import VerifyScreen from "@/components/screens/auth/VerifyScreen";
+import CheckInboxScreen from "@/components/screens/auth/CheckInboxScreen";
+import ProfileWizard from "@/components/onboarding/ProfileWizard";
+import { useProfileCompletion, type StepKey } from "@/hooks/useProfileCompletion";
 import ForgotPasswordScreen from "@/components/screens/auth/ForgotPasswordScreen";
 import AnalyticsScreen from "@/components/screens/AnalyticsScreen";
 import PublicProfileScreen from "@/components/screens/PublicProfileScreen";
@@ -26,8 +28,23 @@ interface StackItem {
   data?: any;
 }
 
+/** Opens the wizard once per session while the profile is incomplete and not yet finished/skipped. */
+const AutoOnboarding: React.FC<{ dismissKey: string; onOpen: () => void }> = ({ dismissKey, onOpen }) => {
+  const { ready, percent } = useProfileCompletion();
+  const done = React.useRef(false);
+  React.useEffect(() => {
+    if (done.current || !ready) return;
+    done.current = true;
+    if (percent < 100 && !localStorage.getItem(dismissKey)) onOpen();
+  }, [ready, percent, dismissKey, onOpen]);
+  return null;
+};
+
 const Index = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [loginEmail, setLoginEmail] = useState("");
+  const [wizardStep, setWizardStep] = useState<number | null>(null);
+  const dismissKey = `fc_onboarding_dismissed_${user?.id ?? "anon"}`;
   const [authView, setAuthView] = useState<"login" | "register" | "verify" | "forgot">("login");
   const [verifyInfo, setVerifyInfo] = useState<{ userId?: number; email: string; notice?: string }>({ email: "" });
   const goVerify = (info: { userId?: number; email: string; notice?: string }) => {
@@ -48,9 +65,14 @@ const Index = () => {
     setTab(newTab);
   };
 
+  const openProfileStep = (k: StepKey) => {
+    if (k === "basic" || k === "photo") return push("editprofile");
+    setWizardStep(k === "social" ? 0 : k === "commercials" ? 1 : 2);
+  };
+
   const renderMain = () => {
     switch (tab) {
-      case "home": return <HomeScreen push={push} switchTab={handleTabChange} />;
+      case "home": return <HomeScreen push={push} switchTab={handleTabChange} onOpenProfileStep={openProfileStep} />;
       case "campaigns": return <CampaignsScreen push={push} onOpenWallet={() => handleTabChange("wallet")} />;
       case "messages": return <MessagesScreen push={push} onBack={() => handleTabChange("home")} onChatOpen={setChatOpen} />;
       case "wallet": return <WalletScreen />;
@@ -96,11 +118,12 @@ const Index = () => {
     return (
       <div className="h-screen bg-background flex flex-col overflow-hidden">
         {authView === "login" && (
-          <LoginScreen onSwitch={() => setAuthView("register")} onForgot={() => setAuthView("forgot")} onNeedVerify={goVerify} />
+          <LoginScreen key={loginEmail} initialEmail={loginEmail} onSwitch={() => setAuthView("register")} onForgot={() => setAuthView("forgot")} onNeedVerify={goVerify} />
         )}
         {authView === "register" && <RegisterScreen onSwitch={() => setAuthView("login")} onVerify={goVerify} />}
         {authView === "verify" && (
-          <VerifyScreen {...verifyInfo} onDone={() => setAuthView("login")} onBack={() => setAuthView("login")} />
+          <CheckInboxScreen email={verifyInfo.email} notice={verifyInfo.notice}
+            onSignIn={(e) => { setLoginEmail(e || ""); setAuthView("login"); }} />
         )}
         {authView === "forgot" && <ForgotPasswordScreen onBack={() => setAuthView("login")} />}
       </div>
@@ -122,6 +145,11 @@ const Index = () => {
           </div>
         )}
       </div>
+      <AutoOnboarding dismissKey={dismissKey} onOpen={() => setWizardStep(0)} />
+      {wizardStep !== null && (
+        <ProfileWizard key={wizardStep} initialStep={wizardStep}
+          onClose={() => { localStorage.setItem(dismissKey, "1"); setWizardStep(null); }} />
+      )}
       <BottomNav active={tab} setActive={handleTabChange} />
     </div>
   );
