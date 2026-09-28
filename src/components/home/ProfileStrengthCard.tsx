@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
+const KEY = "fc_profile_strength_collapsed";
 import { useProfileCompletion, STEP_KEYS, type StepKey } from "@/hooks/useProfileCompletion";
 import { Card } from "../findcollab/Card";
 import { Icon } from "../findcollab/Icon";
@@ -15,7 +17,12 @@ interface Props { onOpenStep: (step: StepKey) => void }
 
 const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
   const { steps, percent, ready, rewardCredits } = useProfileCompletion();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState<boolean | null>(() => {
+    const v = localStorage.getItem(KEY);
+    return v === null ? null : v !== "1";
+  });
+  useEffect(() => { if (open === null && ready) setOpen(percent < 60); }, [open, ready, percent]);
+  const toggle = () => setOpen((v) => { const next = !v; localStorage.setItem(KEY, next ? "0" : "1"); return next; });
   if (!ready || percent >= 100) return null;
   const firstOpen = STEP_KEYS.find((k) => !steps[k]) ?? "basic";
   const r = 26;
@@ -23,19 +30,19 @@ const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
 
   return (
     <div className="px-0">
-      <Card className="!p-4">
+      <Card className={open ? "!p-4" : "!py-2.5 !px-3"}>
         <div className="flex gap-3 items-center">
-          <div className="relative w-16 h-16 shrink-0">
-            <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
+          <div className={`relative shrink-0 ${open ? "w-16 h-16" : "w-11 h-11"}`}>
+            <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
               <circle cx="32" cy="32" r={r} strokeWidth="6" fill="none" className="stroke-muted" />
               <circle cx="32" cy="32" r={r} strokeWidth="6" fill="none" strokeLinecap="round"
                 className="stroke-primary transition-all" strokeDasharray={c} strokeDashoffset={c * (1 - percent / 100)} />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-foreground">{percent}%</span>
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-foreground">{percent}%</span>
           </div>
           <div className="flex-1 min-w-0">
             <button
-              onClick={() => setOpen((v) => !v)}
+              onClick={toggle}
               aria-expanded={open}
               aria-label={open ? "Collapse profile strength" : "Expand profile strength"}
               className="w-full flex items-center justify-between gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
