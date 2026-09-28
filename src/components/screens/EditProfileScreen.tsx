@@ -1,415 +1,400 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMediaKit, useCategories } from "@/hooks/useAppData";
+import { qk } from "@/lib/queryKeys";
+import { handleFrom, getProfilePhoto } from "@/lib/profilePhoto";
+import { isUnknownMethod, toOptions, type Opt } from "@/lib/listParse";
 import { profileService } from "@/services/profileService";
-import { useMediaKit, useCategories, invalidateProfileData } from "@/hooks/useAppData";
+import { onboardingService } from "@/services/onboardingService";
+import { utilityService } from "@/services/utilityService";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
-import { Badge } from "../findcollab/Badge";
 import { Icon } from "../findcollab/Icon";
-import { toast } from "sonner";
 
-interface Props {
-  onBack: () => void;
-}
+interface Props { onBack: () => void }
+type Platform = "instagram" | "youtube" | "linkedin";
+interface Commercial { d: string; rate: string; remarks: string }
+interface Project { id?: number | string; brand: string; link: string }
 
 const tabs = ["Basic Information", "Social Accounts", "My Commercials", "Past Projects"];
-
-interface Commercial {
-  service: string;
-  rate: string;
-  remarks: string;
-}
-
-interface Project {
-  brand: string;
-  link: string;
-}
-
-// Commercial keys returned by the API mapped to readable labels
-const RATE_LABELS: Record<string, string> = {
-  rate_per_reel: "Reel",
-  rate_per_static_post: "Static Post",
-  rate_per_video_story: "Video Story",
-  rate_per_static_story: "Static Story",
-  rate_per_carousel: "Carousel",
-  rate_per_dedicated_video: "Dedicated Video",
-  rate_per_integrated_video: "Integrated Video",
-  rate_per_shorts: "Shorts",
-  ugc_content_instagram: "UGC Content",
+const MAX_CATS = 5;
+const DELIVERABLES: Record<Platform, string[]> = {
+  instagram: ["Reel", "Post", "Story", "Carousel"],
+  youtube: ["Dedicated video", "Integration", "Shorts"],
+  linkedin: ["Post", "Article"],
 };
-
-// userCommercials is an object of per-platform detail blobs, each possibly a JSON string
-const parseRates = (raw: any, valueKey: string, rateKey: string): Commercial[] => {
-  if (!raw) return [];
+const clean = (v: any) => (v == null || String(v).toLowerCase() === "null" ? "" : String(v));
+const parse = (raw: any): any[] => {
   try {
-    const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
-    return (Array.isArray(arr) ? arr : []).map((r: any) => ({
-      service: RATE_LABELS[r[valueKey]] || r[valueKey] || "Service",
-      rate: r[rateKey] != null && r[rateKey] !== "" ? String(Number(r[rateKey]) || r[rateKey]) : "",
-      remarks: r.remarks || r.remark || "",
-    }));
-  } catch {
-    return [];
-  }
+    const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(value) ? value : value && typeof value === "object" ? [value] : [];
+  } catch { return []; }
 };
+const readId = (source: any, keys: string[]) => {
+  for (const key of keys) {
+    const value = Number(source?.[key]);
+    if (value > 0) return value;
+  }
+  return 0;
+};
+const matchId = (options: Opt[], value: any) => {
+  const numeric = Number(value);
+  if (numeric > 0 && options.some((o) => o.id === numeric)) return numeric;
+  const text = clean(value).trim().toLowerCase();
+  return options.find((o) => o.name.toLowerCase() === text)?.id || 0;
+};
+const selectCls = "w-full p-3 rounded-xl border-[1.5px] border-border text-sm bg-card text-foreground outline-none focus:border-primary disabled:opacity-60";
+const inputCls = "p-2.5 rounded-xl border-[1.5px] border-border text-sm bg-card text-foreground outline-none focus:border-primary min-w-0";
 
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
+  const qc = useQueryClient();
   const { user, userDetail, refreshProfile } = useAuth();
-  const { data: mediaKit } = useMediaKit();
+  const { data: mediaKit, refetch: refetchMediaKit } = useMediaKit();
   const { data: categoryCatalogue } = useCategories();
-  const [activeTab, setActiveTab] = useState("Basic Information");
+  const [activeTab, setActiveTab] = useState(tabs[0]);
+  const [saving, setSaving] = useState(false);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [saving, setSaving] = useState(false);
 
-  const handleTabClick = useCallback((tab: string, index: number) => {
-    setActiveTab(tab);
-    const el = tabRefs.current[index];
-    const container = tabBarRef.current;
-    if (el && container) {
-      const scrollLeft = el.offsetLeft - container.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
-      container.scrollTo({ left: scrollLeft, behavior: "smooth" });
-    }
-  }, []);
-
-  // Basic Info - pre-fill from auth context
   const [name, setName] = useState(user ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "");
-  const [bio, setBio] = useState(userDetail?.bio || userDetail?.introduction || "");
-  const [location, setLocation] = useState(userDetail?.city || "");
-  const [gmail, setGmail] = useState(user?.email || "");
-  const [barterInterest, setBarterInterest] = useState(true);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [newCat, setNewCat] = useState("");
-  // name -> id map, used to send category IDs to /update_categories
-  const [catIdByName, setCatIdByName] = useState<Record<string, number>>({});
+  const [bio, setBio] = useState("");
+  const [country, setCountry] = useState<number | "">("");
+  const [state, setState] = useState<number | "">("");
+  const [city, setCity] = useState<number | "">("");
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
 
-  // Social Accounts
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
   const [linkedin, setLinkedin] = useState("");
-  const [website, setWebsite] = useState(userDetail?.content_website || "");
-  const [primarySocial, setPrimarySocial] = useState(userDetail?.primary_account || "instagram");
+  const [primarySocial, setPrimarySocial] = useState<Platform>("instagram");
 
-  // Commercials
-  const [commercialPlatform, setCommercialPlatform] = useState("instagram");
-  const [commercials, setCommercials] = useState<Record<string, Commercial[]>>({
-    instagram: [],
-    youtube: [],
-    linkedin: [],
-  });
+  const [barter, setBarter] = useState<"yes" | "no">("no");
+  const [commercialPlatform, setCommercialPlatform] = useState<Platform>("instagram");
+  const [commercials, setCommercials] = useState<Record<Platform, Commercial[]>>({ instagram: [], youtube: [], linkedin: [] });
+  const [contentRate, setContentRate] = useState("");
 
-  // Past Projects
   const [projects, setProjects] = useState<Project[]>([]);
+  const [brand, setBrand] = useState("");
+  const [projectLink, setProjectLink] = useState("");
+  const [projectLogo, setProjectLogo] = useState<File | null>(null);
+  const [projectLogoPreview, setProjectLogoPreview] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // Pre-fill from the shared /media_kit data
+  const countryQ = useQuery({ queryKey: ["countries"], queryFn: utilityService.getCountries, staleTime: 36e5 });
+  const countryOpts = useMemo(() => toOptions(countryQ.data), [countryQ.data]);
+  const stateQ = useQuery({
+    queryKey: ["states", country], enabled: Boolean(country), staleTime: 36e5,
+    queryFn: () => utilityService.getStates(Number(country)),
+  });
+  const stateOpts = useMemo(() => toOptions(stateQ.data), [stateQ.data]);
+  const cityQ = useQuery({
+    queryKey: ["cities", state], enabled: Boolean(state), staleTime: 36e5,
+    queryFn: () => utilityService.getCities(Number(state)),
+  });
+  const cityOpts = useMemo(() => toOptions(cityQ.data), [cityQ.data]);
+  const categoryOpts = useMemo(() => toOptions(categoryCatalogue), [categoryCatalogue]);
+
   useEffect(() => {
-    const res: any = mediaKit;
-    if (!res) return;
-    const ud: any = res.userDetail || {};
+    const mk: any = mediaKit;
+    if (!mk) return;
+    const ud = mk.userDetail || {};
+    setBio(ud.bio || ud.introduction || "");
+    setInstagram(handleFrom(mk.instagramData?.insta_handle) || handleFrom(ud.insta_url) || handleFrom(ud.instagram_user_name));
+    setYoutube(handleFrom(ud.youtube_url) || handleFrom(ud.youtube_user_name));
+    setLinkedin(handleFrom(ud.linkedin_url) || handleFrom(ud.linkedin_user_name));
+    if (["instagram", "youtube", "linkedin"].includes(ud.primary_account)) setPrimarySocial(ud.primary_account);
 
-    setBio((prev) => ud.bio || ud.introduction || prev);
-    setLocation((prev) => res.city || ud.city || prev);
-    setInstagram((prev) => ud.instagram_user_name || ud.instagram_username || ud.instagram_link || prev);
-    setYoutube((prev) =>
-      ud.youtube_user_name || ud.youtube_channel_name || ud.youtube_channel_link || ud.youtube_link || ud.youtube_url || prev
-    );
-    setLinkedin((prev) => ud.linkedin_user_name || ud.linkedin_username || ud.linkedin_url || ud.linkedin_link || prev);
-    setWebsite((prev) => ud.content_website || prev);
-    setPrimarySocial((prev) => ud.primary_account || prev);
+    const selected = Array.isArray(mk.userCategories)
+      ? mk.userCategories.map((c: any) => Number(c.category_id ?? c.id)).filter((id: number) => id > 0)
+      : [];
+    if (selected.length) setCategoryIds(selected);
 
-    if (Array.isArray(res.userCategories)) {
-      setCategories(
-        res.userCategories
-          .map((c: any) => c.Interested_in_industry || c.name || c.category_name || "")
-          .filter(Boolean)
-      );
-      setCatIdByName((prev) => {
-        const next = { ...prev };
-        res.userCategories.forEach((c: any) => {
-          const nm = c.Interested_in_industry || c.name || c.category_name;
-          const id = Number(c.category_id ?? c.id);
-          if (nm && id) next[String(nm).toLowerCase()] = id;
-        });
-        return next;
-      });
-    }
+    const uc = mk.userCommercials || {};
+    const map = (raw: any, platform: Platform): Commercial[] => parse(raw)
+      .map((r) => ({
+        d: clean(r[`${platform}_values`]),
+        rate: clean(r[`${platform}rate`]),
+        remarks: clean(r[`${platform}remarks`] ?? r.remarks),
+      }))
+      .filter((r) => r.d || r.rate || r.remarks);
+    setCommercials({ instagram: map(uc.instagram_details, "instagram"), youtube: map(uc.youtube_details, "youtube"), linkedin: map(uc.linkedin_details, "linkedin") });
+    const barterValue = clean(uc.barter_campaign ?? ud.barter_campaign).toLowerCase();
+    setBarter(barterValue === "yes" || barterValue === "1" ? "yes" : "no");
+    setContentRate(clean(parse(uc.content_writing_details)[0]?.cost_per_coverage));
 
-    const uc: any = res.userCommercials || {};
-    setCommercials({
-      instagram: parseRates(uc.instagram_details, "instagram_values", "instagramrate"),
-      youtube: parseRates(uc.youtube_details, "youtube_values", "youtuberate"),
-      linkedin: parseRates(uc.linkedin_details, "linkedin_values", "linkedinrate"),
-    });
-
-    if (Array.isArray(res.userProjects)) {
-      setProjects(
-        res.userProjects.map((p: any) => ({
-          brand: p.brand_name || p.brand || p.name || "",
-          link: p.collaboration_link || p.link || p.url || "",
-        }))
-      );
-    }
+    setProjects(Array.isArray(mk.userProjects) ? mk.userProjects.map((p: any) => ({
+      id: p.id ?? p.project_id,
+      brand: p.brand_name || p.brand || "",
+      link: p.collaboration_link || p.link || "",
+    })) : []);
   }, [mediaKit]);
 
-  // Full category catalogue so typed names can be mapped to IDs on save
   useEffect(() => {
-    const res: any = categoryCatalogue;
-    if (!res) return;
-    const list = Array.isArray(res) ? res : res?.categories || res?.data?.categories || [];
-    setCatIdByName((prev) => {
-      const next = { ...prev };
-      list.forEach((c: any) => {
-        const nm = c.Interested_in_industry || c.name || c.category_name;
-        const id = Number(c.id ?? c.category_id);
-        if (nm && id) next[String(nm).toLowerCase()] = id;
-      });
-      return next;
-    });
-  }, [categoryCatalogue]);
+    if (!mediaKit || !categoryOpts.length || categoryIds.length) return;
+    const existing = Array.isArray((mediaKit as any).userCategories) ? (mediaKit as any).userCategories : [];
+    const ids = existing
+      .map((category: any) => matchId(categoryOpts, category.Interested_in_industry || category.name || category.category_name))
+      .filter((id: number) => id > 0);
+    if (ids.length) setCategoryIds(ids);
+  }, [mediaKit, categoryOpts, categoryIds.length]);
 
-  const addCategory = () => {
-    if (newCat.trim() && !categories.includes(newCat.trim())) {
-      setCategories([...categories, newCat.trim()]);
-      setNewCat("");
-    }
+  useEffect(() => {
+    if (!mediaKit || !countryOpts.length || country) return;
+    const mk: any = mediaKit;
+    const ud = mk.userDetail || {};
+    const id = readId(ud, ["country_id"]) || readId(mk, ["country_id"]) || matchId(countryOpts, ud.country || mk.country);
+    if (id) setCountry(id);
+  }, [mediaKit, countryOpts, country]);
+
+  useEffect(() => {
+    if (!mediaKit || !stateOpts.length || state) return;
+    const mk: any = mediaKit;
+    const ud = mk.userDetail || {};
+    const id = readId(ud, ["state_id"]) || readId(mk, ["state_id"]) || matchId(stateOpts, ud.state || mk.state);
+    if (id) setState(id);
+  }, [mediaKit, stateOpts, state]);
+
+  useEffect(() => {
+    if (!mediaKit || !cityOpts.length || city) return;
+    const mk: any = mediaKit;
+    const ud = mk.userDetail || {};
+    const id = readId(ud, ["city_id"]) || readId(mk, ["city_id"]) || matchId(cityOpts, ud.city || mk.city);
+    if (id) setCity(id);
+  }, [mediaKit, cityOpts, city]);
+
+  useEffect(() => () => {
+    if (projectLogoPreview) URL.revokeObjectURL(projectLogoPreview);
+  }, [projectLogoPreview]);
+
+  const refresh = async () => {
+    await qc.invalidateQueries({ queryKey: qk.mediaKit });
+    await qc.invalidateQueries({ queryKey: ["profile_completion"] });
+    await refetchMediaKit();
+    await refreshProfile().catch(() => undefined);
   };
 
-  const removeCategory = (cat: string) => setCategories(categories.filter((c) => c !== cat));
-
-
-  const handleSave = async () => {
+  const run = async (work: () => Promise<any>, success: string) => {
     setSaving(true);
     try {
-      const [fname, ...rest] = name.split(" ");
-      await profileService.updateProfile({
-        fname,
-        lname: rest.join(" "),
-        bio,
-        city: location,
-        mobile: userDetail?.mobile || "",
-        instagram_user_name: instagram,
-        youtube_user_name: youtube,
-        linkedin_user_name: linkedin,
-        content_website: website,
-        primary_account: primarySocial,
-      });
-
-      // Save categories as IDs
-      const ids: number[] = [];
-      const unknown: string[] = [];
-      categories.forEach((c) => {
-        const id = catIdByName[c.toLowerCase()];
-        if (id) ids.push(id);
-        else unknown.push(c);
-      });
-      if (ids.length) {
-        try {
-          await profileService.updateCategories(ids);
-        } catch (catErr: any) {
-          toast.error(catErr?.message || "Could not save categories");
-        }
-      }
-      if (unknown.length) {
-        toast.error(`Not saved (unknown category): ${unknown.join(", ")}`);
-      }
-
-      // Refresh profile so the new values show everywhere immediately
-      invalidateProfileData();
-      try {
-        await refreshProfile();
-      } catch {
-        // ignore refresh failures — the save itself succeeded
-      }
-
-      toast.success("Profile updated successfully!");
-      onBack();
+      await work();
+      await refresh();
+      toast.success(success);
+      return true;
     } catch (err: any) {
-      toast.error(err?.message || "Failed to save");
-    } finally {
-      setSaving(false);
+      toast.error(isUnknownMethod(err) ? "Saving this section will be available shortly" : err?.message || "Could not save");
+      return false;
+    } finally { setSaving(false); }
+  };
+
+  const selectTab = (tab: string, index: number) => {
+    setActiveTab(tab);
+    const el = tabRefs.current[index];
+    const container = tabBarRef.current;
+    if (el && container) container.scrollTo({ left: el.offsetLeft - container.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" });
+  };
+
+  const saveBasic = async () => {
+    if (!name.trim()) return toast.error("Enter your name");
+    if (!country || !state || !city) return toast.error("Select your country, state and city");
+    if (!categoryIds.length) return toast.error("Pick at least one category");
+    const [fname, ...rest] = name.trim().split(/\s+/);
+    await run(async () => {
+      await profileService.updateProfile({
+        fname, lname: rest.join(" "), bio, mobile: userDetail?.mobile || "", country, state, city,
+      });
+      await profileService.updateCategories(categoryIds);
+    }, "Basic information saved");
+  };
+
+  const saveSocial = () => {
+    if (!instagram.trim() && !youtube.trim() && !linkedin.trim()) return toast.error("Add at least one username");
+    return run(() => onboardingService.updateSocialAccounts({
+      instagram_username: handleFrom(instagram), youtube_username: handleFrom(youtube), linkedin_username: handleFrom(linkedin), primary_account: primarySocial,
+    }), "Social accounts saved");
+  };
+
+  const saveCommercials = () => {
+    const all = (Object.keys(commercials) as Platform[]).flatMap((p) => commercials[p]);
+    if (all.some((row) => !row.d || !(Number(row.rate) > 0))) return toast.error("Each row needs a deliverable and a rate");
+    const serialize = (platform: Platform) => JSON.stringify(commercials[platform].map((row) => ({
+      [`${platform}_values`]: row.d,
+      [`${platform}rate`]: row.rate,
+      [`${platform}remarks`]: row.remarks,
+    })));
+    return run(() => onboardingService.updateCommercials({
+      barter_campaign: barter,
+      instagram_details: serialize("instagram"), youtube_details: serialize("youtube"), linkedin_details: serialize("linkedin"),
+      content_writing_details: JSON.stringify({ cost_per_coverage: contentRate }),
+    }), "Commercials saved");
+  };
+
+  const setRow = (platform: Platform, index: number, patch: Partial<Commercial>) =>
+    setCommercials((current) => ({ ...current, [platform]: current[platform].map((row, i) => i === index ? { ...row, ...patch } : row) }));
+
+  const chooseLogo = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Choose an image file");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Logo must be under 5 MB");
+    setProjectLogo(file);
+    setProjectLogoPreview(URL.createObjectURL(file));
+  };
+
+  const addProject = async () => {
+    const b = brand.trim();
+    let link = projectLink.trim();
+    if (!b) return toast.error("Enter the brand name");
+    if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
+    if (!/^https?:\/\/\S+\.\S+/.test(link)) return toast.error("Enter a valid collaboration link");
+    const ok = await run(() => onboardingService.addProject(b, link), "Project added");
+    if (ok) {
+      setBrand(""); setProjectLink("");
+      if (projectLogo) toast("Project saved. Logo upload needs backend support.");
+      setProjectLogo(null); setProjectLogoPreview("");
+      if (logoInputRef.current) logoInputRef.current.value = "";
     }
   };
 
-  const commercialPlatforms = [
-    { id: "instagram", label: "Instagram", ic: "insta" },
-    { id: "youtube", label: "Youtube", ic: "yt" },
-    { id: "linkedin", label: "LinkedIn", ic: "linkedin" },
-  ];
+  const removeProject = async (project: Project) => {
+    if (!project.id) return toast.error("This project cannot be removed yet");
+    await run(() => onboardingService.deleteProject(project.id as number | string), "Project removed");
+  };
+
+  const toggleCategory = (id: number) => {
+    setCategoryIds((current) => {
+      if (current.includes(id)) return current.filter((value) => value !== id);
+      if (current.length >= MAX_CATS) { toast.error(`You can pick up to ${MAX_CATS} categories`); return current; }
+      return [...current, id];
+    });
+  };
+
+  const photo = getProfilePhoto(mediaKit, user, userDetail);
+  const chip = (selected: boolean) => `px-3 py-2 rounded-xl text-xs font-bold ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-text-mid"}`;
+  const sectionSave = activeTab === tabs[0] ? saveBasic : activeTab === tabs[1] ? saveSocial : activeTab === tabs[2] ? saveCommercials : undefined;
 
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-5">
       <BackHeader title="Edit Profile" onBack={onBack} />
-
       <div className="flex justify-center pt-3 pb-2">
-        <div className="w-20 h-20 rounded-[22px] bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground text-[32px] font-black">{(user?.fname || "D").charAt(0)}</span>
+        <div className="w-20 h-20 rounded-full bg-primary overflow-hidden flex items-center justify-center">
+          {photo ? <img src={photo} alt="Profile" className="w-full h-full object-cover" /> : <span className="text-primary-foreground text-[32px] font-black">{(user?.fname || "D").charAt(0)}</span>}
         </div>
       </div>
 
       <div className="px-4 pb-3">
         <div ref={tabBarRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {tabs.map((t, i) => (
-            <button
-              key={t}
-              ref={(el) => { tabRefs.current[i] = el; }}
-              onClick={() => handleTabClick(t, i)}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-all shrink-0 ${
-                activeTab === t
-                  ? "gradient-primary text-primary-foreground border-transparent shadow-primary"
-                  : "bg-card text-primary border-border"
-              }`}
-            >
-              {t}
+          {tabs.map((tab, index) => (
+            <button key={tab} ref={(el) => { tabRefs.current[index] = el; }} onClick={() => selectTab(tab, index)}
+              className={`whitespace-nowrap px-4 py-2.5 rounded-xl border text-[11px] font-bold shrink-0 ${activeTab === tab ? "gradient-primary text-primary-foreground border-transparent shadow-primary" : "bg-card text-primary border-border"}`}>
+              {tab}
             </button>
           ))}
         </div>
       </div>
 
       <div className="px-4 flex flex-col gap-3.5">
-        {activeTab === "Basic Information" && (
-          <>
-            <Card>
-              <p className="text-sm font-extrabold text-foreground mb-3">Basic Info</p>
-              <div className="flex flex-col gap-3">
-                <AppInput label="Full Name" value={name} onChange={setName} placeholder="Your name" />
-                <AppInput label="Bio" value={bio} onChange={setBio} placeholder="Short bio" multiline />
-                <AppInput label="Location" value={location} onChange={setLocation} placeholder="City" />
-                <AppInput label="Gmail ID" value={gmail} onChange={setGmail} placeholder="your.email@gmail.com" />
-              </div>
-            </Card>
-            <Card>
-              <p className="text-sm font-extrabold text-foreground mb-3">Barter Campaigns</p>
-              <div className="flex gap-4 items-center">
-                <span className="text-xs text-muted-foreground">Are you interested in Barter Campaigns?</span>
-                <div className="flex gap-3">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="radio" checked={barterInterest} onChange={() => setBarterInterest(true)} className="accent-primary w-3.5 h-3.5" />
-                    <span className="text-xs font-semibold text-foreground">Yes</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="radio" checked={!barterInterest} onChange={() => setBarterInterest(false)} className="accent-primary w-3.5 h-3.5" />
-                    <span className="text-xs font-semibold text-foreground">No</span>
-                  </label>
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <p className="text-sm font-extrabold text-foreground mb-3">Categories</p>
-              <div className="flex gap-1.5 flex-wrap mb-3">
-                {categories.map((c) => (
-                  <div key={c} onClick={() => removeCategory(c)} className="cursor-pointer">
-                    <Badge color="pink" sm>{c} ✕</Badge>
-                  </div>
-                ))}
+        {activeTab === tabs[0] && <>
+          <Card className="!p-4 flex flex-col gap-3">
+            <p className="text-sm font-extrabold text-foreground">Basic information</p>
+            <AppInput label="Full name" value={name} onChange={setName} placeholder="Your name" />
+            <AppInput label="Bio" value={bio} onChange={setBio} placeholder="Short bio" multiline />
+            <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Location</label>
+            <select value={country} onChange={(e) => { setCountry(Number(e.target.value) || ""); setState(""); setCity(""); }} className={selectCls}>
+              <option value="">{countryQ.isFetching ? "Loading countries…" : "Country"}</option>
+              {countryOpts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+            <select value={state} disabled={!country} onChange={(e) => { setState(Number(e.target.value) || ""); setCity(""); }} className={selectCls}>
+              <option value="">{stateQ.isFetching ? "Loading states…" : "State"}</option>
+              {stateOpts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+            <select value={city} disabled={!state} onChange={(e) => setCity(Number(e.target.value) || "")} className={selectCls}>
+              <option value="">{cityQ.isFetching ? "Loading cities…" : "City"}</option>
+              {cityOpts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+          </Card>
+          <Card className="!p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-extrabold text-foreground">Categories</p>
+              <span className="text-[11px] text-text-mid">{categoryIds.length}/{MAX_CATS}</span>
+            </div>
+            {categoryOpts.length ? <div className="flex flex-wrap gap-2">{categoryOpts.map((option) => (
+              <button key={option.id} type="button" onClick={() => toggleCategory(option.id)} className={chip(categoryIds.includes(option.id))}>{option.name}</button>
+            ))}</div> : <p className="text-xs text-text-mid">{categoryCatalogue ? "No categories available" : "Loading categories…"}</p>}
+          </Card>
+        </>}
+
+        {activeTab === tabs[1] && <Card className="!p-4 flex flex-col gap-3.5">
+          <p className="text-sm font-extrabold text-foreground">Social accounts</p>
+          {(["instagram", "youtube", "linkedin"] as Platform[]).map((platform) => {
+            const values = { instagram, youtube, linkedin };
+            const setters = { instagram: setInstagram, youtube: setYoutube, linkedin: setLinkedin };
+            return <div key={platform}>
+              <AppInput label={`${platform === "youtube" ? "YouTube" : platform[0].toUpperCase() + platform.slice(1)} username`} value={values[platform]} onChange={setters[platform]} placeholder="username" />
+              <label className="flex items-center gap-1.5 mt-1.5">
+                <input type="radio" checked={primarySocial === platform} onChange={() => setPrimarySocial(platform)} className="accent-primary" />
+                <span className="text-[10px] text-muted-foreground">{primarySocial === platform ? "Primary" : "Make primary"}</span>
+              </label>
+            </div>;
+          })}
+        </Card>}
+
+        {activeTab === tabs[2] && <>
+          <Card className="!p-4">
+            <p className="text-sm font-bold text-foreground mb-2">Open to barter collaborations?</p>
+            <div className="flex gap-2">{(["yes", "no"] as const).map((value) => <button key={value} onClick={() => setBarter(value)} className={`${chip(barter === value)} flex-1 capitalize`}>{value}</button>)}</div>
+          </Card>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {(["instagram", "youtube", "linkedin"] as Platform[]).map((platform) => <button key={platform} onClick={() => setCommercialPlatform(platform)} className={`${chip(commercialPlatform === platform)} capitalize whitespace-nowrap`}>{platform}</button>)}
+          </div>
+          <Card className="!p-4">
+            <p className="text-sm font-black text-foreground capitalize mb-3">{commercialPlatform} rates</p>
+            {commercials[commercialPlatform].length === 0 && <p className="text-xs text-text-mid mb-3">No rates yet</p>}
+            {commercials[commercialPlatform].map((row, index) => <div key={index} className="flex flex-col gap-2 mb-3 pb-3 border-b border-border last:border-0">
+              <div className="flex gap-2">
+                <select value={row.d} onChange={(e) => setRow(commercialPlatform, index, { d: e.target.value })} className={`${inputCls} flex-1`}>
+                  <option value="">Deliverable</option>{DELIVERABLES[commercialPlatform].map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <input value={row.rate} inputMode="numeric" placeholder="₹ Rate" onChange={(e) => setRow(commercialPlatform, index, { rate: e.target.value.replace(/\D/g, "") })} className={`${inputCls} w-24`} />
               </div>
               <div className="flex gap-2">
-                <div className="flex-1">
-                  <AppInput value={newCat} onChange={setNewCat} placeholder="Add category" />
-                </div>
-                <AppButton variant="outline" icon="plus" onClick={addCategory} className="!py-2.5 !px-3.5">Add</AppButton>
+                <input value={row.remarks} placeholder="Remarks (optional)" onChange={(e) => setRow(commercialPlatform, index, { remarks: e.target.value })} className={`${inputCls} flex-1`} />
+                <AppButton variant="ghost" onClick={() => setCommercials((current) => ({ ...current, [commercialPlatform]: current[commercialPlatform].filter((_, i) => i !== index) }))} className="!px-3 !py-2">Remove</AppButton>
               </div>
-            </Card>
-          </>
-        )}
-
-        {activeTab === "Social Accounts" && (
-          <Card>
-            <p className="text-sm font-extrabold text-foreground mb-3">Social Accounts</p>
-            <div className="flex flex-col gap-3">
-              <div>
-                <AppInput label="Instagram Username" value={instagram} onChange={setInstagram} placeholder="username" />
-                <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input type="radio" checked={primarySocial === "instagram"} onChange={() => setPrimarySocial("instagram")} className="accent-primary w-3 h-3" />
-                  <span className="text-[10px] text-muted-foreground">{primarySocial === "instagram" ? "Primary" : "Make Primary"}</span>
-                </label>
-              </div>
-              <div>
-                <AppInput label="Youtube Username" value={youtube} onChange={setYoutube} placeholder="Channel URL" />
-                <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input type="radio" checked={primarySocial === "youtube"} onChange={() => setPrimarySocial("youtube")} className="accent-primary w-3 h-3" />
-                  <span className="text-[10px] text-muted-foreground">{primarySocial === "youtube" ? "Primary" : "Make Primary"}</span>
-                </label>
-              </div>
-              <div>
-                <AppInput label="LinkedIn Username" value={linkedin} onChange={setLinkedin} placeholder="Profile URL" />
-                <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                  <input type="radio" checked={primarySocial === "linkedin"} onChange={() => setPrimarySocial("linkedin")} className="accent-primary w-3 h-3" />
-                  <span className="text-[10px] text-muted-foreground">{primarySocial === "linkedin" ? "Primary" : "Make Primary"}</span>
-                </label>
-              </div>
-              <AppInput label="Website Link" value={website} onChange={setWebsite} placeholder="https://..." />
-            </div>
+            </div>)}
+            <AppButton variant="outline" icon="plus" onClick={() => setCommercials((current) => ({ ...current, [commercialPlatform]: [...current[commercialPlatform], { d: "", rate: "", remarks: "" }] }))} className="!py-2.5">Add rate</AppButton>
           </Card>
-        )}
-
-        {activeTab === "My Commercials" && (
-          <>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {commercialPlatforms.map((cp) => (
-                <button
-                  key={cp.id}
-                  onClick={() => setCommercialPlatform(cp.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all shrink-0 ${
-                    commercialPlatform === cp.id ? "bg-foreground text-card border-foreground" : "bg-card text-foreground border-border"
-                  }`}
-                >
-                  <Icon name={cp.ic} size={14} />
-                  {cp.label}
-                </button>
-              ))}
-            </div>
-            <Card>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-extrabold text-foreground">
-                  {commercialPlatforms.find((c) => c.id === commercialPlatform)?.label} Details
-                </p>
-                <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
-              </div>
-              {(commercials[commercialPlatform] || []).length === 0 ? (
-                <p className="text-xs text-muted-foreground">—</p>
-              ) : (
-                (commercials[commercialPlatform] || []).map((c, i) => (
-                  <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                    <div className="flex justify-between gap-2">
-                      <p className="text-xs font-bold text-foreground">{c.service || "—"}</p>
-                      <p className="text-xs font-bold text-primary shrink-0">{c.rate ? `₹${c.rate}` : "—"}</p>
-                    </div>
-                    {c.remarks && <p className="text-[11px] text-muted-foreground mt-1">{c.remarks}</p>}
-                  </div>
-                ))
-              )}
-            </Card>
-          </>
-        )}
-
-        {activeTab === "Past Projects" && (
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-extrabold text-foreground">Past Projects</p>
-              <span className="text-[10px] text-muted-foreground">Edit on findcollab.com</span>
-            </div>
-            {projects.length === 0 ? (
-              <p className="text-xs text-muted-foreground">—</p>
-            ) : (
-              projects.map((p, i) => (
-                <div key={i} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
-                  <p className="text-xs font-bold text-foreground">{p.brand || "—"}</p>
-                  {p.link && (
-                    <a href={p.link} target="_blank" rel="noreferrer" className="text-[11px] text-primary break-all">
-                      {p.link}
-                    </a>
-                  )}
-                </div>
-              ))
-            )}
+          <Card className="!p-4">
+            <p className="text-sm font-black text-foreground mb-2">Content writing</p>
+            <input value={contentRate} inputMode="numeric" placeholder="₹ Cost per coverage" onChange={(e) => setContentRate(e.target.value.replace(/\D/g, ""))} className={`${inputCls} w-full`} />
           </Card>
-        )}
+        </>}
 
-        <AppButton full icon="check" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save Changes"}
-        </AppButton>
+        {activeTab === tabs[3] && <>
+          <Card className="!p-4 flex flex-col gap-3">
+            <p className="text-sm font-extrabold text-foreground">Add past project</p>
+            <AppInput label="Brand name" value={brand} onChange={setBrand} placeholder="Brand" />
+            <AppInput label="Collaboration link" value={projectLink} onChange={setProjectLink} placeholder="https://" />
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => chooseLogo(e.target.files?.[0])} />
+            <div className="flex items-center gap-3">
+              {projectLogoPreview ? <img src={projectLogoPreview} alt="Project logo preview" className="w-14 h-14 rounded-lg border border-border object-contain bg-card" /> : <div className="w-14 h-14 rounded-lg border border-dashed border-border bg-muted flex items-center justify-center"><Icon name="plus" size={18} className="text-text-mid" /></div>}
+              <div className="flex-1">
+                <AppButton variant="outline" onClick={() => logoInputRef.current?.click()} className="!py-2.5">Choose logo</AppButton>
+                <p className="text-[10px] text-text-mid mt-1.5">Logo upload will be enabled when supported by the server.</p>
+              </div>
+            </div>
+            <AppButton full icon="plus" onClick={addProject} disabled={saving}>Add project</AppButton>
+          </Card>
+          {projects.length === 0 ? <p className="text-xs text-text-mid text-center">No projects yet</p> : projects.map((project, index) => <Card key={project.id ?? index} className="!p-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-primary font-black">{(project.brand || "P").charAt(0).toUpperCase()}</div>
+            <div className="flex-1 min-w-0"><p className="text-sm font-bold text-foreground truncate">{project.brand || "—"}</p><p className="text-[11px] text-text-mid truncate">{project.link || "—"}</p></div>
+            <AppButton variant="ghost" onClick={() => removeProject(project)} disabled={saving} className="!px-3 !py-2">Remove</AppButton>
+          </Card>)}
+        </>}
+
+        {sectionSave && <AppButton full icon="check" onClick={sectionSave} disabled={saving}>{saving ? "Saving…" : `Save ${activeTab === tabs[0] ? "basic information" : activeTab === tabs[1] ? "social accounts" : "commercials"}`}</AppButton>}
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ export const AppButton: React.FC<AppButtonProps> = ({
   children, onClick, variant = "primary", icon, full, className, disabled,
 }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={disabled}
     className={cn(
