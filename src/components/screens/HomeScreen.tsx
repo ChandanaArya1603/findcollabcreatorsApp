@@ -70,7 +70,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
   const actions = [
     { id: "campaigns", l: "Search", ic: "search" },
-    { id: "mycampaigns", l: "Campaigns", ic: "campaign" },
+    { id: "mycampaigns", l: "My Campaigns", ic: "campaign" },
     { id: "offers", l: "Offers", ic: "offer" },
     { id: "startups", l: "Startups", ic: "startup" },
     { id: "wallet", l: "Wallet", ic: "wallet" },
@@ -98,7 +98,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
                 </div>
               )}
             </div>
-            <Avatar letter={initial} size={38} />
+            <button onClick={() => push("profile")} aria-label="Open profile">
+              <Avatar
+                letter={initial}
+                size={38}
+                src={mediaKit?.profile_image || mediaKit?.profile_pic || mediaKit?.image || mediaKit?.userDetail?.profile_image || mediaKit?.userDetail?.profile_pic}
+              />
+            </button>
           </div>
         </div>
 
