@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMediaKit } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
-import { isUnknownMethod } from "@/lib/listParse";
+import { applyCommercialsResponse, refreshCompletion, reportSocialResult, validUrl } from "@/lib/profileSync";
 import { handleFrom } from "@/lib/profilePhoto";
 import { onboardingService } from "@/services/onboardingService";
 import { AppButton } from "../findcollab/AppButton";
@@ -20,7 +20,6 @@ const DELIVERABLES: Record<Platform, string[]> = {
   linkedin: ["Post", "Article"],
 };
 const TITLES = ["Social accounts", "Your commercials", "Past projects"];
-const UNAVAILABLE = "Saving this section will be available shortly";
 
 const parse = (raw: any): any[] => {
   try {
@@ -89,17 +88,13 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
     qc.invalidateQueries({ queryKey: ["profile_completion"] });
   };
 
-  const run = async (fn: () => Promise<any>): Promise<"ok" | "unavailable" | "error"> => {
+  const run = async (fn: () => Promise<any>, apply?: (res: any) => void): Promise<"ok" | "error"> => {
     setSaving(true);
     try {
-      await fn();
-      refresh();
+      const res = await fn();
+      if (apply) { apply(res); refreshCompletion(); } else refresh();
       return "ok";
     } catch (err: any) {
-      if (isUnknownMethod(err)) {
-        toast(UNAVAILABLE);
-        return "unavailable";
-      }
       toast.error(err?.message || "Could not save");
       return "error";
     } finally {
@@ -110,13 +105,18 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
   const next = () => (step >= 2 ? onClose() : setStep(step + 1));
 
   const saveSocial = async (advance: boolean) => {
-    if (!ig.trim() && !yt.trim() && !li.trim()) return toast.error("Add at least one username");
-    const r = await run(() =>
-      onboardingService.updateSocialAccounts({
-        instagram_username: ig.trim(), youtube_username: yt.trim(), linkedin_username: li.trim(), primary_account: primary,
-      })
-    );
-    if (r === "ok") toast.success("Social accounts saved");
+    const h = { instagram: handleFrom(ig), youtube: handleFrom(yt), linkedin: handleFrom(li) };
+    const sent = (Object.keys(h) as Platform[]).filter((p) => h[p]);
+    if (!sent.length) return toast.error("Add at least one username");
+    const prim = sent.includes(primary) ? primary : sent[0];
+    let result: any = null;
+    const r = await run(async () => {
+      result = await onboardingService.updateSocialAccounts({
+        instagram_username: h.instagram, youtube_username: h.youtube, linkedin_username: h.linkedin, primary_account: prim,
+      });
+      return result;
+    });
+    if (r === "ok") reportSocialResult(result);
     if (r !== "error" && advance) next();
   };
 
@@ -132,7 +132,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
         youtube_details: ser("youtube"),
         linkedin_details: ser("linkedin"),
         content_writing_details: JSON.stringify({ cost_per_coverage: cpc }),
-      })
+      }), applyCommercialsResponse
     );
     if (r === "ok") toast.success("Commercials saved");
     if (r !== "error" && advance) next();
@@ -142,7 +142,8 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
     const b = brand.trim();
     const l = link.trim();
     if (!b) return toast.error("Enter the brand name");
-    if (!/^https?:\/\/\S+\.\S+/.test(l)) return toast.error("Enter a valid link starting with https://");
+    if (b.length > 100 || l.length > 100) return toast.error("Brand and link must be 100 characters or less");
+    if (!validUrl(l)) return toast.error("Enter a valid link starting with https://");
     const r = await run(() => onboardingService.addProject(b, l));
     if (r === "ok") {
       setBrand("");
