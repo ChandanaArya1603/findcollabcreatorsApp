@@ -50,6 +50,61 @@ const matchId = (options: Opt[], value: any) => {
 const selectCls = "w-full p-3 rounded-xl border-[1.5px] border-border text-sm bg-card text-foreground outline-none focus:border-primary disabled:opacity-60";
 const inputCls = "p-2.5 rounded-xl border-[1.5px] border-border text-sm bg-card text-foreground outline-none focus:border-primary min-w-0";
 
+interface MultiDropdownProps {
+  label: string;
+  placeholder: string;
+  emptyText: string;
+  options: Opt[];
+  selected: number[];
+  onToggle: (id: number) => void;
+  loading?: boolean;
+  hint?: string;
+}
+
+const MultiDropdown: React.FC<MultiDropdownProps> = ({ label, placeholder, emptyText, options, selected, onToggle, loading, hint }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const names = options.filter((o) => selected.includes(o.id)).map((o) => o.name);
+  const disabled = loading || !options.length;
+  return (
+    <div className="flex flex-col gap-1.5" ref={ref}>
+      <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">{label}</label>
+      <div className="relative">
+        <button type="button" disabled={disabled} onClick={() => setOpen((v) => !v)}
+          className={`${selectCls} flex items-center justify-between gap-2 text-left`}>
+          <span className={`truncate ${names.length ? "" : "text-text-mid"}`}>
+            {loading ? "Loading…" : !options.length ? emptyText : names.length ? names.join(", ") : placeholder}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 text-text-mid transition-transform ${open ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        {open && options.length > 0 && (
+          <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto rounded-xl border-[1.5px] border-border bg-card shadow-lg">
+            {options.map((o) => {
+              const on = selected.includes(o.id);
+              return (
+                <button key={o.id} type="button" onClick={() => onToggle(o.id)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted">
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-[1.5px] ${on ? "bg-primary border-primary" : "border-border bg-card"}`}>
+                    {on && <Icon name="check" size={10} className="text-primary-foreground" />}
+                  </span>
+                  <span className="truncate">{o.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {hint && <p className="text-[10px] text-text-mid">{hint}</p>}
+    </div>
+  );
+};
+
 const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
   const qc = useQueryClient();
   const { user, userDetail, refreshProfile } = useAuth();
@@ -410,22 +465,28 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
             </select>
           </Card>
           <Card className="!p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-extrabold text-foreground">Categories</p>
-              <span className="text-[11px] text-text-mid">{categoryIds.length}/{MAX_CATS}</span>
-            </div>
-            {categoryOpts.length ? <div className="flex flex-wrap gap-2">{categoryOpts.map((option) => (
-              <button key={option.id} type="button" onClick={() => toggleCategory(option.id)} className={chip(categoryIds.includes(option.id))}>{option.name}</button>
-            ))}</div> : <p className="text-xs text-text-mid">{categoryCatalogue ? "No categories available" : "Loading categories…"}</p>}
+            <MultiDropdown
+              label="Categories"
+              placeholder="Select categories"
+              emptyText="No categories available"
+              options={categoryOpts}
+              selected={categoryIds}
+              onToggle={toggleCategory}
+              loading={!categoryOpts.length && !categoryCatalogue}
+              hint={`Pick up to ${MAX_CATS} · ${categoryIds.length}/${MAX_CATS} selected`}
+            />
           </Card>
           <Card className="!p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-extrabold text-foreground">Languages</p>
-              <span className="text-[11px] text-text-mid">{languageIds.length} selected</span>
-            </div>
-            {languageOpts.length ? <div className="flex flex-wrap gap-2">{languageOpts.map((option) => (
-              <button key={option.id} type="button" onClick={() => toggleLanguage(option.id)} className={chip(languageIds.includes(option.id))}>{option.name}</button>
-            ))}</div> : <p className="text-xs text-text-mid">{languageQ.data ? "No languages available" : "Loading languages…"}</p>}
+            <MultiDropdown
+              label="Languages"
+              placeholder="Select languages"
+              emptyText="No languages available"
+              options={languageOpts}
+              selected={languageIds}
+              onToggle={toggleLanguage}
+              loading={!languageOpts.length && !languageQ.data}
+              hint={`${languageIds.length} selected`}
+            />
           </Card>
         </>}
 
