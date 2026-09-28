@@ -3,10 +3,11 @@ import { Capacitor } from "@capacitor/core";
 import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
 import { toast } from "sonner";
 import { walletService } from "@/services/walletService";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { creditService, pick, toNum } from "@/services/creditService";
 import {
   useWalletBalance,
   useCreditBalance,
-  useCreditTransactions,
   invalidateWalletData,
 } from "@/hooks/useAppData";
 import { addPendingPurchase, removePendingPurchase, retryPendingPurchases } from "@/lib/pendingPurchases";
@@ -38,33 +39,90 @@ const isNative = Capacitor.isNativePlatform();
 
 const WalletScreen: React.FC = () => {
   const [tab, setTab] = useState("txns");
+  void Pill;
   const [storePrices, setStorePrices] = useState<Record<string, string> | null>(null);
   const [storeFailed, setStoreFailed] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const { data: balRes } = useWalletBalance();
   const { data: creditRes } = useCreditBalance();
-  const { data: txnRes, isLoading: loading } = useCreditTransactions(1);
+  const { data: dash } = useQuery({ queryKey: ["credit_dashboard"], queryFn: () => creditService.getDashboard() });
+  const { data: costsRes } = useQuery({ queryKey: ["credit_costs"], queryFn: () => creditService.getCosts() });
+  const { data: pkgRes } = useQuery({ queryKey: ["credit_packages"], queryFn: () => creditService.getPackages() });
+  const history = useInfiniteQuery({
+    queryKey: ["credit_history"],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => creditService.getTransactions(pageParam as number),
+    getNextPageParam: (last: any, all) => {
+      const page = toNum(pick(last, "page", "current_page", "pagination.page"), all.length);
+      const pages = toNum(pick(last, "total_pages", "pagination.total_pages", "last_page"), 0);
+      if (pages) return page < pages ? page + 1 : undefined;
+      return (last?.transactions || []).length >= 20 ? all.length + 1 : undefined;
+    },
+  });
+  const loading = history.isLoading;
 
   const balance: number | null = balRes?.wallet_balance ?? null;
-  const credits = creditRes
-    ? {
-        total: creditRes.balance ?? 0,
-        earned: creditRes.total_earned ?? 0,
-        spent: creditRes.total_spent ?? 0,
-      }
-    : null;
+  const creditBal = toNum(pick(dash, "balance", "credits_balance", "current_balance") ?? creditRes?.balance, 0);
+  const credits = {
+    total: pick(dash, "balance", "credits_balance", "current_balance") ?? creditRes?.balance ?? "—",
+    earned: pick(dash, "total_earned", "earned", "summary.total_earned") ?? creditRes?.total_earned ?? 0,
+    spent: pick(dash, "total_spent", "spent", "summary.total_spent") ?? creditRes?.total_spent ?? 0,
+  };
+  const lowBalance = Boolean(pick(dash, "low_balance", "low_balance_warning")) || (dash && creditBal < 20);
+  const expiring: any[] = pick(dash, "expiring_credits", "expiring", "expiring_soon") || [];
+  const expiringList = Array.isArray(expiring) ? expiring : [];
 
-  const txns: Transaction[] = (txnRes?.transactions || []).map((t: any) => ({
+  const txns: Transaction[] = (history.data?.pages || []).flatMap((pg: any) => pg?.transactions || []).map((t: any) => ({
     date: t.date || t.created_at || "",
     transaction_id: t.transaction_id || t.id || "",
     brand: t.brand || t.brand_name || "",
     campaign: t.campaign || t.campaign_name || "",
     description: t.description || "",
-    amount: String(t.amount ?? ""),
+    amount: String(t.amount ?? t.credits ?? ""),
     type: t.type || t.transaction_type || "",
     status: t.status || "",
   }));
+
+  const packages: any[] = pkgRes?.packages || [];
+  const plans = packages.length
+    ? packages.map((pk, i) => {
+        const byCredits = PLANS.find((p) => p.credits === toNum(pk.credits));
+        const byName = PLANS.find((p) => String(pk.name || "").toLowerCase().includes(p.name.toLowerCase()));
+        const play = byCredits || byName || PLANS.find((p) => p.id === pk.id) || PLANS[i];
+        return {
+          id: play?.id || String(pk.id),
+          name: String(pk.name || play?.name || "Credits"),
+          credits: toNum(pk.credits, play?.credits || 0),
+          price: pk.display_price != null ? `${pk.display_symbol || ""}${pk.display_price}` : play?.price || "—",
+          validity: pk.validity_days ? `Valid ${pk.validity_days} days` : "",
+          pop: play?.pop || false,
+          playable: Boolean(play),
+        };
+      })
+    : PLANS.map((p) => ({ ...p, validity: "Valid 180 days", playable: true }));
+
+  const costRows: [string, string][] = (() => {
+    const k = costsRes || {};
+    const rows: [string, string][] = [];
+    const tiers = pick(k, "apply_tiers", "application_tiers", "apply", "costs.apply_tiers");
+    if (Array.isArray(tiers)) {
+      tiers.forEach((t: any) => rows.push([String(t.label || t.name || t.tier || t.campaign_type || "Apply"), `${t.credits ?? t.cost ?? "—"} credits`]));
+    } else if (tiers && typeof tiers === "object") {
+      Object.entries(tiers).forEach(([n, v]: any) => rows.push([`Apply · ${n}`, `${typeof v === "object" ? v.credits ?? v.cost : v} credits`]));
+    }
+    const bmin = pick(k, "boost.min", "boost_min"); const bmax = pick(k, "boost.max", "boost_max");
+    if (bmin != null || bmax != null) rows.push(["Boost application", `${bmin ?? 0}–${bmax ?? "—"} credits`]);
+    const pitch = pick(k, "pitch_price", "startup_pitch", "credits_per_pitch", "pitch.credits");
+    if (pitch != null) rows.push(["Startup pitch (after first free)", `${typeof pitch === "object" ? pitch.credits : pitch} credits`]);
+    const unlock = pick(k, "contact_unlock_price", "brand_contact", "contact_unlock", "unlock_contact");
+    if (unlock != null) rows.push(["Unlock brand contact", `${typeof unlock === "object" ? unlock.credits : unlock} credits`]);
+    return rows;
+  })();
+
+  const typeIcon = (t: string) =>
+    ({ purchase: "🛒", application: "📝", bonus: "🎁", referral: "🤝", collaboration: "💼", expiry: "⌛", startup_pitch: "🚀" } as Record<string, string>)[t] || "🪙";
+  const isPlus = (t: Transaction) => ["purchase", "bonus", "referral", "collaboration", "credit"].includes(t.type) || t.amount.startsWith("+");
 
   const refreshCredits = useCallback(() => {
     invalidateWalletData();
@@ -101,7 +159,7 @@ const WalletScreen: React.FC = () => {
       .catch(() => setStoreFailed(true));
   }, []);
 
-  const handleBuy = async (plan: typeof PLANS[number]) => {
+  const handleBuy = async (plan: { id: string; credits: number }) => {
     setBuyingId(plan.id);
     try {
       const txn: any = await NativePurchases.purchaseProduct({
@@ -140,13 +198,34 @@ const WalletScreen: React.FC = () => {
 
   const displayBalance = balance !== null ? `₹${balance.toLocaleString()}` : "—";
 
-  const plans = PLANS;
 
 
   return (
     <Screen>
       <div className="px-4 pt-4 pb-3 bg-card">
         <h2 className="text-lg font-black text-foreground mb-4">Wallet</h2>
+        <div className="bg-primary-light rounded-[20px] p-4 mb-3">
+          <p className="text-[11px] text-primary-dark font-bold uppercase tracking-widest mb-1">Credits</p>
+          <p className="text-4xl font-black text-primary">{credits.total}</p>
+          <p className="text-[11px] text-text-mid mt-1">{credits.earned} earned • {credits.spent} spent</p>
+          {lowBalance && (
+            <div className="mt-3 p-2.5 rounded-xl bg-warning-light flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold text-foreground">⚠ Low balance — top up to keep applying</p>
+              <AppButton className="!py-1.5 !px-3 !text-[11px] !rounded-[10px]" onClick={() => setTab("buy")}>Buy Credits</AppButton>
+            </div>
+          )}
+          {expiringList.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[11px] font-bold text-foreground mb-1">Expiring soon</p>
+              {expiringList.map((e: any, i: number) => (
+                <div key={i} className="flex justify-between text-[11px] text-text-mid">
+                  <span>{e.credits ?? e.amount ?? "—"} credits</span>
+                  <span>{e.expires_at || e.expiry_date || e.date || "—"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="gradient-hero rounded-[20px] p-5 mb-3 relative overflow-hidden">
           <div className="absolute -right-5 -top-5 w-[100px] h-[100px] rounded-full bg-primary/10" />
           <p className="text-[11px] text-primary-foreground/50 uppercase tracking-widest mb-1">Available Balance</p>
@@ -154,12 +233,7 @@ const WalletScreen: React.FC = () => {
           <p className="text-[11px] text-primary-foreground/40 mb-4">Updated from your account</p>
           <AppButton icon="arrowUp" className="!py-2.5 !px-4 !text-xs !rounded-[10px]">Withdraw</AppButton>
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="bg-primary-light rounded-[14px] p-3">
-            <p className="text-[10px] text-primary-dark font-bold uppercase mb-0.5">Credits</p>
-            <p className="text-[26px] font-black text-primary">{credits?.total ?? "—"}</p>
-            <p className="text-[10px] text-text-mid mt-0.5">{credits ? `${credits.earned} earned • ${credits.spent} spent` : "—"}</p>
-          </div>
+        <div className="grid grid-cols-1 gap-2.5">
           <div className="bg-success-light rounded-[14px] p-3">
             <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">KYC Status</p>
             <p className="text-base font-black text-success mt-1 mb-0.5">Verified ✓</p>
@@ -170,7 +244,7 @@ const WalletScreen: React.FC = () => {
 
       <div className="px-4 pt-3.5">
         <div className="flex gap-2 mb-3.5">
-          {[["txns", "Transactions"], ["credits", "Credits"], ["buy", "Buy Credits"]].map(([id, label]) => (
+          {[["txns", "Credit history"], ["credits", "Costs"], ["buy", "Buy Credits"]].map(([id, label]) => (
             <Pill key={id} active={tab === id} onClick={() => setTab(id)}>{label}</Pill>
           ))}
         </div>
