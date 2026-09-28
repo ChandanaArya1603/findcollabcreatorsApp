@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { campaignService } from "@/services/campaignService";
-import { invalidateCampaignData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
@@ -370,6 +369,14 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
 
         <div className="h-4" />
       </div>
+      {applyOpen && (
+        <ApplySheet
+          campaignId={c.id}
+          onClose={() => setApplyOpen(false)}
+          onApplied={() => { setApplied(true); setApplyOpen(false); }}
+          onOpenWallet={onOpenWallet}
+        />
+      )}
     </div>
   );
 };
