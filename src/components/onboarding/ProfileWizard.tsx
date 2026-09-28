@@ -3,16 +3,16 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMediaKit } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
-import { applyCommercialsResponse, refreshCompletion, reportSocialResult, validUrl } from "@/lib/profileSync";
+import { applyCommercialsResponse, refreshCompletion, reportSocialResult } from "@/lib/profileSync";
 import { handleFrom } from "@/lib/profilePhoto";
 import { onboardingService } from "@/services/onboardingService";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Card } from "../findcollab/Card";
+import { PastProjectsEditor } from "../profile/PastProjectsEditor";
 
 type Platform = "instagram" | "youtube" | "linkedin";
 interface Row { d: string; rate: string; remarks: string }
-interface Project { id?: number | string; brand: string; link: string }
 
 const DELIVERABLES: Record<Platform, string[]> = {
   instagram: ["Reel", "Post", "Story", "Carousel"],
@@ -31,9 +31,9 @@ const parse = (raw: any): any[] => {
 };
 const clean = (v: any) => (v == null || String(v).toLowerCase() === "null" ? "" : String(v));
 
-interface Props { initialStep?: number; onClose: () => void }
+interface Props { initialStep?: number; onClose: () => void; onSkip?: () => void }
 
-const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
+const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose, onSkip }) => {
   const qc = useQueryClient();
   const { data: mk } = useMediaKit();
   const [step, setStep] = useState(initialStep);
@@ -48,9 +48,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
   const [rows, setRows] = useState<Record<Platform, Row[]>>({ instagram: [], youtube: [], linkedin: [] });
   const [cpc, setCpc] = useState("");
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [brand, setBrand] = useState("");
-  const [link, setLink] = useState("");
+  const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => {
     if (!mk) return;
@@ -72,15 +70,6 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       linkedin: map(uc.linkedin_details, "linkedin"),
     });
     setCpc(clean(parse(uc.content_writing_details)[0]?.cost_per_coverage));
-    if (Array.isArray(mk.userProjects)) {
-      setProjects(
-        mk.userProjects.map((p: any) => ({
-          id: p.id ?? p.project_id,
-          brand: p.brand_name || p.brand || "",
-          link: p.collaboration_link || p.link || "",
-        }))
-      );
-    }
   }, [mk]);
 
   const refresh = () => {
@@ -138,34 +127,14 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
     if (r !== "error" && advance) next();
   };
 
-  const addProject = async () => {
-    const b = brand.trim();
-    const l = link.trim();
-    if (!b) return toast.error("Enter the brand name");
-    if (b.length > 100 || l.length > 100) return toast.error("Brand and link must be 100 characters or less");
-    if (!validUrl(l)) return toast.error("Enter a valid link starting with https://");
-    const r = await run(() => onboardingService.addProject(b, l));
-    if (r === "ok") {
-      setBrand("");
-      setLink("");
-      toast.success("Project added");
-    }
-  };
-
-  const removeProject = async (p: Project) => {
-    if (!p.id) return;
-    const r = await run(() => onboardingService.deleteProject(p.id!));
-    if (r === "ok") setProjects((list) => list.filter((x) => x.id !== p.id));
-  };
-
   const saveProjects = () => {
-    if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    if (projectCount === 0) return toast.error("Add at least one project to complete this step");
     refresh();
     toast.success("Projects saved");
   };
 
   const finishProjects = () => {
-    if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    if (projectCount === 0) return toast.error("Add at least one project to complete this step");
     refresh();
     onClose();
   };
@@ -182,7 +151,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       <div className="px-4 pt-4 pb-3 bg-card border-b border-border">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-base font-black text-foreground">Complete your profile</h1>
-          <button onClick={next} className="text-xs font-bold text-text-mid">Skip</button>
+          <button onClick={() => { onSkip?.(); onClose(); }} className="text-xs font-bold text-text-mid">Skip</button>
         </div>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${((step + 1) / 3) * 100}%` }} />
@@ -251,30 +220,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
           </div>
         )}
 
-        {step === 2 && (
-          <div className="flex flex-col gap-3">
-            <Card className="!p-4 flex flex-col gap-3">
-              <AppInput label="Brand name" value={brand} onChange={setBrand} />
-              <AppInput label="Collaboration link" value={link} onChange={setLink} placeholder="https://" />
-              <AppButton full onClick={addProject} disabled={saving}>Add project</AppButton>
-            </Card>
-            {projects.length === 0 ? (
-              <p className="text-xs text-text-mid text-center">No projects yet</p>
-            ) : (
-              projects.map((p, i) => (
-                <Card key={p.id ?? i} className="!p-3 flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{p.brand || "—"}</p>
-                    <p className="text-[11px] text-text-mid truncate">{p.link || "—"}</p>
-                  </div>
-                  {p.id && (
-                    <button onClick={() => removeProject(p)} disabled={saving} className="text-xs font-bold text-destructive">Remove</button>
-                  )}
-                </Card>
-              ))
-            )}
-          </div>
-        )}
+        {step === 2 && <PastProjectsEditor onCountChange={setProjectCount} />}
       </div>
 
       <div className="p-4 bg-card border-t border-border flex gap-2">

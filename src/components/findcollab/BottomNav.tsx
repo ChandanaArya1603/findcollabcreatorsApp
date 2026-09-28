@@ -28,12 +28,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, setActive }) => (
           }`}
         >
           <div className="relative h-6 flex items-center justify-center">
-            <Icon name={tab.ic} size={21} />
-            {isActive && (
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-            )}
+            <Icon name={tab.ic} size={21} strokeWidth={isActive ? 2.8 : 2} />
           </div>
-          <span className="text-[9px] font-bold tracking-wide">{tab.l}</span>
+          <span className={`text-[9px] tracking-wide ${isActive ? "font-black" : "font-bold"}`}>{tab.l}</span>
         </button>
       );
     })}

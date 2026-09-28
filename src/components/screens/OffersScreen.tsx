@@ -13,6 +13,7 @@ export interface Offer {
   status: string;
   sc: "green" | "amber" | "blue" | "red";
   due: string;
+  raw?: any;
 }
 
 interface Props {
@@ -57,6 +58,7 @@ const OffersScreen: React.FC<Props> = ({ push }) => {
       budget: formatBudget(c),
       status: c.status || "Pending",
       sc: statusColor(c.status),
+      raw: c,
       due: c.end_date
         ? new Date(c.end_date).toLocaleDateString("en-IN", {
             day: "numeric",
