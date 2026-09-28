@@ -11,6 +11,7 @@ import OfferDetail from "@/components/screens/OfferDetail";
 import StartupsScreen from "@/components/screens/StartupsScreen";
 import MessagesScreen from "@/components/screens/MessagesScreen";
 import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
+import AnalyticsScreen from "@/components/screens/AnalyticsScreen";
 import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import LoginScreen from "@/components/screens/LoginScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
@@ -97,6 +98,7 @@ const Index = () => {
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
       case "editprofile": return <EditProfileScreen onBack={pop} />;
+      case "analytics": return <AnalyticsScreen onBack={pop} />;
       case "profile": return <ProfileScreen push={push} />;
       default: return null;
     }

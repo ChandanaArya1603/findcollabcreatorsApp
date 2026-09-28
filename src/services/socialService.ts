@@ -10,4 +10,7 @@ export const socialService = {
   getLinkedinData: () =>
     api.get("/linkedin_data"),
 
+  linkedinCalculator: (username: string) =>
+    api.postForm("/linkedin_calculator", { username }),
+
 };

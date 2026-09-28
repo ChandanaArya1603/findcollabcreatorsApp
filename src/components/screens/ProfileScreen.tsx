@@ -14,6 +14,7 @@ interface Props {
 
 const menu = [
   { label: "Media Kit", ic: "mediakit", id: "mediakit", badge: "" },
+  { label: "Analytics & LinkedIn Calculator", ic: "startup", id: "analytics", badge: "" },
   { label: "My Campaigns", ic: "campaign", id: "mycampaigns", badge: "" },
   { label: "My Offers", ic: "offer", id: "offers", badge: "" },
   { label: "Messages", ic: "msg", id: "messages", badge: "" },
