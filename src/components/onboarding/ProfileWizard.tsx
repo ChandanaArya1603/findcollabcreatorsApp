@@ -109,7 +109,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
 
   const next = () => (step >= 2 ? onClose() : setStep(step + 1));
 
-  const saveSocial = async () => {
+  const saveSocial = async (advance: boolean) => {
     if (!ig.trim() && !yt.trim() && !li.trim()) return toast.error("Add at least one username");
     const r = await run(() =>
       onboardingService.updateSocialAccounts({
@@ -117,10 +117,10 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       })
     );
     if (r === "ok") toast.success("Social accounts saved");
-    if (r !== "error") next();
+    if (r !== "error" && advance) next();
   };
 
-  const saveCommercials = async () => {
+  const saveCommercials = async (advance: boolean) => {
     const all = (Object.keys(rows) as Platform[]).flatMap((p) => rows[p]);
     if (all.some((r) => !r.d || !(Number(r.rate) > 0))) return toast.error("Each row needs a deliverable and a rate");
     const ser = (p: Platform) =>
@@ -135,7 +135,7 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
       })
     );
     if (r === "ok") toast.success("Commercials saved");
-    if (r !== "error") next();
+    if (r !== "error" && advance) next();
   };
 
   const addProject = async () => {
@@ -157,8 +157,15 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
     if (r === "ok") setProjects((list) => list.filter((x) => x.id !== p.id));
   };
 
+  const saveProjects = () => {
+    if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    refresh();
+    toast.success("Projects saved");
+  };
+
   const finishProjects = () => {
     if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    refresh();
     onClose();
   };
 
@@ -273,9 +280,13 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
         {step > 0 && (
           <AppButton variant="outline" onClick={() => setStep(step - 1)} disabled={saving}>Back</AppButton>
         )}
+        <AppButton variant="outline" disabled={saving}
+          onClick={step === 0 ? () => saveSocial(false) : step === 1 ? () => saveCommercials(false) : saveProjects}>
+          {saving ? "Saving…" : "Save"}
+        </AppButton>
         <div className="flex-1">
           <AppButton full disabled={saving}
-            onClick={step === 0 ? saveSocial : step === 1 ? saveCommercials : finishProjects}>
+            onClick={step === 0 ? () => saveSocial(true) : step === 1 ? () => saveCommercials(true) : finishProjects}>
             {saving ? "Saving…" : step === 2 ? "Finish" : "Next"}
           </AppButton>
         </div>
