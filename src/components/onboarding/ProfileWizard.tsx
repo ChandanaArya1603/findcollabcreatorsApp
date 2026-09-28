@@ -157,8 +157,15 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
     if (r === "ok") setProjects((list) => list.filter((x) => x.id !== p.id));
   };
 
+  const saveProjects = () => {
+    if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    refresh();
+    toast.success("Projects saved");
+  };
+
   const finishProjects = () => {
     if (projects.length === 0) return toast.error("Add at least one project to complete this step");
+    refresh();
     onClose();
   };
 
@@ -273,9 +280,13 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose }) => {
         {step > 0 && (
           <AppButton variant="outline" onClick={() => setStep(step - 1)} disabled={saving}>Back</AppButton>
         )}
+        <AppButton variant="outline" disabled={saving}
+          onClick={step === 0 ? () => saveSocial(false) : step === 1 ? () => saveCommercials(false) : saveProjects}>
+          {saving ? "Saving…" : "Save"}
+        </AppButton>
         <div className="flex-1">
           <AppButton full disabled={saving}
-            onClick={step === 0 ? saveSocial : step === 1 ? saveCommercials : finishProjects}>
+            onClick={step === 0 ? () => saveSocial(true) : step === 1 ? () => saveCommercials(true) : finishProjects}>
             {saving ? "Saving…" : step === 2 ? "Finish" : "Next"}
           </AppButton>
         </div>
