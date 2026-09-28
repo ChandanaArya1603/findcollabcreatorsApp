@@ -41,7 +41,7 @@ export const ApplySheet: React.FC<Props> = ({ campaignId, onClose, onApplied, on
   const hasBoost = boostCfg.enabled && boostMax > 0;
   const total = applyCost + boost;
   const after = balance - total;
-  const tooLow = !cost.isLoading && after < 0;
+  const tooLow = !cost.isLoading && !creditBal.isLoading && after < 0;
 
   const setBoostSafe = (v: number) => {
     if (v <= 0) return setBoost(0);
