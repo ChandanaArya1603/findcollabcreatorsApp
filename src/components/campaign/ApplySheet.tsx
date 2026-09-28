@@ -31,8 +31,9 @@ export const ApplySheet: React.FC<Props> = ({ campaignId, onClose, onApplied, on
   const c: any = cost.data || {};
   const k = costs.data || {};
   const applyCost = toNum(c.cost, 0);
+  // Prefer the dedicated /credit_balance reply (same source as Home/Wallet).
   const balance = toNum(
-    pick(k, "credits_balance", "current_balance", "balance") ?? pick(creditBal.data, "balance", "credits_balance", "credit_balance")
+    pick(creditBal.data, "balance", "credits_balance", "credit_balance") ?? pick(k, "credits_balance", "current_balance", "balance")
   );
   const boostCfg = getBoostAction(k);
   const boostMin = boostCfg.min;
