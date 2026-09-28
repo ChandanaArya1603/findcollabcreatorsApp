@@ -311,16 +311,19 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   const pitches: any[] = pitched.data?.pitches || [];
 
   const renderGmailBar = () => (
-    <div className="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-card border border-border flex items-center gap-2">
-      <Icon name="msg" size={16} className="text-primary shrink-0" />
+    <div className={cn(
+      "mx-4 mt-3 px-3 py-2.5 rounded-xl border flex items-center gap-2",
+      gmailConnected ? "bg-success-light border-success/20" : "bg-card border-border"
+    )}>
+      <Icon name={gmailConnected ? "check" : "msg"} size={16} className={gmailConnected ? "text-success shrink-0" : "text-primary shrink-0"} />
       {gmail.isLoading ? (
         <p className="text-xs text-muted-foreground">Checking Gmail…</p>
       ) : gmailConnected ? (
         <>
-          <p className="text-xs text-foreground flex-1 min-w-0 truncate">
-            Gmail connected: <span className="font-bold">{g.email || "—"}</span>
+          <p className="text-xs text-success flex-1 min-w-0 truncate">
+            <span className="font-bold">Gmail connected</span>: {g.email || "—"}
           </p>
-          <button onClick={() => setConfirmDisconnect(true)} className="text-[11px] font-bold text-primary shrink-0">
+          <button onClick={() => setConfirmDisconnect(true)} className="text-[11px] font-bold text-success shrink-0">
             Disconnect
           </button>
         </>
@@ -470,7 +473,7 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
             </div>
           </div>
 
-          <div className="px-4 flex flex-col gap-2.5">
+          <div className="px-4 grid grid-cols-2 max-[339px]:grid-cols-1 gap-2.5 items-stretch">
             {list.isLoading && <p className="text-sm text-muted-foreground text-center py-10">Loading startups…</p>}
             {!list.isLoading && startups.length === 0 && (
               <div className="py-10 text-center">
@@ -482,27 +485,31 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
               const sent = st.pitch_sent || sentIds.has(st.id);
               const failed = !sent && st.pitch_status === "failed";
               return (
-                <Card key={st.id} className="!p-3.5" onClick={() => setDetailId(st.id)}>
-                  <div className="flex gap-2.5 items-center mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center overflow-hidden shrink-0">
+                <Card key={st.id} className="!p-3 h-full flex flex-col min-w-0" onClick={() => setDetailId(st.id)}>
+                  <div className="flex flex-col gap-2 items-start mb-2 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-primary-light flex items-center justify-center overflow-hidden shrink-0">
                       {st.logo ? <img src={st.logo} alt={st.name} className="w-full h-full object-cover" />
                         : <Icon name="startup" size={18} className="text-primary" />}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 w-full">
                       <p className="text-sm font-extrabold text-foreground truncate">{st.name}</p>
-                      {st.industry ? <Badge color="pink" sm>{st.industry}</Badge> : null}
+                      {st.industry ? (
+                        <span className="mt-1 inline-block max-w-full truncate rounded-full bg-primary-light px-2 py-0.5 text-[9px] font-bold text-primary align-top">
+                          {st.industry}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   {st.desc ? (
-                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                      {st.desc.length > 120 ? st.desc.substring(0, 120) + "…" : st.desc}
+                    <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed line-clamp-2 min-h-[2.75rem]">
+                      {st.desc}
                     </p>
                   ) : null}
                   {sent ? (
-                    <div className="flex justify-center"><Badge color="green">Sent ✓</Badge></div>
+                    <div className="mt-auto min-h-10 flex items-center justify-center rounded-[12px] bg-success-light"><Badge color="green">Sent ✓</Badge></div>
                   ) : (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <AppButton full icon="send" onClick={() => openPitch(st)}>
+                    <div className="mt-auto" onClick={(e) => e.stopPropagation()}>
+                      <AppButton full icon="send" className="!px-2 !text-xs" onClick={() => openPitch(st)}>
                         {failed ? "Retry pitch" : "Send Pitch"}
                       </AppButton>
                     </div>
@@ -510,9 +517,9 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
                 </Card>
               );
             })}
-            <div ref={sentinel} />
+            <div ref={sentinel} className="col-span-full" />
             {list.hasNextPage && (
-              <AppButton variant="outline" full disabled={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
+              <AppButton variant="outline" full className="col-span-full" disabled={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
                 {list.isFetchingNextPage ? "Loading…" : "Load more"}
               </AppButton>
             )}

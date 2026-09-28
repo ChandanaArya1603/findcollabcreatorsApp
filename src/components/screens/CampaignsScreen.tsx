@@ -8,6 +8,7 @@ import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
 import { useCampaignCost } from "@/hooks/useCampaignCost";
+import { ApplySheet } from "../campaign/ApplySheet";
 
 const CardCost: React.FC<{ id: number }> = ({ id }) => {
   const q = useCampaignCost(id);
@@ -33,6 +34,7 @@ export interface Campaign {
 
 interface Props {
   push: (screen: string, data?: any) => void;
+  onOpenWallet?: () => void;
 }
 
 function timeAgo(dateStr: string): string {
@@ -45,9 +47,11 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`;
 }
 
-const CampaignsScreen: React.FC<Props> = ({ push }) => {
+const CampaignsScreen: React.FC<Props> = ({ push, onOpenWallet }) => {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [applyCampaignId, setApplyCampaignId] = useState<number | null>(null);
+  const [appliedIds, setAppliedIds] = useState<Set<number>>(new Set());
   const { data, isLoading: loading } = useCampaigns(1);
 
   const results: any[] = data?.result || data?.campaigns || [];
@@ -130,11 +134,30 @@ const CampaignsScreen: React.FC<Props> = ({ push }) => {
                 <span className="text-[17px] font-black text-primary">{c.budget}</span>
                 <CardCost id={c.id} />
               </div>
-              <AppButton className="!py-2 !px-4 !text-xs !rounded-[10px]">Apply →</AppButton>
+               <div onClick={(event) => event.stopPropagation()}>
+                 <AppButton
+                   className="!py-2 !px-4 !text-xs !rounded-[10px]"
+                   disabled={appliedIds.has(c.id)}
+                   onClick={() => setApplyCampaignId(c.id)}
+                 >
+                   {appliedIds.has(c.id) ? "Applied ✓" : "Apply →"}
+                 </AppButton>
+               </div>
             </div>
           </Card>
         ))}
       </div>
+       {applyCampaignId !== null && (
+         <ApplySheet
+           campaignId={applyCampaignId}
+           onClose={() => setApplyCampaignId(null)}
+           onApplied={() => {
+             setAppliedIds((current) => new Set(current).add(applyCampaignId));
+             setApplyCampaignId(null);
+           }}
+           onOpenWallet={onOpenWallet}
+         />
+       )}
     </Screen>
   );
 };

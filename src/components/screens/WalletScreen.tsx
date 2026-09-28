@@ -275,7 +275,9 @@ const WalletScreen: React.FC = () => {
                     <span className="text-xs font-semibold text-foreground">{a.label || a.action}</span>
                     <Badge color="amber" sm>{costLabel(a)}</Badge>
                   </div>
-                  {a.note && <p className="text-[10px] text-text-light mt-0.5">{a.note}</p>}
+                   {a.note && !String(a.note).toLowerCase().includes("/api/") && (
+                     <p className="text-[10px] text-text-light mt-0.5">{a.note}</p>
+                   )}
                   {a.tiers && typeof a.tiers === "object" && !Array.isArray(a.tiers) && (
                     <div className="mt-1 pl-2 border-l-2 border-warning/30 flex flex-col gap-0.5">
                       {Object.entries(a.tiers).map(([n, v]: any) => (

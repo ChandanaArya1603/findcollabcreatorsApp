@@ -51,10 +51,10 @@ const Index = () => {
   const renderMain = () => {
     switch (tab) {
       case "home": return <HomeScreen push={push} switchTab={handleTabChange} />;
-      case "campaigns": return <CampaignsScreen push={push} />;
+      case "campaigns": return <CampaignsScreen push={push} onOpenWallet={() => handleTabChange("wallet")} />;
       case "messages": return <MessagesScreen push={push} onBack={() => handleTabChange("home")} onChatOpen={setChatOpen} />;
       case "wallet": return <WalletScreen />;
-      case "profile": return <ProfileScreen push={push} />;
+      case "pitch": return <StartupsScreen onBack={() => handleTabChange("home")} onOpenWallet={() => handleTabChange("wallet")} />;
       default: return <HomeScreen push={push} switchTab={handleTabChange} />;
     }
   };
@@ -79,6 +79,7 @@ const Index = () => {
       case "analytics": return <AnalyticsScreen onBack={pop} />;
       case "publicprofile": return <PublicProfileScreen onBack={pop} />;
       case "editprofile": return <EditProfileScreen onBack={pop} />;
+      case "profile": return <ProfileScreen push={push} />;
       default: return null;
     }
   };
@@ -108,16 +109,20 @@ const Index = () => {
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden relative">
+      <CreditBar
+        onClick={() => handleTabChange("wallet")}
+        onProfileClick={() => { setChatOpen(false); setStack([{ screen: "profile" }]); }}
+        showProfile={tab !== "home" || Boolean(current)}
+      />
       <div className="flex-1 overflow-hidden flex flex-col relative min-h-0">
-        {!chatOpen && <CreditBar onClick={() => handleTabChange("wallet")} />}
-        <div className="flex-1 flex flex-col overflow-hidden">{renderMain()}</div>
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">{renderMain()}</div>
         {current && (
           <div className="absolute inset-0 z-20 bg-background flex flex-col animate-slide-in">
             {renderStack(current.screen, current.data)}
           </div>
         )}
-        {!current && !chatOpen && <BottomNav active={tab} setActive={handleTabChange} />}
       </div>
+      <BottomNav active={tab} setActive={handleTabChange} />
     </div>
   );
 };
