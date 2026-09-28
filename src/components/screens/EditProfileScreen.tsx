@@ -224,21 +224,24 @@ const EditProfileScreen: React.FC<Props> = ({ onBack }) => {
     if (!categoryIds.length) return toast.error("Pick at least one category");
     if (!languageIds.length) return toast.error("Pick at least one language");
     setSaving(true);
-    const failed: string[] = [];
+    const failedLabels: string[] = [];
     const attempt = async (label: string, work: () => Promise<any>) => {
-      try { await work(); } catch (err: any) {
-        failed.push(`${label}: ${isUnknownMethod(err) ? "not available yet" : err?.message || "failed"}`);
-      }
+      try { await work(); return true; } catch { failedLabels.push(label); return false; }
     };
-    await attempt("Profile details", () => profileService.updateProfile(mediaKit, {
+    const profileSaved = await attempt("Profile details", () => profileService.updateProfile(mediaKit, {
       firstname: name, introduction: bio, dob, gender, address, country, state, city,
     }));
-    await attempt("Categories", () => profileService.updateCategories(categoryIds));
-    await attempt("Languages", () => profileService.updateLanguages(languageIds));
+    const categoriesSaved = await attempt("Categories", () => profileService.updateCategories(categoryIds));
+    const languagesSaved = await attempt("Languages", () => profileService.updateLanguages(languageIds));
     await refresh().catch(() => undefined);
     setSaving(false);
-    if (failed.length) {
-      toast.error(`Couldn't save — ${failed.join(" · ")}`);
+    if (!profileSaved) {
+      toast.error("Couldn't save your profile details. Please try again.");
+      return;
+    }
+    if (!categoriesSaved || !languagesSaved) {
+      const names = [!categoriesSaved && "Categories", !languagesSaved && "Languages"].filter(Boolean).join(" and ");
+      toast.error(`Profile saved. ${names} couldn't be updated right now.`);
       return;
     }
     toast.success("Saved");
