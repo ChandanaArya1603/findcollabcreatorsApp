@@ -7,9 +7,6 @@ export const authService = {
   register: (data: Record<string, any>) =>
     api.postForm("/register_influencer", data),
 
-  verifyAccount: (verify_code: string, user_id: number) =>
-    api.postForm("/verify_account", { verify_code, user_id }),
-
   resendVerification: (email: string) =>
     api.postForm("/resend_verification", { email }),
 

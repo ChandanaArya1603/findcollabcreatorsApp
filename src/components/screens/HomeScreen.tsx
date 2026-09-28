@@ -12,13 +12,16 @@ import { Badge } from "../findcollab/Badge";
 import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
+import ProfileStrengthCard from "../home/ProfileStrengthCard";
+import type { StepKey } from "@/hooks/useProfileCompletion";
 
 interface HomeScreenProps {
   push: (screen: string, data?: any) => void;
   switchTab?: (tab: string) => void;
+  onOpenProfileStep?: (step: StepKey) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileStep }) => {
   const { user } = useAuth();
   const { data: dashStats } = useDashboardStats();
   const { data: walletRes } = useWalletBalance();
@@ -78,6 +81,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab }) => {
 
   return (
     <Screen>
+      <ProfileStrengthCard onOpenStep={(k) => (onOpenProfileStep ? onOpenProfileStep(k) : push("editprofile"))} />
       <div className="px-4 pt-4 pb-3 bg-card">
         <div className="flex justify-between items-center">
           <div>

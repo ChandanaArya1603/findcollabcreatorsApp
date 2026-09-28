@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { startupService } from "@/services/startupService";
-import { useCreditBalance } from "@/hooks/useAppData";
 import { qk } from "@/lib/queryKeys";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
@@ -142,7 +141,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
     return () => clearTimeout(t);
   }, [search]);
 
-  const credit = useCreditBalance();
   const stats = useQuery({ queryKey: K.stats, queryFn: () => startupService.getStats() });
   const industriesQ = useQuery({ queryKey: K.industries, queryFn: () => startupService.getIndustries() });
   const daily = useQuery({ queryKey: K.daily, queryFn: () => startupService.getDailyPitchStatus() });
@@ -203,7 +201,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
   const freeUsed = truthy(d.free_pitch_used_today);
   const creditsRequired = Number(d.credits_required ?? (freeUsed ? d.credits_per_pitch ?? 10 : 0));
   const dailyBalance = d.credits_balance;
-  const headerBalance = credit.data?.balance ?? credit.data?.credits_balance ?? dailyBalance;
 
   const handleConnect = async () => {
     if (connecting) return;
@@ -345,11 +342,6 @@ const StartupsScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
       <BackHeader
         title="Discover Startups"
         onBack={onBack}
-        right={
-          <span className="text-[10px] font-extrabold text-primary whitespace-nowrap -ml-4">
-            {num(headerBalance)} cr
-          </span>
-        }
       />
 
       <HowItWorksCard />
