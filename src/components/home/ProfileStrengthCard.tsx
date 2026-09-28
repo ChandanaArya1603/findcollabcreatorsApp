@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useProfileCompletion, STEP_KEYS, type StepKey } from "@/hooks/useProfileCompletion";
 import { Card } from "../findcollab/Card";
 import { Icon } from "../findcollab/Icon";
@@ -15,15 +15,16 @@ interface Props { onOpenStep: (step: StepKey) => void }
 
 const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
   const { steps, percent, ready, rewardCredits } = useProfileCompletion();
+  const [open, setOpen] = useState(true);
   if (!ready || percent >= 100) return null;
   const firstOpen = STEP_KEYS.find((k) => !steps[k]) ?? "basic";
   const r = 26;
   const c = 2 * Math.PI * r;
 
   return (
-    <div className="px-4 pt-3">
+    <div className="px-0">
       <Card className="!p-4">
-        <div className="flex gap-3 items-center mb-3">
+        <div className="flex gap-3 items-center">
           <div className="relative w-16 h-16 shrink-0">
             <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
               <circle cx="32" cy="32" r={r} strokeWidth="6" fill="none" className="stroke-muted" />
@@ -33,26 +34,42 @@ const ProfileStrengthCard: React.FC<Props> = ({ onOpenStep }) => {
             <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-foreground">{percent}%</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-foreground">Profile strength</p>
-            <p className="text-[11px] text-text-mid leading-snug mb-2">
-              Finish to earn +{rewardCredits} credits instantly, and rank higher in brand searches
-            </p>
-            <button onClick={() => onOpenStep(firstOpen)} className="text-xs font-bold text-primary">Finish profile →</button>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? "Collapse profile strength" : "Expand profile strength"}
+              className="w-full flex items-center justify-between gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
+            >
+              <span className="text-sm font-black text-foreground">Profile strength</span>
+              <span className={`text-text-light transition-transform ${open ? "rotate-180" : ""}`}>
+                <Icon name="chevD" size={16} />
+              </span>
+            </button>
+            {open && (
+              <>
+                <p className="text-[11px] text-text-mid leading-snug mb-2 mt-1">
+                  Finish to earn +{rewardCredits} credits instantly, and rank higher in brand searches
+                </p>
+                <button onClick={() => onOpenStep(firstOpen)} className="text-xs font-bold text-primary">Finish profile →</button>
+              </>
+            )}
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          {STEP_KEYS.map((k) => (
-            <div key={k} className="flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${steps[k] ? "bg-primary" : "border-[1.5px] border-border"}`}>
-                {steps[k] && <Icon name="check" size={12} className="text-primary-foreground" />}
-              </span>
-              <span className={`flex-1 text-xs font-semibold ${steps[k] ? "text-text-mid" : "text-foreground"}`}>{LABELS[k]}</span>
-              {!steps[k] && (
-                <button onClick={() => onOpenStep(k)} className="text-[11px] font-bold text-primary">Add →</button>
-              )}
-            </div>
-          ))}
-        </div>
+        {open && (
+          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
+            {STEP_KEYS.map((k) => (
+              <div key={k} className="flex items-center gap-2">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${steps[k] ? "bg-primary" : "border-[1.5px] border-border"}`}>
+                  {steps[k] && <Icon name="check" size={12} className="text-primary-foreground" />}
+                </span>
+                <span className={`flex-1 text-xs font-semibold ${steps[k] ? "text-text-mid" : "text-foreground"}`}>{LABELS[k]}</span>
+                {!steps[k] && (
+                  <button onClick={() => onOpenStep(k)} className="text-[11px] font-bold text-primary">Add →</button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

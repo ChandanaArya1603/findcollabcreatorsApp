@@ -82,7 +82,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
 
   return (
     <Screen>
-      <ProfileStrengthCard onOpenStep={(k) => (onOpenProfileStep ? onOpenProfileStep(k) : push("editprofile"))} />
       <div className="px-4 pt-4 pb-3 bg-card">
         <div className="flex justify-between items-center">
           <div>
