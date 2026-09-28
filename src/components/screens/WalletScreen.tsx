@@ -246,7 +246,7 @@ const WalletScreen: React.FC = () => {
       </div>
 
       <div className="px-4 pt-3.5">
-        <div className="flex gap-2 mb-3.5">
+        <div className="flex gap-2 mb-3.5 overflow-x-auto no-scrollbar">
           {[["txns", "Credit history"], ["withdrawals", "Withdrawals"], ["credits", "Costs"], ["buy", "Buy Credits"]].map(([id, label]) => (
             <Pill key={id} active={tab === id} onClick={() => setTab(id)}>{label}</Pill>
           ))}
@@ -380,6 +380,7 @@ const WalletScreen: React.FC = () => {
           </div>
         )}
       </div>
+      {withdrawOpen && <WithdrawSheet balance={balance} kyc={kycQ.data} onClose={() => setWithdrawOpen(false)} />}
     </Screen>
   );
 };
