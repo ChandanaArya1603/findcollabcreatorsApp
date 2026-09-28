@@ -437,7 +437,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       } /></div>
 
       {customizeOpen && (
-        <section className="bg-card border-b border-border px-4 py-4">
+        <section data-html2canvas-ignore="true" className="bg-card border-b border-border px-4 py-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Choose your theme</p>
             <span className="text-[10px] font-bold text-primary">{selectedThemeLabel}</span>
