@@ -14,6 +14,10 @@ import MyCampaignsScreen from "@/components/screens/MyCampaignsScreen";
 import EditProfileScreen from "@/components/screens/EditProfileScreen";
 import LoginScreen from "@/components/screens/LoginScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
+import VerifyScreen from "@/components/screens/auth/VerifyScreen";
+import ForgotPasswordScreen from "@/components/screens/auth/ForgotPasswordScreen";
+import AnalyticsScreen from "@/components/screens/AnalyticsScreen";
+import PublicProfileScreen from "@/components/screens/PublicProfileScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 import { CreditBar } from "@/components/findcollab/CreditPill";
 
@@ -24,7 +28,12 @@ interface StackItem {
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const [authView, setAuthView] = useState<"login" | "register">("login");
+  const [authView, setAuthView] = useState<"login" | "register" | "verify" | "forgot">("login");
+  const [verifyInfo, setVerifyInfo] = useState<{ userId?: number; email: string; notice?: string }>({ email: "" });
+  const goVerify = (info: { userId?: number; email: string; notice?: string }) => {
+    setVerifyInfo(info);
+    setAuthView("verify");
+  };
   const [tab, setTab] = useState("home");
   const [stack, setStack] = useState<StackItem[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
@@ -67,6 +76,8 @@ const Index = () => {
       case "startups": return <StartupsScreen onBack={pop} onOpenWallet={() => handleTabChange("wallet")} />;
       case "messages": return <MessagesScreen onBack={pop} />;
       case "mycampaigns": return <MyCampaignsScreen onBack={pop} />;
+      case "analytics": return <AnalyticsScreen onBack={pop} />;
+      case "publicprofile": return <PublicProfileScreen onBack={pop} />;
       case "editprofile": return <EditProfileScreen onBack={pop} />;
       default: return null;
     }
@@ -83,10 +94,14 @@ const Index = () => {
   if (!isAuthenticated) {
     return (
       <div className="h-screen bg-background flex flex-col overflow-hidden">
-        {authView === "login"
-          ? <LoginScreen onSwitch={() => setAuthView("register")} />
-          : <RegisterScreen onSwitch={() => setAuthView("login")} />
-        }
+        {authView === "login" && (
+          <LoginScreen onSwitch={() => setAuthView("register")} onForgot={() => setAuthView("forgot")} onNeedVerify={goVerify} />
+        )}
+        {authView === "register" && <RegisterScreen onSwitch={() => setAuthView("login")} onVerify={goVerify} />}
+        {authView === "verify" && (
+          <VerifyScreen {...verifyInfo} onDone={() => setAuthView("login")} onBack={() => setAuthView("login")} />
+        )}
+        {authView === "forgot" && <ForgotPasswordScreen onBack={() => setAuthView("login")} />}
       </div>
     );
   }

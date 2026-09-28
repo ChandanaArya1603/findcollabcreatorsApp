@@ -6,6 +6,8 @@ import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
 import { Card } from "../findcollab/Card";
 import { toast } from "sonner";
+import { authService } from "@/services/authService";
+import { useAvailability, type Avail } from "@/hooks/useAvailability";
 const logoMark = { url: "/collab-cluster-mark.png" };
 const logoFull = { url: "/findcollab-logo-full.png" };
 
