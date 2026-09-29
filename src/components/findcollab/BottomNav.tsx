@@ -27,7 +27,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, setActive }) => (
             isActive ? "text-primary" : "text-text-light"
           }`}
         >
-          <div className="relative h-6 flex items-center justify-center">
+          <div className={`relative w-9 h-7 rounded-[10px] flex items-center justify-center transition-colors ${
+            isActive ? "bg-primary text-primary-foreground" : "bg-transparent"
+          }`}>
             <Icon name={tab.ic} size={21} strokeWidth={isActive ? 2.8 : 2} />
           </div>
           <span className={`text-[9px] tracking-wide ${isActive ? "font-black" : "font-bold"}`}>{tab.l}</span>

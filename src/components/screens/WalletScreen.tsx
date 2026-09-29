@@ -238,9 +238,22 @@ const WalletScreen: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 gap-2.5">
           <div className="bg-success-light rounded-[14px] p-3">
-            <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">KYC Status</p>
-            <p className={`text-base font-black mt-1 mb-0.5 ${kycInfo.verified ? "text-success" : "text-warning"}`}>{kycQ.isLoading ? "—" : kycInfo.verified ? "Verified ✓" : "Not verified"}</p>
-            <p className="text-[10px] text-text-mid">{kycInfo.methods.length ? `${kycInfo.methods.map((m) => m.label).join(", ")} connected` : "No payout method yet"}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] text-success font-bold uppercase mb-0.5">KYC Status</p>
+                <p className={`text-base font-black mt-1 mb-0.5 ${kycInfo.verified ? "text-success" : "text-warning"}`}>{kycQ.isLoading ? "—" : kycInfo.verified ? "Verified ✓" : "Not verified"}</p>
+                <p className="text-[10px] text-text-mid">{kycInfo.methods.length ? `${kycInfo.methods.map((m) => m.label).join(", ")} connected` : "No payout method yet"}</p>
+              </div>
+              {!kycQ.isLoading && !kycInfo.verified && (
+                <AppButton
+                  variant="outline"
+                  className="!py-2 !px-3 !text-xs !rounded-[10px] shrink-0"
+                  onClick={() => window.open("https://findcollab.com", "_blank", "noopener")}
+                >
+                  Upload KYC
+                </AppButton>
+              )}
+            </div>
           </div>
         </div>
       </div>

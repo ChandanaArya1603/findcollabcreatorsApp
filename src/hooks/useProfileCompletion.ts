@@ -50,11 +50,12 @@ export const useProfileCompletion = () => {
   });
   const s: any = server.data;
   const fromServer = s && s.steps && typeof s.steps === "object";
+  const mediaKitSteps = computeFromMediaKit(mk, user, userDetail);
   const steps: Record<StepKey, boolean> = fromServer
-    ? (Object.fromEntries(STEP_KEYS.map((k) => [k, truthy(s.steps[k])])) as Record<StepKey, boolean>)
-    : computeFromMediaKit(mk, user, userDetail);
+    ? (Object.fromEntries(STEP_KEYS.map((k) => [k, k === "photo" ? truthy(s.steps[k]) || mediaKitSteps.photo : truthy(s.steps[k])])) as Record<StepKey, boolean>)
+    : mediaKitSteps;
   const percent = fromServer && s.percent != null
-    ? Math.round(Number(s.percent))
+    ? Math.max(Math.round(Number(s.percent)), STEP_KEYS.filter((k) => steps[k]).length * 20)
     : STEP_KEYS.filter((k) => steps[k]).length * 20;
   const ready = fromServer || (!!mk && !mkLoading) || (server.isError && !!mk);
   const rewardCredits = Number(s?.reward_credits ?? 10) || 10;
