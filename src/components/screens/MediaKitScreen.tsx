@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { isUnknownMethod } from "@/lib/listParse";
-
-const LOCAL_THEME_KEY = "fc_mediakit_theme";
-const readLocalTheme = (): { theme?: string; banner?: string } => {
-  try { return JSON.parse(localStorage.getItem(LOCAL_THEME_KEY) || "{}") || {}; } catch { return {}; }
-};
+import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { toOptions, themeGradient, bannerBackground, type Option } from "@/lib/mediaKitThemes";
 import { useAuth } from "@/contexts/AuthContext";
 import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
@@ -144,28 +141,44 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const [bioOpen, setBioOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [theme, setTheme] = useState("desi");
-  const [banner, setBanner] = useState("bauhaus");
+  const [banner, setBanner] = useState("theme");
   const [savedTheme, setSavedTheme] = useState("desi");
-  const [savedBanner, setSavedBanner] = useState("bauhaus");
+  const [savedBanner, setSavedBanner] = useState("theme");
   const [savingTheme, setSavingTheme] = useState(false);
+  const [themeOptions, setThemeOptions] = useState<Option[]>([]);
+  const [bannerOptions, setBannerOptions] = useState<Option[]>([]);
+  const [brandLogos, setBrandLogos] = useState<{ id: string | number; url: string; sort_order?: number }[]>([]);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [deletingLogoId, setDeletingLogoId] = useState<string | number | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [downloading, setDownloading] = useState(false);
   const kitRef = useRef<HTMLDivElement>(null);
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>(EMPTY_PLATFORMS);
   const { data: mediaKitRes } = useMediaKit();
   const { data: ytDataRes } = useYoutubeData();
+  const { data: settingsRes } = useQuery({ queryKey: ["media_kit_settings"], queryFn: () => profileService.getMediaKitSettings() });
   const profileData: any = mediaKitRes ?? null;
+
+  /** Apply any (partial) settings block from the server to the UI and caches. */
+  const applySettings = (s: any) => {
+    if (!s) return;
+    if (s.theme) { setTheme(String(s.theme)); setSavedTheme(String(s.theme)); }
+    if (s.banner) { setBanner(String(s.banner)); setSavedBanner(String(s.banner)); }
+    if (Array.isArray(s.themes) && s.themes.length) setThemeOptions(toOptions(s.themes));
+    if (Array.isArray(s.banners) && s.banners.length) setBannerOptions(toOptions(s.banners));
+    if (Array.isArray(s.brand_logos)) {
+      setBrandLogos([...s.brand_logos].sort((a: any, b: any) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)));
+    }
+    queryClient.setQueryData(["media_kit_settings"], (old: any) => ({ ...(old || {}), ...s }));
+  };
+
+  useEffect(() => { applySettings(mediaKitRes?.mediaKitSettings); }, [mediaKitRes]);
+  useEffect(() => { applySettings(settingsRes); }, [settingsRes]);
 
   useEffect(() => {
     const res: any = mediaKitRes;
     const ytData: any = ytDataRes;
     if (res) {
-      const local = readLocalTheme();
-      const currentTheme = String(local.theme || res.userDetail?.media_kit_theme || res.theme || res.mediaKitTheme || "desi");
-      const currentBanner = String(local.banner || res.userDetail?.media_kit_banner || res.banner || res.mediaKitBanner || "bauhaus");
-      setTheme(currentTheme);
-      setBanner(currentBanner);
-      setSavedTheme(currentTheme);
-      setSavedBanner(currentBanner);
       const updated: Record<string, PlatformData> = {
         instagram: { ...EMPTY_PLATFORMS.instagram },
         youtube: { ...EMPTY_PLATFORMS.youtube },
@@ -363,49 +376,63 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       ? `${(totalReachValue / 1_000).toFixed(1)}K`
       : totalReachValue > 0 ? String(totalReachValue) : "—";
   const selectedBanner = customizeOpen ? banner : savedBanner;
-  const selectedThemeLabel = MEDIA_KIT_THEMES.find((item) => item.id === (customizeOpen ? theme : savedTheme))?.label || "Desi";
+  const selectedTheme = customizeOpen ? theme : savedTheme;
+  const selectedThemeLabel = themeOptions.find((item) => item.id === selectedTheme)?.label || selectedTheme;
 
-  const handleShare = async () => {
-    if (!user?.id) return;
-    const url = `https://findcollab.com/media-kit/${user.id}`;
-    const title = `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""} – Media Kit`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, text: "Check out my Findcollab media kit", url });
-        return;
-      }
-    } catch {
-      // user cancelled or share failed → fall through to copy
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link copied", description: "Public media kit URL copied to clipboard" });
-    } catch {
-      toast({ title: "Share link", description: url });
-    }
-  };
+  const errMsg = (error: unknown) => (error instanceof Error ? error.message : "Please try again");
 
   const handleSaveTheme = async () => {
     setSavingTheme(true);
     try {
-      await profileService.saveMediaKitTheme(theme, banner);
-      setSavedTheme(theme);
-      setSavedBanner(banner);
-      invalidateProfileData();
-      toast({ title: "Media kit updated", description: "Your theme and banner are now live" });
+      const changes: { theme?: string; banner?: string } = {};
+      if (theme !== savedTheme) changes.theme = theme;
+      if (banner !== savedBanner) changes.banner = banner;
+      const res: any = await profileService.updateMediaKitTheme(changes);
+      applySettings(res);
+      toast({ title: "Media kit updated", description: res?.message || "Your theme and banner are now live" });
       setCustomizeOpen(false);
     } catch (error) {
-      if (isUnknownMethod(error)) {
-        try { localStorage.setItem(LOCAL_THEME_KEY, JSON.stringify({ theme, banner })); } catch { /* ignore */ }
-        setSavedTheme(theme);
-        setSavedBanner(banner);
-        setCustomizeOpen(false);
-        toast({ title: "Saved on this device", description: "Syncing to your web profile is coming soon" });
-        return;
-      }
-      toast({ title: "Could not save", description: error instanceof Error ? error.message : "Please try again" });
+      toast({ title: "Could not save", description: errMsg(error) });
     } finally {
       setSavingTheme(false);
+    }
+  };
+
+  const handleLogoPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      toast({ title: "Unsupported file", description: "Use a PNG, JPG, WEBP or GIF image." });
+      return;
+    }
+    if (file.size >= 3 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Logo must be under 3 MB." });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const res: any = await profileService.uploadBrandLogo(file);
+      applySettings({ brand_logos: res?.brand_logos });
+      toast({ title: "Logo added", description: res?.message });
+    } catch (error) {
+      toast({ title: "Could not upload", description: errMsg(error) });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleDeleteLogo = async (id: string | number) => {
+    if (!window.confirm("Remove this brand logo?")) return;
+    setDeletingLogoId(id);
+    try {
+      const res: any = await profileService.deleteBrandLogo(id);
+      applySettings({ brand_logos: res?.brand_logos ?? [] });
+      toast({ title: "Logo removed", description: res?.message });
+    } catch (error) {
+      toast({ title: "Could not remove", description: errMsg(error) });
+    } finally {
+      setDeletingLogoId(null);
     }
   };
 
@@ -443,21 +470,22 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             <span className="text-[10px] font-bold text-primary">{selectedThemeLabel}</span>
           </div>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3">
-            {MEDIA_KIT_THEMES.map((item) => (
+            {themeOptions.length === 0 && <p className="text-xs text-muted-foreground">Loading themes…</p>}
+            {themeOptions.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setTheme(item.id)}
                 className={`shrink-0 flex items-center gap-2 h-9 px-3 rounded-full border text-[11px] font-bold transition-transform active:scale-95 ${theme === item.id ? "border-primary bg-primary-light text-primary" : "border-border bg-card text-foreground"}`}
               >
-                <span className={`w-4 h-4 rounded-full ${item.swatch}`} />
+                <span className="w-4 h-4 rounded-full" style={{ background: themeGradient(item.id) }} />
                 {item.label}
               </button>
             ))}
           </div>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">Choose a banner</p>
           <div className="grid grid-cols-4 gap-2 mb-4">
-            {MEDIA_KIT_BANNERS.map((item, index) => (
+            {bannerOptions.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -465,10 +493,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                 className={`h-14 rounded-lg border overflow-hidden relative transition-transform active:scale-95 ${banner === item.id ? "border-2 border-primary" : "border-border"}`}
                 aria-label={item.label}
               >
-                <span className={`absolute inset-0 ${index % 3 === 0 ? "gradient-primary" : index % 3 === 1 ? "bg-primary-light" : "bg-warning-light"}`} />
-                <span className={`absolute w-7 h-7 rounded-full ${index % 2 === 0 ? "bg-info" : "bg-primary"} -top-1 -right-1`} />
-                <span className={`absolute w-6 h-6 rotate-45 ${index % 2 === 0 ? "bg-warning" : "bg-success"} bottom-1 left-2`} />
-                <span className="absolute inset-x-0 bottom-0 bg-card/90 text-[8px] font-bold text-foreground py-1">{item.label}</span>
+                <span className="absolute inset-0" style={{ background: bannerBackground(item.id, theme) }} />
+                <span className="absolute inset-x-0 bottom-0 bg-card/90 text-[8px] font-bold text-foreground py-1">{item.id === "theme" ? "Theme" : item.label}</span>
               </button>
             ))}
           </div>
@@ -478,18 +504,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         </section>
       )}
 
-      <section className="relative h-52 overflow-hidden bg-warning-light border-b border-border">
-        {selectedBanner === "theme-gradient" || selectedBanner === "aurora-mesh" || selectedBanner === "holo-foil" ? (
-          <div className="absolute inset-0 gradient-primary opacity-90" />
-        ) : (
-          <>
-            <div className="absolute -top-10 -right-8 w-40 h-40 rounded-full bg-primary" />
-            <div className="absolute bottom-4 left-8 w-24 h-24 rotate-45 bg-info" />
-            <div className="absolute top-20 left-0 right-0 h-px bg-foreground/25" />
-            <div className="absolute top-0 bottom-0 right-16 w-1 bg-foreground/80" />
-            <div className="absolute bottom-6 right-20 w-20 h-20 rounded-tl-full bg-warning" />
-          </>
-        )}
+      <section className="relative h-52 overflow-hidden border-b border-border">
+        <div className="absolute inset-0" style={{ background: bannerBackground(selectedBanner, selectedTheme) }} />
         <div className="absolute top-4 left-4 flex items-center gap-2 bg-card/90 backdrop-blur px-3 py-1.5 rounded-full border border-border shadow-sm">
           <span className="w-2 h-2 rounded-full bg-success" />
           <span className="text-[10px] font-black text-foreground uppercase tracking-wider">Verified creator</span>
@@ -632,6 +648,39 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
                 <div className="flex items-center gap-3 min-w-0"><span className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center shrink-0"><Icon name="campaign" size={18} className="text-primary" /></span><span className="text-sm font-bold text-foreground truncate">{project.brand}</span></div>
                 {project.link && <Icon name="chevR" size={17} className="text-primary" />}
               </a>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="px-5 mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Brands I've worked with</p>
+          <div data-html2canvas-ignore="true">
+            <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handleLogoPick} />
+            <AppButton variant="ghost" icon="plus" className="!h-8 !px-3 !py-0 !rounded-lg !text-[11px]" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+              {uploadingLogo ? "Uploading…" : "Add logo"}
+            </AppButton>
+          </div>
+        </div>
+        {brandLogos.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-5 text-center">No brand logos yet</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {brandLogos.map((logo) => (
+              <div key={logo.id} className="relative aspect-square rounded-lg border border-border bg-card p-2 flex items-center justify-center">
+                <img src={logo.url} alt="Brand logo" className="max-w-full max-h-full object-contain" loading="lazy" />
+                <button
+                  type="button"
+                  data-html2canvas-ignore="true"
+                  disabled={deletingLogoId === logo.id}
+                  onClick={() => handleDeleteLogo(logo.id)}
+                  aria-label="Remove logo"
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-black flex items-center justify-center shadow disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         )}
