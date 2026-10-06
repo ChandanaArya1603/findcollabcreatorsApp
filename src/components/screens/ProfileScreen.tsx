@@ -180,6 +180,19 @@ const ProfileScreen: React.FC<Props> = ({ push }) => {
           ))}
         </Card>
 
+        <p className="text-[13px] font-bold text-text-light uppercase tracking-widest mb-2.5">Settings</p>
+        <Card noPadding className="overflow-hidden mb-3.5">
+          <div onClick={() => push("deleteaccount")} className="flex items-center justify-between px-4 py-3.5 cursor-pointer bg-card">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-[10px] bg-destructive/10 flex items-center justify-center">
+                <Icon name="person" size={17} className="text-destructive" />
+              </div>
+              <p className="text-sm font-semibold text-destructive">Delete account</p>
+            </div>
+            <Icon name="chevR" size={16} className="text-text-light" />
+          </div>
+        </Card>
+
         <button
           onClick={() => logout()}
           className="w-full py-3.5 rounded-[14px] border-[1.5px] border-destructive/10 bg-destructive/5 flex items-center justify-center gap-2 cursor-pointer"
