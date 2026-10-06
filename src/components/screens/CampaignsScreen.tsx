@@ -9,6 +9,7 @@ import { Icon } from "../findcollab/Icon";
 import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
 import { useCampaignCost } from "@/hooks/useCampaignCost";
 import { ApplySheet } from "../campaign/ApplySheet";
+import { ApplicationStatusBadge } from "../campaign/ApplicationStatusBadge";
 
 const CardCost: React.FC<{ id: number }> = ({ id }) => {
   const q = useCampaignCost(id);
@@ -29,6 +30,8 @@ export interface Campaign {
   views: number;
   apps: number;
   days: string;
+  isApplied: boolean;
+  applicationStatus: string | null;
 }
 
 
@@ -69,6 +72,8 @@ const CampaignsScreen: React.FC<Props> = ({ push, onOpenWallet }) => {
     views: c.campaignViews || c.views || 0,
     apps: c.applications || c.apps || 0,
     days: timeAgo(c.timestamp || c.created_at || c.days || ""),
+    isApplied: c.is_applied === true || c.is_applied === 1 || c.is_applied === "1",
+    applicationStatus: c.application_status ?? null,
   }));
 
   const filters = ["All", "Barter", "Paid", "Affiliate"];
@@ -135,14 +140,17 @@ const CampaignsScreen: React.FC<Props> = ({ push, onOpenWallet }) => {
                 <CardCost id={c.id} />
               </div>
                <div onClick={(event) => event.stopPropagation()}>
-                 <AppButton
-                   className="!py-2 !px-4 !text-xs !rounded-[10px]"
-                   disabled={appliedIds.has(c.id)}
-                   onClick={() => setApplyCampaignId(c.id)}
-                 >
-                   {appliedIds.has(c.id) ? "Applied ✓" : "Apply →"}
-                 </AppButton>
-               </div>
+                  {c.isApplied || appliedIds.has(c.id) ? (
+                    <ApplicationStatusBadge status={c.applicationStatus} />
+                  ) : (
+                    <AppButton
+                      className="!py-2 !px-4 !text-xs !rounded-[10px]"
+                      onClick={() => setApplyCampaignId(c.id)}
+                    >
+                      Apply →
+                    </AppButton>
+                  )}
+                </div>
             </div>
           </Card>
         ))}
