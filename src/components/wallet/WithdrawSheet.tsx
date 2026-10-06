@@ -19,26 +19,27 @@ const mask = (v: any, keep = 4) => {
 
 /** Read payout methods and KYC status from the /kyc_details reply. */
 export const readKyc = (res: any) => {
-  const kyc = res?.kyc || {};
-  const status = String(kyc.status ?? res?.kyc_status ?? res?.status_kyc ?? "").toLowerCase();
-  const verified = ["verified", "approved", "1", "complete", "completed"].includes(status);
-  const raw = res?.bankUPI ?? res?.bankupi ?? {};
-  const b = Array.isArray(raw) ? raw[0] || {} : raw || {};
+  const raw = res?.bankUPI ?? null;
+  const b = (Array.isArray(raw) ? raw[0] : raw) || {};
+  const kycOk = Number(res?.kyc?.kyc_status) === 1;
+  const bankOk = res?.bankUPI != null && Number(b.status) === 1;
+  const verified = kycOk && bankOk;
+  const status = String(res?.kyc?.kyc_status ?? "");
   const methods: PayoutMethod[] = [];
   if (has(b.account_number) || has(b.bank_name))
     methods.push({ id: "bank", label: "Bank", detail: [b.bank_name, has(b.account_number) ? mask(b.account_number) : ""].filter(Boolean).join(" · ") });
   if (has(b.googlepay)) methods.push({ id: "googlepay", label: "Google Pay", detail: mask(b.googlepay) });
   if (has(b.phonepe)) methods.push({ id: "phonepe", label: "PhonePe", detail: mask(b.phonepe) });
   if (has(b.paypal)) methods.push({ id: "paypal", label: "PayPal", detail: mask(b.paypal) });
-  return { verified, status, methods };
+  return { verified, kycOk, bankOk, status, methods };
 };
 
-interface Props { balance: number | null; kyc: any; onClose: () => void }
+interface Props { balance: number | null; kyc: any; onClose: () => void; onOpenKyc?: (tab: "kyc" | "bank") => void }
 
 const MIN = 100;
 
-const WithdrawSheet: React.FC<Props> = ({ balance, kyc, onClose }) => {
-  const { verified, methods } = useMemo(() => readKyc(kyc), [kyc]);
+const WithdrawSheet: React.FC<Props> = ({ balance, kyc, onClose, onOpenKyc }) => {
+  const { verified, kycOk, bankOk, methods } = useMemo(() => readKyc(kyc), [kyc]);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<Method | null>(methods[0]?.id ?? null);
   const [reason, setReason] = useState("");
@@ -91,8 +92,10 @@ const WithdrawSheet: React.FC<Props> = ({ balance, kyc, onClose }) => {
             </div>
 
             {blocked && (
-              <div className="p-3 rounded-xl bg-warning-light text-xs font-bold text-foreground">
-                Complete KYC and add a bank/UPI account on findcollab.com to withdraw
+              <div className="p-3 rounded-xl bg-warning-light text-xs font-bold text-foreground flex flex-col gap-1.5">
+                <span>To withdraw, you still need:</span>
+                {!kycOk && <button className="text-left text-primary underline" onClick={() => onOpenKyc?.("kyc")}>• Verified KYC documents →</button>}
+                {!bankOk && <button className="text-left text-primary underline" onClick={() => onOpenKyc?.("bank")}>• Verified bank / UPI details →</button>}
               </div>
             )}
 

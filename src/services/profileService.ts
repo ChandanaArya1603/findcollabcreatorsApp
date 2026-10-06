@@ -49,6 +49,12 @@ export const profileService = {
   getKycDetails: () =>
     api.get("/kyc_details"),
 
+  uploadKyc: (body: Record<string, any>) =>
+    api.postForm("/upload_kyc", body),
+
+  updateBankUpi: (body: Record<string, any>) =>
+    api.postForm("/update_bank_upi", body),
+
   getYoutubeData: () =>
     api.get("/youtube_data"),
 };
