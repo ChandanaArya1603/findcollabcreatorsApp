@@ -29,8 +29,22 @@ export const profileService = {
   getMediaKitDownload: () =>
     api.get("/media_kit_download"),
 
-  saveMediaKitTheme: (theme: string, banner: string) =>
-    api.postForm("/save-media-kit-theme", { theme, banner }),
+  getMediaKitSettings: () =>
+    api.get("/media_kit_settings"),
+
+  /** Send theme and/or banner; returns the full settings block plus message. */
+  updateMediaKitTheme: (changes: { theme?: string; banner?: string }) => {
+    const body: Record<string, string> = {};
+    if (changes.theme) body.theme = changes.theme;
+    if (changes.banner) body.banner = changes.banner;
+    return api.postForm("/update_media_kit_theme", body);
+  },
+
+  uploadBrandLogo: (logo: File) =>
+    api.postForm("/upload_brand_logo", { logo }),
+
+  deleteBrandLogo: (logoId: string | number) =>
+    api.postForm("/delete_brand_logo", { logo_id: logoId }),
 
   getKycDetails: () =>
     api.get("/kyc_details"),
