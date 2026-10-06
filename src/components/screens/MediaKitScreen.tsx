@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { toOptions, themeGradient, bannerBackground, type Option } from "@/lib/mediaKitThemes";
 import { useAuth } from "@/contexts/AuthContext";
-import { invalidateProfileData, useMediaKit, useYoutubeData } from "@/hooks/useAppData";
+import { useMediaKit, useYoutubeData } from "@/hooks/useAppData";
 import { BackHeader } from "../findcollab/BackHeader";
 import { Badge } from "../findcollab/Badge";
 import { Pill } from "../findcollab/Pill";
@@ -358,6 +358,26 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
 
   const errMsg = (error: unknown) => (error instanceof Error ? error.message : "Please try again");
 
+  const handleShare = async () => {
+    if (!user?.id) return;
+    const url = `https://findcollab.com/media-kit/${user.id}`;
+    const title = `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""} – Media Kit`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: "Check out my Findcollab media kit", url });
+        return;
+      }
+    } catch {
+      // user cancelled → fall through to copy
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied", description: "Public media kit URL copied to clipboard" });
+    } catch {
+      toast({ title: "Share link", description: url });
+    }
+  };
+
   const handleSaveTheme = async () => {
     setSavingTheme(true);
     try {
@@ -635,7 +655,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Brands I've worked with</p>
           <div data-html2canvas-ignore="true">
             <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handleLogoPick} />
-            <AppButton variant="ghost" icon="plus" className="!h-8 !px-3 !py-0 !rounded-lg !text-[11px]" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+            <AppButton variant="ghost" icon="arrowUp" className="!h-8 !px-3 !py-0 !rounded-lg !text-[11px]" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
               {uploadingLogo ? "Uploading…" : "Add logo"}
             </AppButton>
           </div>
