@@ -17,6 +17,7 @@ import { Card } from "../findcollab/Card";
 import { Pill } from "../findcollab/Pill";
 import { AppButton } from "../findcollab/AppButton";
 import WithdrawSheet, { readKyc } from "../wallet/WithdrawSheet";
+import KycSheet, { statusInfo, KycTab } from "../wallet/KycSheet";
 import { profileService } from "@/services/profileService";
 
 interface Transaction {
@@ -48,6 +49,7 @@ const WalletScreen: React.FC = () => {
 
   const { data: balRes } = useWalletBalance();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [kycTab, setKycTab] = useState<KycTab | null>(null);
   const kycQ = useQuery({ queryKey: ["kyc_details"], queryFn: () => profileService.getKycDetails(), retry: false });
   const kycInfo = readKyc(kycQ.data);
   const withdrawals = useInfiniteQuery({
@@ -241,16 +243,16 @@ const WalletScreen: React.FC = () => {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] text-success font-bold uppercase mb-0.5">KYC Status</p>
-                <p className={`text-base font-black mt-1 mb-0.5 ${kycInfo.verified ? "text-success" : "text-warning"}`}>{kycQ.isLoading ? "—" : kycInfo.verified ? "Verified ✓" : "Not verified"}</p>
-                <p className="text-[10px] text-text-mid">{kycInfo.methods.length ? `${kycInfo.methods.map((m) => m.label).join(", ")} connected` : "No payout method yet"}</p>
+                <p className="text-xs font-bold mt-1">KYC: <span className={statusInfo(kycQ.data?.kyc?.kyc_status).cls + " px-2 py-0.5 rounded-full"}>{kycQ.isLoading ? "—" : statusInfo(kycQ.data?.kyc?.kyc_status).label}</span></p>
+                <p className="text-xs font-bold mt-1.5">Bank: <span className={statusInfo(kycQ.data?.bankUPI?.status).cls + " px-2 py-0.5 rounded-full"}>{kycQ.isLoading ? "—" : statusInfo(kycQ.data?.bankUPI?.status).label}</span></p>
               </div>
-              {!kycQ.isLoading && !kycInfo.verified && (
+              {!kycQ.isLoading && (
                 <AppButton
                   variant="outline"
                   className="!py-2 !px-3 !text-xs !rounded-[10px] shrink-0"
-                  onClick={() => window.open("https://findcollab.com", "_blank", "noopener")}
+                  onClick={() => setKycTab(kycInfo.kycOk && !kycInfo.bankOk ? "bank" : "kyc")}
                 >
-                  Upload KYC
+                  {kycInfo.verified ? "Manage" : "Complete KYC"}
                 </AppButton>
               )}
             </div>
@@ -393,7 +395,8 @@ const WalletScreen: React.FC = () => {
           </div>
         )}
       </div>
-      {withdrawOpen && <WithdrawSheet balance={balance} kyc={kycQ.data} onClose={() => setWithdrawOpen(false)} />}
+      {withdrawOpen && <WithdrawSheet balance={balance} kyc={kycQ.data} onClose={() => setWithdrawOpen(false)} onOpenKyc={(t) => { setWithdrawOpen(false); setKycTab(t); }} />}
+      {kycTab && <KycSheet data={kycQ.data} initialTab={kycTab} onClose={() => setKycTab(null)} />}
     </Screen>
   );
 };
