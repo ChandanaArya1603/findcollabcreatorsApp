@@ -77,30 +77,6 @@ const EMPTY_PLATFORMS: Record<string, PlatformData> = {
   },
 };
 
-const MEDIA_KIT_THEMES = [
-  { id: "desi", label: "Desi", swatch: "bg-primary" },
-  { id: "mumbai-shaana", label: "Mumbai Shaana", swatch: "bg-warning" },
-  { id: "south-texas", label: "South Texas", swatch: "bg-destructive" },
-  { id: "sfo-breeze", label: "SFO Breeze", swatch: "bg-info" },
-  { id: "bong-bindaas", label: "Bong Bindaas", swatch: "bg-success" },
-  { id: "madras-machan", label: "Madras Machan", swatch: "bg-secondary" },
-  { id: "bengaluru-adjust-maadi", label: "Bengaluru", swatch: "bg-foreground" },
-];
-
-const MEDIA_KIT_BANNERS = [
-  { id: "theme-gradient", label: "Gradient" },
-  { id: "aurora-mesh", label: "Aurora" },
-  { id: "y2k-chrome", label: "Y2K" },
-  { id: "synthwave-sunset", label: "Sunset" },
-  { id: "acid-brutalist", label: "Acid" },
-  { id: "memphis-pop", label: "Memphis" },
-  { id: "graffiti-street", label: "Graffiti" },
-  { id: "cyber-neon", label: "Cyber" },
-  { id: "risograph", label: "Risograph" },
-  { id: "holo-foil", label: "Holo" },
-  { id: "bauhaus", label: "Bauhaus" },
-];
-
 // Instagram CDN images block hot-linking via Referer; route through a free image proxy
 const proxyImg = (url: string): string => {
   if (!url) return "";
@@ -172,7 +148,8 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
     queryClient.setQueryData(["media_kit_settings"], (old: any) => ({ ...(old || {}), ...s }));
   };
 
-  useEffect(() => { applySettings(mediaKitRes?.mediaKitSettings); }, [mediaKitRes]);
+  useEffect(() => { try { localStorage.removeItem("fc_mediakit_theme"); } catch { /* ignore */ } }, []);
+  useEffect(() => { applySettings((mediaKitRes as any)?.mediaKitSettings); }, [mediaKitRes]);
   useEffect(() => { applySettings(settingsRes); }, [settingsRes]);
 
   useEffect(() => {
