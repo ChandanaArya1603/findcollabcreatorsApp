@@ -8,6 +8,7 @@ import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import { toast } from "sonner";
 import { ApplySheet } from "../campaign/ApplySheet";
+import { ApplicationStatusBadge } from "../campaign/ApplicationStatusBadge";
 import { BrandContactCard } from "../campaign/BrandContactCard";
 import type { Campaign } from "./CampaignsScreen";
 import { formatCampaignBudget, formatCampaignType, stripHtml } from "@/lib/campaignFormat";
@@ -53,6 +54,11 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
 
   // Merge list data with fetched detail
   const d = detail || {};
+  const isApplied =
+    applied ||
+    d.is_applied === true || d.is_applied === 1 || d.is_applied === "1" ||
+    c.isApplied === true;
+  const applicationStatus: string | null = d.application_status ?? c.applicationStatus ?? null;
   const title = d.project_title || c.title;
   const brand = d.company_name || c.brand;
   const brandName = d.brand_name || brand;
@@ -250,14 +256,15 @@ const CampaignDetail: React.FC<Props> = ({ campaign: c, onBack, onOpenWallet }) 
             <p className="text-xs text-text-mid mb-0.5">{campaignType}</p>
             <p className="text-xs text-primary font-bold mb-4">🪙 {credits} Credits Required</p>
 
-            <AppButton
-              full
-              icon={applied ? "check" : "send"}
-              onClick={() => setApplyOpen(true)}
-              disabled={applied}
-            >
-              {applied ? "Applied ✓" : "Apply →"}
-            </AppButton>
+            {isApplied ? (
+              <div className="flex justify-center">
+                <ApplicationStatusBadge status={applicationStatus} className="w-full justify-center !py-3" />
+              </div>
+            ) : (
+              <AppButton full icon="send" onClick={() => setApplyOpen(true)}>
+                Apply →
+              </AppButton>
+            )}
           </Card>
 
           <BrandContactCard campaignId={c.id} onOpenWallet={onOpenWallet} />
