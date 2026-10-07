@@ -137,7 +137,8 @@ const normalizeUser = (user: Partial<User> & Record<string, any>, userDetail?: R
     ...(user.has_password !== undefined && user.has_password !== null
       ? { has_password: ((v: any) => v === true || v === 1 || v === "1" || v === "true")(user.has_password) }
       : {}),
-  };};
+  };
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
