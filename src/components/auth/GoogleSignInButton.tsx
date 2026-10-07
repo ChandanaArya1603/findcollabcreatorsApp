@@ -63,7 +63,7 @@ const nativeGoogleCode = (): Promise<string> =>
 interface Props { getReferral?: () => string }
 
 export const GoogleSignInButton: React.FC<Props> = ({ getReferral }) => {
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, loginWithGoogleCode } = useAuth();
   const [busy, setBusy] = useState(false);
   const native = Capacitor.isNativePlatform();
 
@@ -81,9 +81,15 @@ export const GoogleSignInButton: React.FC<Props> = ({ getReferral }) => {
   };
 
   const onNative = async () => {
-    if (!GOOGLE_WEB_CLIENT_ID) return toast(COMING_SOON);
-    try { await finish(await nativeGoogleIdToken()); }
-    catch (e: any) { setBusy(false); if (!/cancel/i.test(String(e?.message))) toast.error(e?.message || "Google sign-in failed"); }
+    setBusy(true);
+    try {
+      const code = await nativeGoogleCode();
+      await loginWithGoogleCode(code);
+      toast.success("Signed in with Google");
+    } catch (e: any) {
+      if (e?.notCreator) toast.error(BRAND_ONLY);
+      else if (!/cancel/i.test(String(e?.message))) toast.error(e?.message || "Google sign-in failed");
+    } finally { setBusy(false); }
   };
 
   const face = (
