@@ -10,7 +10,7 @@ import { queryClient, persister, getCacheBuster, CACHE_MAX_AGE, shouldPersistQue
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+import { GOOGLE_WEB_CLIENT_ID as GOOGLE_CLIENT_ID } from "@/config/google";
 
 const App = () => (
   <PersistQueryClientProvider

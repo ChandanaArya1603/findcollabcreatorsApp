@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
-import { Capacitor } from "@capacitor/core";
+import { GoogleSignInButton } from "../auth/GoogleSignInButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppButton } from "../findcollab/AppButton";
 import { AppInput } from "../findcollab/AppInput";
@@ -16,11 +15,10 @@ interface Props {
 }
 
 const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initialEmail }) => {
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -44,22 +42,6 @@ const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initia
     }
   };
 
-  const handleGoogle = async (credential?: string) => {
-    if (!credential) {
-      toast.error("Google sign-in failed");
-      return;
-    }
-    setLoading(true);
-    try {
-      await loginWithGoogle(credential);
-      toast.success("Logged in with Google!");
-    } catch (err: any) {
-      toast.error(err.message || "Google sign-in failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-background px-6 py-10">
       <div className="w-full max-w-sm">
@@ -69,6 +51,7 @@ const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initia
         </div>
         <Card className="!p-5">
           <div className="flex flex-col gap-3.5">
+            <GoogleSignInButton />
             <AppInput label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />
             <AppInput label="Password" value={password} onChange={setPassword} placeholder="••••••••" />
             {onForgot && (
@@ -78,26 +61,6 @@ const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initia
               {loading ? "Signing in…" : "Sign In"}
             </AppButton>
 
-            {hasGoogle && (
-              <>
-                <div className="flex items-center gap-2 my-1">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-[11px] text-text-mid uppercase tracking-wider">or</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                <div className="flex justify-center">
-                  <GoogleLogin
-                    onSuccess={(res) => handleGoogle(res.credential)}
-                    onError={() => toast.error("Google sign-in failed")}
-                    useOneTap={false}
-                    theme="outline"
-                    size="large"
-                    text="signin_with"
-                    shape="pill"
-                  />
-                </div>
-              </>
-            )}
           </div>
         </Card>
         <p className="text-center text-xs text-text-mid mt-5">

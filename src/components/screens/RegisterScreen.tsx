@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleSignInButton } from "../auth/GoogleSignInButton";
 import { Capacitor } from "@capacitor/core";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -173,19 +173,6 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
     }
   };
 
-  const handleGoogle = async (credential?: string) => {
-    if (!credential) return toast.error("Google sign-up failed");
-    setLoading(true);
-    try {
-      await loginWithGoogle(credential);
-      toast.success("Account ready! Signed in with Google.");
-    } catch (err: any) {
-      toast.error(err.message || "Google sign-up failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col items-center bg-background px-6 py-10 overflow-y-auto relative">
       <div aria-hidden className="pointer-events-none absolute -top-20 -left-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl animate-pulse" />
@@ -210,6 +197,7 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
         <Card className="!p-5">
           {step === 1 ? (
             <div className="flex flex-col gap-3.5">
+              <GoogleSignInButton getReferral={() => referral} />
               <AppInput label="Name" value={firstname} onChange={setFirstname} placeholder="John" />
               <AppInput label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />
               <Hint a={aEmail} />
@@ -219,19 +207,6 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
               <AppInput label="Referral code (optional)" value={referral} onChange={setReferral} />
               <AppButton full onClick={goStep2}>Next</AppButton>
 
-              {hasGoogle && (
-                <div>
-                  <div className="flex items-center gap-2 my-1">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[11px] text-text-mid uppercase tracking-wider">or</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  <div className="flex justify-center mt-2">
-                    <GoogleLogin onSuccess={(res) => handleGoogle(res.credential)} onError={() => toast.error("Google sign-up failed")}
-                      theme="outline" size="large" text="signup_with" shape="pill" />
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3.5">
