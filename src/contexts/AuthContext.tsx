@@ -287,6 +287,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [setAuthData]);
 
+  // Shared handling for both Google sign-in paths (id_token and website code).
+  const applyGoogleAuthResult = (res: any): { isNewUser: boolean } => {
+    // Creator-only app: refuse brand accounts before storing anything.
+    const u = res.user ?? {};
+    const kind = String(u.user_type ?? u.type ?? u.role ?? u.account_type ?? res.user_type ?? "").toLowerCase();
+    if (kind && !/influencer|creator/.test(kind) && kind !== "1") {
+      const err: any = new Error("not creator"); err.notCreator = true; throw err;
+    }
+    const isNewUser = res.is_new_user === true || res.is_new_user === 1 || res.is_new_user === "1";
+    if (isNewUser) {
+      try { localStorage.setItem("fc_onboarding_pending", "1"); } catch { /* ignore */ }
+    }
+    const rawUser = res.user ?? {
+      id: res.id ?? res.user_login_id,
+      fname: res.fname ?? "", lname: res.lname ?? "", email: res.email ?? "", sign_up_type: "google",
+    };
+    const userDetail = res.userDetail ?? res.user_detail ?? res;
+    setAuthData({ token: res.token, user: normalizeUser(rawUser, userDetail), userDetail });
+    return { isNewUser };
+  };
+
   const loginWithGoogle = useCallback(async (idToken: string, referralCode?: string) => {
     const body: Record<string, string> = { id_token: idToken };
     if (referralCode) body.referral_code = referralCode;
@@ -348,7 +369,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile, welcomeName, clearWelcome }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, loginWithGoogleCode, register, logout, setAuthData, refreshProfile, welcomeName, clearWelcome }}>
       {children}
     </AuthContext.Provider>
   );
@@ -361,7 +382,7 @@ export const useAuth = () => {
       return {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
-        login: async () => {}, loginWithGoogle: async () => ({ isNewUser: false }), register: async () => ({}),
+        login: async () => {}, loginWithGoogle: async () => ({ isNewUser: false }), loginWithGoogleCode: async () => ({ isNewUser: false }), register: async () => ({}),
         logout: async () => {}, setAuthData: () => {}, refreshProfile: async () => {},
       } as unknown as AuthContextType;
     }
