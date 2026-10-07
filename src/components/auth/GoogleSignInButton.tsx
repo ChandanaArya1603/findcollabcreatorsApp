@@ -17,21 +17,53 @@ const GLogo = () => (
   </svg>
 );
 
-let nativeReady: Promise<any> | null = null;
-const nativeGoogleIdToken = async (): Promise<string> => {
-  const { SocialLogin } = await import("@capgo/capacitor-social-login");
-  if (!nativeReady) nativeReady = SocialLogin.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID } });
-  await nativeReady;
-  const res: any = await SocialLogin.login({ provider: "google", options: { scopes: ["email", "profile"] } });
-  const token = res?.result?.idToken;
-  if (!token) throw new Error("Google sign-in was cancelled");
-  return token;
-};
+const GOOGLE_AUTH_URL = "https://findcollab.com/googleAuth?from=app";
+
+// Native flow: open the website's Google sign-in in a browser tab; the website
+// redirects to https://findcollab.com/app-login?code=XXXX which Android opens
+// in the app (App Links). The one-time code is then exchanged via /google_app_login.
+const nativeGoogleCode = (): Promise<string> =>
+  new Promise<string>(async (resolve, reject) => {
+    const { Browser } = await import("@capacitor/browser");
+    const { App } = await import("@capacitor/app");
+    let settled = false;
+    const listener = await App.addListener("appUrlOpen", ({ url }) => {
+      try {
+        const u = new URL(url);
+        const code = u.searchParams.get("code");
+        if (u.pathname.startsWith("/app-login") && code && !settled) {
+          settled = true;
+          listener.remove();
+          Browser.close().catch(() => {});
+          resolve(code);
+        }
+      } catch { /* ignore unparseable urls */ }
+    });
+    const cleanup = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      listener.remove();
+      reject(err);
+    };
+    try {
+      await Browser.open({ url: GOOGLE_AUTH_URL });
+    } catch {
+      cleanup(new Error("Could not open Google sign-in"));
+      return;
+    }
+    // If the user closes the tab without finishing, browserStateChanged fires.
+    const stateListener = await Browser.addListener("browserFinished", () => {
+      stateListener.remove();
+      cleanup(new Error("Google sign-in was cancelled"));
+    });
+    // Safety timeout so the button never spins forever.
+    setTimeout(() => cleanup(new Error("Google sign-in timed out. Please try again.")), 3 * 60 * 1000);
+  });
 
 interface Props { getReferral?: () => string }
 
 export const GoogleSignInButton: React.FC<Props> = ({ getReferral }) => {
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, loginWithGoogleCode } = useAuth();
   const [busy, setBusy] = useState(false);
   const native = Capacitor.isNativePlatform();
 
@@ -49,9 +81,15 @@ export const GoogleSignInButton: React.FC<Props> = ({ getReferral }) => {
   };
 
   const onNative = async () => {
-    if (!GOOGLE_WEB_CLIENT_ID) return toast(COMING_SOON);
-    try { await finish(await nativeGoogleIdToken()); }
-    catch (e: any) { setBusy(false); if (!/cancel/i.test(String(e?.message))) toast.error(e?.message || "Google sign-in failed"); }
+    setBusy(true);
+    try {
+      const code = await nativeGoogleCode();
+      await loginWithGoogleCode(code);
+      toast.success("Signed in with Google");
+    } catch (e: any) {
+      if (e?.notCreator) toast.error(BRAND_ONLY);
+      else if (!/cancel/i.test(String(e?.message))) toast.error(e?.message || "Google sign-in failed");
+    } finally { setBusy(false); }
   };
 
   const face = (

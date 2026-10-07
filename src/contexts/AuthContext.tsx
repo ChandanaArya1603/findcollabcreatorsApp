@@ -34,6 +34,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string, referralCode?: string) => Promise<{ isNewUser: boolean }>;
+  loginWithGoogleCode: (code: string) => Promise<{ isNewUser: boolean }>;
   register: (data: Record<string, any>) => Promise<any>;
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
@@ -286,23 +287,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [setAuthData]);
 
-  const loginWithGoogle = useCallback(async (idToken: string, referralCode?: string) => {
-    const body: Record<string, string> = { id_token: idToken };
-    if (referralCode) body.referral_code = referralCode;
-    let res: any;
-    try {
-      res = await api.postForm("/google_login", body);
-    } catch (e: any) {
-      const msg = String(e?.message || "");
-      if (e?.nonJson || e?.status === 404 || /unknown method|not found/i.test(msg)) {
-        const err: any = new Error("coming soon"); err.comingSoon = true; throw err;
-      }
-      if (/brand|creator|influencer/i.test(msg) && /only|not|account/i.test(msg)) {
-        const err: any = new Error(msg); err.notCreator = true; throw err;
-      }
-      throw e;
-    }
-    if (!res?.token) { const err: any = new Error("coming soon"); err.comingSoon = true; throw err; }
+  // Shared handling for both Google sign-in paths (id_token and website code).
+  const applyGoogleAuthResult = (res: any): { isNewUser: boolean } => {
     // Creator-only app: refuse brand accounts before storing anything.
     const u = res.user ?? {};
     const kind = String(u.user_type ?? u.type ?? u.role ?? u.account_type ?? res.user_type ?? "").toLowerCase();
@@ -320,6 +306,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userDetail = res.userDetail ?? res.user_detail ?? res;
     setAuthData({ token: res.token, user: normalizeUser(rawUser, userDetail), userDetail });
     return { isNewUser };
+  };
+
+  const loginWithGoogle = useCallback(async (idToken: string, referralCode?: string) => {
+    const body: Record<string, string> = { id_token: idToken };
+    if (referralCode) body.referral_code = referralCode;
+    let res: any;
+    try {
+      res = await api.postForm("/google_login", body);
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      if (e?.nonJson || e?.status === 404 || /unknown method|not found/i.test(msg)) {
+        const err: any = new Error("coming soon"); err.comingSoon = true; throw err;
+      }
+      if (/brand|creator|influencer/i.test(msg) && /only|not|account/i.test(msg)) {
+        const err: any = new Error(msg); err.notCreator = true; throw err;
+      }
+      throw e;
+    }
+    if (!res?.token) { const err: any = new Error("coming soon"); err.comingSoon = true; throw err; }
+    return applyGoogleAuthResult(res);
+  }, [setAuthData]);
+
+  // Website-based Google sign-in: the website redirects back with a one-time code.
+  const loginWithGoogleCode = useCallback(async (code: string) => {
+    const res = await api.postForm("/google_app_login", { code });
+    if (!res?.token) throw new Error(res?.message || "This sign-in link is invalid or has expired. Please sign in with Google again.");
+    return applyGoogleAuthResult(res);
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
@@ -356,7 +369,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile, welcomeName, clearWelcome }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, loginWithGoogleCode, register, logout, setAuthData, refreshProfile, welcomeName, clearWelcome }}>
       {children}
     </AuthContext.Provider>
   );
@@ -369,7 +382,7 @@ export const useAuth = () => {
       return {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
-        login: async () => {}, loginWithGoogle: async () => ({ isNewUser: false }), register: async () => ({}),
+        login: async () => {}, loginWithGoogle: async () => ({ isNewUser: false }), loginWithGoogleCode: async () => ({ isNewUser: false }), register: async () => ({}),
         logout: async () => {}, setAuthData: () => {}, refreshProfile: async () => {},
       } as unknown as AuthContextType;
     }
