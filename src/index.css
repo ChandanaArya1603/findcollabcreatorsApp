@@ -121,3 +121,19 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
+
+/* Pink shimmer skeletons */
+.skeleton-pink {
+  background: linear-gradient(90deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.18) 50%, hsl(var(--primary) / 0.08) 100%);
+  background-size: 200% 100%;
+  animation: fc-shimmer 1.3s ease-in-out infinite;
+}
+@keyframes fc-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes fc-pulse-soft { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.85; } }
+@keyframes fc-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.fc-pulse-soft { animation: fc-pulse-soft 1.4s ease-in-out infinite; }
+.fc-fade-up { animation: fc-fade-up 0.35s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pink, .fc-pulse-soft, .fc-fade-up, .animate-slide-in, .animate-spin { animation: none !important; }
+}
