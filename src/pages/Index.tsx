@@ -22,6 +22,11 @@ import { useProfileCompletion, STEP_KEYS, type StepKey } from "@/hooks/useProfil
 import ForgotPasswordScreen from "@/components/screens/auth/ForgotPasswordScreen";
 import BottomNav from "@/components/findcollab/BottomNav";
 import { CreditBar } from "@/components/findcollab/CreditPill";
+import WelcomeScreen from "@/components/screens/WelcomeScreen";
+import { waitForCriticalHome } from "@/hooks/useAppData";
+import { queryClient } from "@/lib/queryClient";
+import { qk } from "@/lib/queryKeys";
+import { hideSplash } from "@/lib/splash";
 
 interface StackItem {
   screen: string;
@@ -48,7 +53,18 @@ const AutoOnboarding: React.FC<{ onOpen: (k: StepKey) => void }> = ({ onOpen }) 
 };
 
 const Index = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, welcomeName, clearWelcome } = useAuth();
+  const [entered, setEntered] = useState(false);
+  const finishWelcome = React.useCallback(() => { setEntered(true); clearWelcome(); }, [clearWelcome]);
+
+  // Keep the native splash until cached data exists or the first Home data arrives (max 2.5 s).
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated || queryClient.getQueryData(qk.dashboardStats)) { hideSplash(); return; }
+    const t = setTimeout(hideSplash, 2500);
+    waitForCriticalHome().then(hideSplash);
+    return () => clearTimeout(t);
+  }, [isLoading, isAuthenticated]);
   const [loginEmail, setLoginEmail] = useState("");
   const [wizardStep, setWizardStep] = useState<number | null>(null);
   const [authView, setAuthView] = useState<"login" | "register" | "verify" | "forgot">("login");
@@ -136,8 +152,10 @@ const Index = () => {
     );
   }
 
+  if (welcomeName !== null) return <WelcomeScreen name={welcomeName} onDone={finishWelcome} />;
+
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden relative">
+    <div className={`h-screen bg-background flex flex-col overflow-hidden relative ${entered ? "fc-fade-up" : ""}`}>
       <CreditBar
         onClick={() => handleTabChange("wallet")}
         onProfileClick={() => { setChatOpen(false); setStack([{ screen: "profile" }]); }}
