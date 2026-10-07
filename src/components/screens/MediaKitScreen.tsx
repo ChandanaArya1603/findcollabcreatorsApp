@@ -360,8 +360,12 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   const errMsg = (error: unknown) => (error instanceof Error ? error.message : "Please try again");
 
   const handleShare = async () => {
-    if (!user?.id) return;
-    const url = `https://findcollab.com/media-kit/${user.id}`;
+    const handle = (platforms.instagram.username || "").replace(/^@/, "").trim();
+    if (!handle) {
+      toast({ title: "Add your Instagram first", description: "Your public media kit link uses your Instagram username." });
+      return;
+    }
+    const url = `https://findcollab.com/instagram/${encodeURIComponent(handle)}`;
     const title = `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""} – Media Kit`;
     try {
       if (navigator.share) {
