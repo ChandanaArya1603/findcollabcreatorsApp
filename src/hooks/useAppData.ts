@@ -9,6 +9,7 @@ import { notificationService } from "@/services/notificationService";
 import { campaignService } from "@/services/campaignService";
 import { utilityService } from "@/services/utilityService";
 import { messageService } from "@/services/messageService";
+import { onboardingService } from "@/services/onboardingService";
 
 /* ── Shared queries ───────────────────────────── */
 

@@ -37,6 +37,9 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
   refreshProfile: () => Promise<void>;
+  /** First name to greet on the welcome screen right after an interactive sign-in. */
+  welcomeName: string | null;
+  clearWelcome: () => void;
 }
 
 // Keep one context instance across hot reloads so the provider and consumers always match.
@@ -148,6 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: false,
     isLoading: true,
   });
+  const [welcomeName, setWelcomeName] = useState<string | null>(null);
+  const clearWelcome = useCallback(() => setWelcomeName(null), []);
 
   useEffect(() => {
     let isMounted = true;
@@ -222,6 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     retryPendingPurchases().catch(() => {});
     // Warm the caches for the main tabs so screens open instantly
     prefetchAppData();
+    setWelcomeName(normalizedUser.fname || "");
     setState({
       token: data.token,
       user: normalizedUser,
@@ -337,6 +343,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("fc_user_detail");
     clearDashboardCache();
     clearQueryCache();
+    setWelcomeName(null);
     setState({
       user: null,
       userDetail: null,
