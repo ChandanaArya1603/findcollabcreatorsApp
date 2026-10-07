@@ -18,7 +18,7 @@
     "@capacitor/core": "^8.2.0",
     "@capacitor/filesystem": "^8",
     "@capacitor/share": "^8",
-    "@capacitor/splash-screen": "^7",
+    "@capacitor/splash-screen": "^8",
     "@capgo/capacitor-social-login": "^8",
     "@capgo/native-purchases": "^8",
     "@hookform/resolvers": "^3.10.0",
