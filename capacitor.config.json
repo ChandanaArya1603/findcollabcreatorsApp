@@ -5,6 +5,11 @@
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "launchFadeOutDuration": 300,
+      "showSpinner": false
     }
   }
 }

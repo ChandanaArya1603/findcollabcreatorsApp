@@ -1,3 +1,4 @@
+import { PasswordInput } from "../findcollab/AppInput";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -93,9 +94,8 @@ const DeleteAccountScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
 
             {hasPw !== false && <div>
               <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Password</label>
-              <input type="password" value={password} disabled={noPassword} autoComplete="current-password"
-                onChange={(e) => { setPassword(e.target.value); setPwErr(""); }}
-                className={`w-full p-3 rounded-xl border-[1.5px] ${pwErr ? "border-destructive" : "border-border"} text-sm bg-card text-foreground outline-none focus:border-primary mt-1.5 disabled:opacity-50`} />
+              <div className="mt-1.5"><PasswordInput value={password} disabled={noPassword} autoComplete="current-password"
+                onChange={(v) => { setPassword(v); setPwErr(""); }} error={!!pwErr} /></div>
               {pwErr && <p className="text-[11px] text-destructive font-bold mt-1">{pwErr}</p>}
               {hasPw === undefined && <label className="flex items-center gap-2 text-xs text-text-mid mt-2">
                 <input type="checkbox" checked={noPwChecked} onChange={(e) => { setNoPassword(e.target.checked); setPwErr(""); }} />

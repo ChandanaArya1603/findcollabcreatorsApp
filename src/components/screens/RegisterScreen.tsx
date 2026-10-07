@@ -201,7 +201,7 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
               <Hint a={aEmail} />
               <AppInput label="Phone Number" value={contactno} onChange={setContactno} placeholder="+91 98765 43210" />
               <Hint a={aPhone} />
-              <AppInput label="Password" value={password} onChange={setPassword} placeholder="••••••••" />
+              <AppInput label="Password" type="password" autoComplete="new-password" value={password} onChange={setPassword} placeholder="••••••••" />
               <AppInput label="Referral code (optional)" value={referral} onChange={setReferral} />
               <AppButton full onClick={goStep2}>Next</AppButton>
 

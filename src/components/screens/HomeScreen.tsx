@@ -15,6 +15,9 @@ import { Card } from "../findcollab/Card";
 import { AppButton } from "../findcollab/AppButton";
 import { Icon } from "../findcollab/Icon";
 import CoinMark from "../findcollab/CoinMark";
+import { CountUp } from "../findcollab/CountUp";
+import { Shimmer } from "../findcollab/Skeleton";
+import { LazySection } from "../findcollab/LazySection";
 import ProfileStrengthCard from "../home/ProfileStrengthCard";
 import type { StepKey } from "@/hooks/useProfileCompletion";
 
@@ -59,17 +62,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
 
   const stats = dashStats
     ? [
-        { l: "Enlisted", v: String(dashStats.campaignsEnlisted ?? 0), sub: `${dashStats.totalReviews ?? 0} reviews`, ic: "campaign", c: "text-primary" },
-        { l: "Wallet", v: `₹${walletBalance ?? 0}`, sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
-        { l: "Applied", v: String(dashStats.campaignsApplied ?? 0), sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
-        { l: "Views", v: String(dashStats.profileViews?.total ?? 0), sub: `${dashStats.profileViews?.directPercentage ?? 0}% direct`, ic: "search", c: "text-warning" },
+        { l: "Enlisted", n: Number(dashStats.campaignsEnlisted ?? 0), pre: "", sub: `${dashStats.totalReviews ?? 0} reviews`, ic: "campaign", c: "text-primary" },
+        { l: "Wallet", n: Number(walletBalance ?? 0), pre: "₹", sub: "Ready to withdraw", ic: "rupee", c: "text-success" },
+        { l: "Applied", n: Number(dashStats.campaignsApplied ?? 0), pre: "", sub: `${dashStats.campaignsInvited ?? 0} offers received`, ic: "campaign", c: "text-info" },
+        { l: "Views", n: Number(dashStats.profileViews?.total ?? 0), pre: "", sub: `${dashStats.profileViews?.directPercentage ?? 0}% direct`, ic: "search", c: "text-warning" },
       ]
-    : [
-        { l: "Enlisted", v: "—", sub: "", ic: "campaign", c: "text-primary" },
-        { l: "Wallet", v: "—", sub: "", ic: "rupee", c: "text-success" },
-        { l: "Applied", v: "—", sub: "", ic: "campaign", c: "text-info" },
-        { l: "Views", v: "—", sub: "", ic: "search", c: "text-warning" },
-      ];
+    : null;
 
   const profileViews: any = dashStats?.profileViews ?? {};
   const pvNum = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -163,7 +161,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
             aria-label="Open wallet"
           >
             <CoinMark size={30} />
-            <span className="text-[30px] leading-none font-black text-warning">{credits ?? "—"}</span>
+            <span className="text-[30px] leading-none font-black text-warning">{credits != null ? <CountUp id="home-credits" value={Number(credits) || 0} /> : <Shimmer className="inline-block h-7 w-14 align-middle" />}</span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-mid leading-tight text-left">
               credits<br />available
             </span>
@@ -178,18 +176,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-2.5">
-          {stats.map((s) => (
+          {stats ? stats.map((s) => (
             <Card key={s.l} className="!p-3.5">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[10px] text-text-light uppercase tracking-wider mb-1">{s.l}</p>
-                  <p className={`text-[22px] font-black leading-none mb-0.5 ${s.c}`}>{s.v}</p>
+                  <p className={`text-[22px] font-black leading-none mb-0.5 ${s.c}`}>{s.pre}<CountUp id={`home-${s.l}`} value={Number.isFinite(s.n) ? s.n : 0} /></p>
                   <p className="text-[10px] text-text-light">{s.sub}</p>
                 </div>
                 <div className="w-8 h-8 rounded-[10px] bg-muted flex items-center justify-center">
                   <Icon name={s.ic} size={15} className={s.c} />
                 </div>
               </div>
+            </Card>
+          )) : Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="!p-3.5 flex flex-col gap-2">
+              <Shimmer className="h-2.5 w-14" />
+              <Shimmer className="h-6 w-16" />
+              <Shimmer className="h-2.5 w-20" />
             </Card>
           ))}
         </div>
@@ -212,7 +216,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
         </div>
 
         {/* Chart */}
-        <Card>
+        <LazySection minHeight={140}>
+        {!dashStats ? <Card className="flex flex-col gap-3"><Shimmer className="h-4 w-32" /><Shimmer className="h-2.5 w-full" /><Shimmer className="h-3 w-3/4" /></Card> : <Card>
           <div className="flex justify-between items-center mb-3.5">
             <div>
               <p className="text-sm font-extrabold text-foreground">Profile Views</p>
@@ -238,9 +243,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
             <span className="flex items-center gap-1.5 text-text-mid"><span className="w-2 h-2 rounded-full bg-primary" />Direct <b className="text-foreground">{pvDirect.toLocaleString()}</b> · {directPct}%</span>
             <span className="flex items-center gap-1.5 text-text-mid"><span className="w-2 h-2 rounded-full bg-primary/30" />External <b className="text-foreground">{pvExternal.toLocaleString()}</b> · {externalPct}%</span>
           </div>
-        </Card>
+        </Card>}
+        </LazySection>
 
         {/* Referral */}
+        <LazySection minHeight={130}>
         <Card className="!bg-gradient-to-br from-primary-light to-card !border-primary-mid">
           <div className="flex items-center gap-2 mb-2">
             <Icon name="gift" size={16} className="text-primary" />
@@ -257,6 +264,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ push, switchTab, onOpenProfileS
             <AppButton variant="ghost" icon="copy" className="!py-2.5 !px-3.5 !rounded-[10px] !text-xs">Copy</AppButton>
           </div>
         </Card>
+        </LazySection>
       </div>
     </Screen>
   );

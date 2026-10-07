@@ -11,5 +11,7 @@ export const qk = {
   myCampaigns: ["my_campaigns"] as const,
   startups: ["startups"] as const,
   categories: ["categories"] as const,
+  profileCompletion: ["profile_completion"] as const,
+  unreadMessages: ["unread_messages_count"] as const,
   chatUsers: ["chat_users"] as const,
 };

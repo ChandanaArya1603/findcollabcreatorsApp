@@ -53,12 +53,12 @@ const LoginScreen: React.FC<Props> = ({ onSwitch, onForgot, onNeedVerify, initia
           <div className="flex flex-col gap-3.5">
             <GoogleSignInButton />
             <AppInput label="Email" value={email} onChange={setEmail} placeholder="you@example.com" />
-            <AppInput label="Password" value={password} onChange={setPassword} placeholder="••••••••" />
+            <AppInput label="Password" type="password" autoComplete="current-password" value={password} onChange={setPassword} placeholder="••••••••" />
             {onForgot && (
               <button onClick={onForgot} className="text-xs font-bold text-primary self-end -mt-1.5">Forgot password?</button>
             )}
-            <AppButton full onClick={handleLogin} disabled={loading}>
-              {loading ? "Signing in…" : "Sign In"}
+            <AppButton full onClick={handleLogin} loading={loading}>
+              Sign In
             </AppButton>
 
           </div>

@@ -19,23 +19,33 @@ export interface AppButtonProps {
   full?: boolean;
   className?: string;
   disabled?: boolean;
+  /** Shows a spinner in place of the label. */
+  loading?: boolean;
 }
 
 export const AppButton: React.FC<AppButtonProps> = ({
-  children, onClick, variant = "primary", icon, full, className, disabled,
+  children, onClick, variant = "primary", icon, full, className, disabled, loading,
 }) => (
   <button
     type="button"
     onClick={onClick}
-    disabled={disabled}
+    disabled={disabled || loading}
+    aria-busy={loading || undefined}
     className={cn(
-      "flex items-center justify-center gap-1.5 px-5 py-3 rounded-[14px] border-none text-sm font-extrabold tracking-wide transition-opacity active:opacity-80 cursor-pointer",
+      "flex items-center justify-center gap-1.5 px-5 py-3 rounded-[14px] border-none text-sm font-extrabold tracking-wide transition-all duration-300 active:opacity-80 cursor-pointer",
       variantStyles[variant],
       full && "w-full",
+      loading && "rounded-[22px]",
       className
     )}
   >
-    {icon && <Icon name={icon} size={15} />}
-    {children}
+    {loading ? (
+      <span className="w-5 h-5 rounded-full border-[2.5px] border-current border-t-transparent animate-spin" aria-label="Loading" />
+    ) : (
+      <>
+        {icon && <Icon name={icon} size={15} />}
+        {children}
+      </>
+    )}
   </button>
 );
