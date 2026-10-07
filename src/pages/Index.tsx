@@ -77,6 +77,13 @@ const Index = () => {
   const [stack, setStack] = useState<StackItem[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
 
+  // Every sign-in (or sign-out) starts fresh on Home, never on a leftover screen like Profile.
+  React.useEffect(() => {
+    setStack([]);
+    setChatOpen(false);
+    setTab("home");
+  }, [isAuthenticated]);
+
   const push = (screen: string, data?: any) => setStack((s) => [...s, { screen, data }]);
   const pop = () => setStack((s) => s.slice(0, -1));
   const current = stack.length > 0 ? stack[stack.length - 1] : null;
