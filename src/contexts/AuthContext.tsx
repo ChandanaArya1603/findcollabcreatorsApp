@@ -135,10 +135,9 @@ const normalizeUser = (user: Partial<User> & Record<string, any>, userDetail?: R
     email: user.email ?? userDetail?.email ?? "",
     sign_up_type: user.sign_up_type ?? userDetail?.sign_up_type ?? "",
     ...(user.has_password !== undefined && user.has_password !== null
-      ? { has_password: user.has_password === true || user.has_password === 1 || user.has_password === "1" || user.has_password === "true" }
+      ? { has_password: ((v: any) => v === true || v === 1 || v === "1" || v === "true")(user.has_password) }
       : {}),
-  };
-};
+  };};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState>({

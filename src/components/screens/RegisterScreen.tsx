@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { GoogleSignInButton } from "../auth/GoogleSignInButton";
-import { Capacitor } from "@capacitor/core";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppButton } from "../findcollab/AppButton";
@@ -60,7 +59,7 @@ const Chips: React.FC<{ options: Opt[]; value: number[]; onToggle: (id: number) 
   );
 
 const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [firstname, setFirstname] = useState("");
   const [email, setEmail] = useState("");
@@ -80,7 +79,6 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
   const [primary, setPrimary] = useState<"instagram" | "youtube" | "linkedin">("instagram");
   const [loading, setLoading] = useState(false);
   const [followerError, setFollowerError] = useState("");
-  const hasGoogle = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
 
   const aEmail = useAvailability(email, authService.checkEmailAvailability, isEmail);
   const aPhone = useAvailability(contactno, authService.checkPhoneAvailability, isPhone);
