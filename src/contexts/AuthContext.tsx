@@ -34,6 +34,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string, referralCode?: string) => Promise<{ isNewUser: boolean }>;
+  loginWithGoogleCode: (code: string) => Promise<{ isNewUser: boolean }>;
   register: (data: Record<string, any>) => Promise<any>;
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
@@ -303,23 +304,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw e;
     }
     if (!res?.token) { const err: any = new Error("coming soon"); err.comingSoon = true; throw err; }
-    // Creator-only app: refuse brand accounts before storing anything.
-    const u = res.user ?? {};
-    const kind = String(u.user_type ?? u.type ?? u.role ?? u.account_type ?? res.user_type ?? "").toLowerCase();
-    if (kind && !/influencer|creator/.test(kind) && kind !== "1") {
-      const err: any = new Error("not creator"); err.notCreator = true; throw err;
-    }
-    const isNewUser = res.is_new_user === true || res.is_new_user === 1 || res.is_new_user === "1";
-    if (isNewUser) {
-      try { localStorage.setItem("fc_onboarding_pending", "1"); } catch { /* ignore */ }
-    }
-    const rawUser = res.user ?? {
-      id: res.id ?? res.user_login_id,
-      fname: res.fname ?? "", lname: res.lname ?? "", email: res.email ?? "", sign_up_type: "google",
-    };
-    const userDetail = res.userDetail ?? res.user_detail ?? res;
-    setAuthData({ token: res.token, user: normalizeUser(rawUser, userDetail), userDetail });
-    return { isNewUser };
+    return applyGoogleAuthResult(res);
+  }, [setAuthData]);
+
+  // Website-based Google sign-in: the website redirects back with a one-time code.
+  const loginWithGoogleCode = useCallback(async (code: string) => {
+    const res = await api.postForm("/google_app_login", { code });
+    if (!res?.token) throw new Error(res?.message || "This sign-in link is invalid or has expired. Please sign in with Google again.");
+    return applyGoogleAuthResult(res);
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
