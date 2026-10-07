@@ -1,3 +1,5 @@
+import { ListSkeleton, Shimmer } from "../findcollab/Skeleton";
+import { CountUp } from "../findcollab/CountUp";
 import React, { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
@@ -217,7 +219,7 @@ const WalletScreen: React.FC = () => {
         <h2 className="text-lg font-black text-foreground mb-4">Wallet</h2>
         <div className="bg-primary-light rounded-[20px] p-4 mb-3">
           <p className="text-[11px] text-primary-dark font-bold uppercase tracking-widest mb-1">Credits</p>
-          <p className="text-4xl font-black text-primary">{credits.total}</p>
+          <p className="text-4xl font-black text-primary">{credits.total === "—" ? <Shimmer className="h-9 w-24" /> : Number.isFinite(Number(credits.total)) ? <CountUp id="wallet-credits" value={Number(credits.total)} /> : credits.total}</p>
           <p className="text-[11px] text-text-mid mt-1">{credits.earned} earned • {credits.spent} spent</p>
           {lowBalance && (
             <div className="mt-3 p-2.5 rounded-xl bg-warning-light flex items-center justify-between gap-2">
@@ -269,7 +271,7 @@ const WalletScreen: React.FC = () => {
 
         {tab === "txns" && (
           <div className="flex flex-col gap-2.5">
-            {loading && <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>}
+            {loading && <ListSkeleton count={3} lines={2} />}
             {!loading && txns.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>}
             {!loading && txns.map((t, i) => (
               <Card key={i} className="!p-3.5">
@@ -300,7 +302,7 @@ const WalletScreen: React.FC = () => {
         {tab === "withdrawals" && (
           <div className="flex flex-col gap-2.5">
             <p className="text-sm font-extrabold text-foreground">Withdrawal history</p>
-            {withdrawals.isLoading && <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>}
+            {withdrawals.isLoading && <ListSkeleton count={3} lines={2} />}
             {!withdrawals.isLoading && wRows.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No withdrawals yet</p>}
             {wRows.map((w, i) => {
               const st = String(w.status ?? "").toLowerCase();

@@ -1,3 +1,4 @@
+import { ListSkeleton, Shimmer } from "../findcollab/Skeleton";
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -446,6 +447,20 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       setDownloading(false);
     }
   };
+
+  if (!profileData) {
+    return (
+      <div className="flex-1 overflow-y-auto bg-background pb-6">
+        <BackHeader title="My Media Kit" onBack={onBack} />
+        <div className="px-4 pt-3 flex flex-col gap-3">
+          <Shimmer className="h-36 w-full rounded-[20px]" />
+          <div className="flex items-center gap-3"><Shimmer className="h-16 w-16 rounded-full" /><div className="flex-1 flex flex-col gap-2"><Shimmer className="h-4 w-1/2" /><Shimmer className="h-3 w-1/3" /></div></div>
+          <div className="grid grid-cols-3 gap-2">{[0, 1, 2].map((i) => <Shimmer key={i} className="h-16 rounded-[14px]" />)}</div>
+          <ListSkeleton count={2} lines={3} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={kitRef} className="flex-1 overflow-y-auto bg-background pb-6">

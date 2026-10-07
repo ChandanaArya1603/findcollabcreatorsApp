@@ -1,3 +1,4 @@
+import { ListSkeleton } from "../findcollab/Skeleton";
 import React, { useState } from "react";
 import { useCampaigns } from "@/hooks/useAppData";
 import { Screen } from "../findcollab/Screen";
@@ -112,9 +113,7 @@ const CampaignsScreen: React.FC<Props> = ({ push, onOpenWallet }) => {
 
       <div className="px-4 pt-3.5 flex flex-col gap-3">
         {loading && (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">Loading campaigns…</p>
-          </div>
+          <ListSkeleton count={4} lines={4} />
         )}
         {!loading && filtered.length === 0 && (
           <div className="text-center py-8">
