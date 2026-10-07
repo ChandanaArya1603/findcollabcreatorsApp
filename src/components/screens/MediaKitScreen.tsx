@@ -463,7 +463,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
   }
 
   return (
-    <div ref={kitRef} className="flex-1 overflow-y-auto bg-background pb-6">
+    <div ref={kitRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-background pb-6">
       <div data-html2canvas-ignore="true"><BackHeader title="My Media Kit" onBack={onBack} right={
         <div className="flex items-center gap-2">
           <AppButton variant="ghost" icon="edit" className="!h-9 !px-3 !py-0 !rounded-lg !text-xs" onClick={() => setCustomizeOpen((open) => !open)}>
@@ -558,7 +558,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
         )}
 
         <button type="button" onClick={() => setBioOpen((open) => !open)} className="w-full mt-5 text-left border-y border-border py-4 flex items-start justify-between gap-3">
-          <p className={`text-[12px] text-foreground leading-relaxed ${bioOpen ? "" : "line-clamp-2"}`}>{bioOpen ? creatorBio : bioSnippet}</p>
+          <p className={`text-[12px] text-foreground leading-relaxed break-words ${bioOpen ? "" : "line-clamp-2"}`}>{bioOpen ? creatorBio : bioSnippet}</p>
           <Icon name="chevD" size={15} className={`text-primary mt-0.5 transition-transform ${bioOpen ? "rotate-180" : ""}`} />
         </button>
       </section>
@@ -612,7 +612,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
             {(p.bio || p.username || p.link) && (
               <div className="border-y border-border py-4">
                 <div className="flex items-center gap-2 mb-2"><Icon name={p.ic} size={16} className={p.color} /><p className="text-sm font-black text-foreground">{p.username ? `@${p.username.replace(/^@/, "")}` : p.label}</p></div>
-                {p.bio && <p className="text-[12px] leading-relaxed text-muted-foreground whitespace-pre-line">{p.bio}</p>}
+                {p.bio && <p className="text-[12px] leading-relaxed text-muted-foreground whitespace-pre-line break-words">{p.bio}</p>}
                 {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="inline-block text-[11px] font-bold text-primary mt-2 break-all">{p.link.replace(/^https?:\/\//, "")}</a>}
               </div>
             )}
@@ -647,7 +647,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
           <div>
             <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-3">{p.label} commercials</p>
             {p.rates.length === 0 ? <p className="text-xs text-muted-foreground py-5 text-center">No rates set yet</p> : p.rates.map((rate, index) => (
-              <div key={`${rate.service}-${index}`} className="flex justify-between items-center gap-4 py-4 border-b border-border"><p className="text-sm font-bold text-foreground">{rate.service}</p><p className="text-sm font-black text-primary shrink-0">{rate.rate}</p></div>
+              <div key={`${rate.service}-${index}`} className="flex justify-between items-center gap-4 py-4 border-b border-border"><p className="text-sm font-bold text-foreground min-w-0 break-words">{rate.service}</p><p className="text-sm font-black text-primary shrink-0">{rate.rate}</p></div>
             ))}
           </div>
         )}
