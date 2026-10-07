@@ -172,7 +172,7 @@ const RegisterScreen: React.FC<Props> = ({ onSwitch, onVerify }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center bg-background px-6 py-10 overflow-y-auto relative">
+    <div className="flex-1 flex flex-col items-center bg-background px-6 py-10 overflow-y-auto overflow-x-clip relative">
       <div aria-hidden className="pointer-events-none absolute -top-20 -left-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl animate-pulse" />
       <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-primary/15 blur-3xl animate-pulse [animation-delay:1s]" />
 
