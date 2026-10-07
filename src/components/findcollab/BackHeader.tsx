@@ -16,6 +16,6 @@ export const BackHeader: React.FC<BackHeaderProps> = ({ title, onBack, right }) 
       <Icon name="chevL" size={18} className="text-foreground" />
     </button>
     <p className="text-base font-extrabold text-foreground">{title}</p>
-    <div className="w-9">{right}</div>
+    <div className="min-w-9 flex items-center justify-end">{right}</div>
   </div>
 );
