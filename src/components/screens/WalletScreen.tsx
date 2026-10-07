@@ -236,7 +236,7 @@ const WalletScreen: React.FC = () => {
         <div className="gradient-hero rounded-[20px] p-5 mb-3 relative overflow-hidden">
           <div className="absolute -right-5 -top-5 w-[100px] h-[100px] rounded-full bg-primary/10" />
           <p className="text-[11px] text-primary-foreground/50 uppercase tracking-widest mb-1">Available Balance</p>
-          <p className="text-4xl font-black text-primary-foreground mb-1">{displayBalance}</p>
+          <p className="text-4xl font-black text-primary-foreground mb-1">{balance !== null ? <>₹<CountUp id="wallet-balance" value={Number(balance) || 0} /></> : <Shimmer className="h-9 w-28" />}</p>
           <p className="text-[11px] text-primary-foreground/40 mb-4">Updated from your account</p>
           <AppButton icon="arrowUp" className="!py-2.5 !px-4 !text-xs !rounded-[10px]" onClick={() => setWithdrawOpen(true)}>Withdraw</AppButton>
         </div>

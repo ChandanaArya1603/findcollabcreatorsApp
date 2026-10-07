@@ -4,6 +4,7 @@ import { clearDashboardCache } from "@/lib/dashboardCache";
 import { retryPendingPurchases } from "@/lib/pendingPurchases";
 import { clearQueryCache } from "@/lib/queryClient";
 import { prefetchAppData } from "@/hooks/useAppData";
+import { resetCountUps } from "@/components/findcollab/CountUp";
 
 interface User {
   id: number;
@@ -344,6 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearDashboardCache();
     clearQueryCache();
     setWelcomeName(null);
+    resetCountUps();
     setState({
       user: null,
       userDetail: null,
