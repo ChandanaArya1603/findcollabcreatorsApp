@@ -82,7 +82,9 @@ class ApiClient {
       json = sanitize(JSON.parse(text.slice(jsonStart)));
     } catch {
       // Server returned non-JSON (e.g. an HTML error page) — never surface raw parser text.
-      throw new Error("The server couldn't save this right now. Please try again later.");
+      const e: any = new Error("The server couldn't save this right now. Please try again later.");
+      e.nonJson = true; e.status = res.status;
+      throw e;
     }
 
     if (!res.ok || json?.data?.status === false) {

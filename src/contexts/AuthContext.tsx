@@ -11,6 +11,7 @@ interface User {
   lname: string;
   email: string;
   sign_up_type: string;
+  has_password?: boolean;
 }
 
 interface UserDetail {
@@ -31,7 +32,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, referralCode?: string) => Promise<{ isNewUser: boolean }>;
   register: (data: Record<string, any>) => Promise<any>;
   logout: () => Promise<void>;
   setAuthData: (data: { token: string; user: User; userDetail: UserDetail }) => void;
@@ -133,6 +134,9 @@ const normalizeUser = (user: Partial<User> & Record<string, any>, userDetail?: R
     lname: isMeaningfulValue(user.lname) ? user.lname.trim() : parts.lname,
     email: user.email ?? userDetail?.email ?? "",
     sign_up_type: user.sign_up_type ?? userDetail?.sign_up_type ?? "",
+    ...(user.has_password !== undefined && user.has_password !== null
+      ? { has_password: ((v: any) => v === true || v === 1 || v === "1" || v === "true")(user.has_password) }
+      : {}),
   };
 };
 
@@ -275,18 +279,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [setAuthData]);
 
-  const loginWithGoogle = useCallback(async (idToken: string) => {
-    const res = await api.postForm("/google_login", { id_token: idToken, credential: idToken });
+  const loginWithGoogle = useCallback(async (idToken: string, referralCode?: string) => {
+    const body: Record<string, string> = { id_token: idToken };
+    if (referralCode) body.referral_code = referralCode;
+    let res: any;
+    try {
+      res = await api.postForm("/google_login", body);
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      if (e?.nonJson || e?.status === 404 || /unknown method|not found/i.test(msg)) {
+        const err: any = new Error("coming soon"); err.comingSoon = true; throw err;
+      }
+      if (/brand|creator|influencer/i.test(msg) && /only|not|account/i.test(msg)) {
+        const err: any = new Error(msg); err.notCreator = true; throw err;
+      }
+      throw e;
+    }
+    if (!res?.token) { const err: any = new Error("coming soon"); err.comingSoon = true; throw err; }
+    // Creator-only app: refuse brand accounts before storing anything.
+    const u = res.user ?? {};
+    const kind = String(u.user_type ?? u.type ?? u.role ?? u.account_type ?? res.user_type ?? "").toLowerCase();
+    if (kind && !/influencer|creator/.test(kind) && kind !== "1") {
+      const err: any = new Error("not creator"); err.notCreator = true; throw err;
+    }
+    const isNewUser = res.is_new_user === true || res.is_new_user === 1 || res.is_new_user === "1";
+    if (isNewUser) {
+      try { localStorage.setItem("fc_onboarding_pending", "1"); } catch { /* ignore */ }
+    }
     const rawUser = res.user ?? {
       id: res.id ?? res.user_login_id,
-      fname: res.fname ?? res.first_name ?? "",
-      lname: res.lname ?? res.last_name ?? "",
-      email: res.email ?? "",
-      sign_up_type: res.sign_up_type ?? "google",
+      fname: res.fname ?? "", lname: res.lname ?? "", email: res.email ?? "", sign_up_type: "google",
     };
     const userDetail = res.userDetail ?? res.user_detail ?? res;
-    const normalizedUser = normalizeUser(rawUser, userDetail);
-    setAuthData({ token: res.token, user: normalizedUser, userDetail });
+    setAuthData({ token: res.token, user: normalizeUser(rawUser, userDetail), userDetail });
+    return { isNewUser };
   }, [setAuthData]);
 
   const register = useCallback(async (data: Record<string, any>) => {
@@ -334,7 +360,7 @@ export const useAuth = () => {
       return {
         user: null, userDetail: null, token: null,
         isAuthenticated: false, isLoading: true,
-        login: async () => {}, loginWithGoogle: async () => {}, register: async () => ({}),
+        login: async () => {}, loginWithGoogle: async () => ({ isNewUser: false }), register: async () => ({}),
         logout: async () => {}, setAuthData: () => {}, refreshProfile: async () => {},
       } as unknown as AuthContextType;
     }

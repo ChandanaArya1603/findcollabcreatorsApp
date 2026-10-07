@@ -14,9 +14,11 @@ const ITEMS = [
 interface Props { onBack: () => void; onOpenWallet: () => void }
 
 const DeleteAccountScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const hasPw = user?.has_password; // undefined → unknown, keep the fallback checkbox
   const [password, setPassword] = useState("");
-  const [noPassword, setNoPassword] = useState(false);
+  const [noPwChecked, setNoPassword] = useState(false);
+  const noPassword = hasPw === false || (hasPw === undefined && noPwChecked);
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pwErr, setPwErr] = useState("");
@@ -89,17 +91,17 @@ const DeleteAccountScreen: React.FC<Props> = ({ onBack, onOpenWallet }) => {
               <p className="text-xs font-bold text-foreground mt-3">This cannot be undone.</p>
             </Card>
 
-            <div>
+            {hasPw !== false && <div>
               <label className="text-[11px] font-bold text-text-mid uppercase tracking-wider">Password</label>
               <input type="password" value={password} disabled={noPassword} autoComplete="current-password"
                 onChange={(e) => { setPassword(e.target.value); setPwErr(""); }}
                 className={`w-full p-3 rounded-xl border-[1.5px] ${pwErr ? "border-destructive" : "border-border"} text-sm bg-card text-foreground outline-none focus:border-primary mt-1.5 disabled:opacity-50`} />
               {pwErr && <p className="text-[11px] text-destructive font-bold mt-1">{pwErr}</p>}
-              <label className="flex items-center gap-2 text-xs text-text-mid mt-2">
-                <input type="checkbox" checked={noPassword} onChange={(e) => { setNoPassword(e.target.checked); setPwErr(""); }} />
+              {hasPw === undefined && <label className="flex items-center gap-2 text-xs text-text-mid mt-2">
+                <input type="checkbox" checked={noPwChecked} onChange={(e) => { setNoPassword(e.target.checked); setPwErr(""); }} />
                 I signed up with Google and don't have a password
-              </label>
-            </div>
+              </label>}
+            </div>}
 
             <label className="flex items-start gap-2 text-xs text-foreground">
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" />
