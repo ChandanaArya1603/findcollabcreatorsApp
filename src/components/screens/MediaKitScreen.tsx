@@ -366,7 +366,7 @@ const MediaKitScreen: React.FC<Props> = ({ onBack }) => {
       return;
     }
     const url = `https://findcollab.com/instagram/${encodeURIComponent(handle)}`;
-    const title = `${user.fname}${(user as any).lname ? ` ${(user as any).lname}` : ""} – Media Kit`;
+    const title = `${displayName} – Media Kit`;
     try {
       if (navigator.share) {
         await navigator.share({ title, text: "Check out my Findcollab media kit", url });
