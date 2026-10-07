@@ -354,7 +354,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, register, logout, setAuthData, refreshProfile, welcomeName, clearWelcome }}>
       {children}
     </AuthContext.Provider>
   );
