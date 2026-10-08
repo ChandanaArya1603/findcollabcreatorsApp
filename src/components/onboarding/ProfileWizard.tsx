@@ -232,9 +232,8 @@ const ProfileWizard: React.FC<Props> = ({ initialStep = 0, onClose, onSkip }) =>
           {saving ? "Saving…" : "Save"}
         </AppButton>
         <div className="flex-1">
-          <AppButton full disabled={saving}
-            onClick={step === 0 ? () => saveSocial(true) : step === 1 ? () => saveCommercials(true) : finishProjects}>
-            {saving ? "Saving…" : step === 2 ? "Finish" : "Next"}
+          <AppButton full disabled={saving} onClick={() => (step >= 2 ? onClose() : setStep(step + 1))}>
+            {step === 2 ? "Finish" : "Next"}
           </AppButton>
         </div>
       </div>
